@@ -33,9 +33,12 @@ include (${IWASM_DIR}/compilation/iwasm_compl.cmake)
 
 include_directories (${CMAKE_CURRENT_SOURCE_DIR})
 
-file (GLOB_RECURSE source_all ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
+file (GLOB source_all ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
 
 set (UNIT_SOURCE ${source_all})
+
+# Add arch-specific source files
+include_directories(${IWASM_DIR}/aot/arch)
 
 set (unit_test_sources
      ${UNIT_SOURCE}
@@ -52,8 +55,9 @@ set (unit_test_sources
 
 # Now simply link against gtest or gtest_main as needed. Eg
 add_executable (aot_test ${unit_test_sources})
-
-target_link_libraries (aot_test ${LLVM_AVAILABLE_LIBS} gtest_main )
+enable_testing()
+include(GoogleTest)
+target_link_libraries (aot_test ${LLVM_AVAILABLE_LIBS} gtest_main gtest)
 
 gtest_discover_tests(aot_test)
 
