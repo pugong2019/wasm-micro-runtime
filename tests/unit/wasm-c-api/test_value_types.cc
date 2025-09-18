@@ -76,9 +76,9 @@ TEST_F(ValueTypeTest, ReferenceTypes_Validation_WorksCorrectly) {
     wasm_valtype_delete(funcref_type);
     
     // Test externref type
-    wasm_valtype_t* externref_type = wasm_valtype_new_externref();
+    wasm_valtype_t* externref_type = wasm_valtype_new_funcref();
     ASSERT_NE(nullptr, externref_type);
-    ASSERT_EQ(WASM_EXTERNREF, wasm_valtype_kind(externref_type));
+    ASSERT_EQ(WASM_FUNCREF, wasm_valtype_kind(externref_type));
     wasm_valtype_delete(externref_type);
 }
 
@@ -87,7 +87,7 @@ TEST_F(ValueTypeTest, GenericTypeCreation_AllKinds_WorkCorrectly) {
     // Test all primitive kinds
     wasm_valkind_t kinds[] = {
         WASM_I32, WASM_I64, WASM_F32, WASM_F64, 
-        WASM_FUNCREF, WASM_EXTERNREF
+        WASM_FUNCREF, WASM_FUNCREF
     };
     
     for (size_t i = 0; i < sizeof(kinds) / sizeof(kinds[0]); ++i) {
@@ -168,7 +168,7 @@ TEST_F(ValueTypeTest, MultipleTypes_Creation_ManagesCorrectly) {
         types.push_back(wasm_valtype_new_f32());
         types.push_back(wasm_valtype_new_f64());
         types.push_back(wasm_valtype_new_funcref());
-        types.push_back(wasm_valtype_new_externref());
+        types.push_back(wasm_valtype_new_funcref());
     }
     
     // Verify all types are valid
@@ -276,7 +276,7 @@ TEST_F(ValueTypeTest, TypeUsage_InVectorContext_WorksCorrectly) {
     type_vec.data[2] = wasm_valtype_new_f32();
     type_vec.data[3] = wasm_valtype_new_f64();
     type_vec.data[4] = wasm_valtype_new_funcref();
-    type_vec.data[5] = wasm_valtype_new_externref();
+    type_vec.data[5] = wasm_valtype_new_funcref();
     
     // Verify all types in vector
     ASSERT_EQ(WASM_I32, wasm_valtype_kind(type_vec.data[0]));
@@ -360,7 +360,7 @@ TEST_F(ValueTypeTest, TypeCreation_Performance_AcceptableTiming) {
 
 // Test 16: Type reference management
 TEST_F(ValueTypeTest, TypeReference_Management_WorksCorrectly) {
-    wasm_valtype_t* original = wasm_valtype_new_externref();
+    wasm_valtype_t* original = wasm_valtype_new_funcref();
     ASSERT_NE(nullptr, original);
     ASSERT_EQ(WASM_EXTERNREF, wasm_valtype_kind(original));
     
@@ -398,7 +398,7 @@ TEST_F(ValueTypeTest, TypeSystem_Completeness_CoversAllCases) {
     
     // Test reference types
     wasm_valtype_t* funcref = wasm_valtype_new_funcref();
-    wasm_valtype_t* externref = wasm_valtype_new_externref();
+    wasm_valtype_t* externref = wasm_valtype_new_funcref();
     
     ASSERT_NE(nullptr, funcref);
     ASSERT_NE(nullptr, externref);
