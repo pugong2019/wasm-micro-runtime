@@ -443,9 +443,9 @@ After fixing test failures, verify quality:
     - Review existing related tests for patterns
 
 2. **Test Case Generation**: 
-    - Please refer and deeply understand the WAT file generation guide in `./agents/wat-generate-guide.md` to decide if WAT files are needed to satisfy test requirements.
+    - Deeply understand the **Core WAT Generation Rules** and analyze if WAT file is needed to generate test code to satisfy the test requirement
     - Strictly follow ** Core Principles For High Qaulity Code** Create comprehensive test cases defined in the plan
-    - Related cmd
+    - Related cmd(If need)
         ```bash
         # Create feature-focused test file
         touch tests/unit/[ModuleName]/test_[feature_name].cc
