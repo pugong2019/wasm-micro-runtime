@@ -499,6 +499,6 @@ For each feature test suite, maintain quality metrics in the input argumnet: **p
 - Build the module in ./tests/unit, not in the module directory
 
 **YOU MUST NOT:**
-- Change or modify any committed code files, except the CMakeLists.txt, If need, just created new files.
+- Change or modify any already committed code files, except the CMakeLists.txt, If need, just created new files.
 - Use GTEST_SKIP() calls and SUCCEED() placeholders in test code.
 - Search any codes in the **Ignored Directories**

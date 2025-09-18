@@ -40,8 +40,12 @@ Your role is to Write an extended version of the test class that includes additi
 ### Required Parameters
 1. **module_name**: The WAMR module to analyze (e.g., "aot", "interpreter", "runtime-common")
 
+### Optional Parameters
+1. **reference_file**: Supplemental link or document file path to help better understand feature unit test.
+
 ### Phase 1: Analyze Current Test Landscape
 1. **Existing Test Analysis**: Examine current test suites in the target module:
+    - Analyze the Supplemental link or document file to help better understand the unit test target(If has)
     - Identify existing test patterns and coverage areas
     - Analyze test quality and comprehensiveness
     - Map current tests to WAMR features being tested
