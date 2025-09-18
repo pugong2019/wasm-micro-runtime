@@ -68,6 +68,7 @@ add_executable(wasm_c_api_test
   test_engine_store.cc
   test_vectors.cc
   test_value_types.cc
+  test_function_types.cc
 )
 
 target_link_libraries(wasm_c_api_test vmlib gtest_main)
