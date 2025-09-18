@@ -70,6 +70,7 @@ add_executable(wasm_c_api_test
   test_value_types.cc
   test_function_types.cc
   test_global_table_memory_types.cc
+  test_external_types.cc
 )
 
 target_link_libraries(wasm_c_api_test vmlib gtest_main)
