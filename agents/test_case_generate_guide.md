@@ -13,28 +13,28 @@ TEST_F(MyTest, SomeFunction) {
 
 ✅ **Good Example:**
 ```cpp
-TEST_F(MyTest, SomeFunctionReturnsExpectedValue) {
+TEST_F(MyTest, SomeFunctionReturnsASSERTedValue) {
     int result = some_function();
-    EXPECT_EQ(42, result);
-    EXPECT_GT(result, 0);
+    ASSERT_EQ(42, result);
+    ASSERT_GT(result, 0);
 }
 ```
 
 ### 2. **Use Specific Assertions, Avoid Tautologies**
 ❌ **Bad Examples (Always True):**
 ```cpp
-EXPECT_TRUE(result == 0 || result != 0); // Always true - covers all integers!
-EXPECT_TRUE(result >= 0 || result < 0);  // Always true - covers all integers!
-EXPECT_TRUE(result == SUCCESS || result == FAILURE || result == OTHER); // Too permissive!
+ASSERT_TRUE(result == 0 || result != 0); // Always true - covers all integers!
+ASSERT_TRUE(result >= 0 || result < 0);  // Always true - covers all integers!
+ASSERT_TRUE(result == SUCCESS || result == FAILURE || result == OTHER); // Too permissive!
 ```
 
 ✅ **Good Examples:**
 ```cpp
-EXPECT_EQ(0, result);                    // Specific success expectation
-EXPECT_NE(0, result);                    // Specific failure expectation  
-EXPECT_TRUE(result == 0 || result == -1); // Specific success OR specific error
-EXPECT_GE(result, 0);                    // Meaningful boundary check
-EXPECT_LT(result, MAX_VALUE);            // Meaningful upper bound
+ASSERT_EQ(0, result);                    // Specific success ASSERTation
+ASSERT_NE(0, result);                    // Specific failure ASSERTation  
+ASSERT_TRUE(result == 0 || result == -1); // Specific success OR specific error
+ASSERT_GE(result, 0);                    // Meaningful boundary check
+ASSERT_LT(result, MAX_VALUE);            // Meaningful upper bound
 ```
 
 ### 3. **Test Both Success and Error Paths**
@@ -42,13 +42,13 @@ EXPECT_LT(result, MAX_VALUE);            // Meaningful upper bound
 ```cpp
 TEST_F(FileTest, OpenValidFile) {
     int fd = os_openat(AT_FDCWD, valid_file, O_CREAT, 0, 0, READ_WRITE, &handle);
-    EXPECT_EQ(__WASI_ESUCCESS, fd);
-    EXPECT_GE(handle, 0);
+    ASSERT_EQ(__WASI_ESUCCESS, fd);
+    ASSERT_GE(handle, 0);
 }
 
 TEST_F(FileTest, OpenInvalidFile) {
     int fd = os_openat(AT_FDCWD, "/nonexistent/path", 0, 0, 0, READ_ONLY, &handle);
-    EXPECT_EQ(__WASI_ENOENT, fd);
+    ASSERT_EQ(__WASI_ENOENT, fd);
 }
 ```
 
@@ -77,7 +77,7 @@ protected:
 TEST_F(NetworkTest, IPv6Socket) {
     int result = os_socket_create(&socket, false, true); // IPv6
     if (result == 0) {
-        EXPECT_GT(socket, 0);
+        ASSERT_GT(socket, 0);
         // Test IPv6-specific functionality
         os_socket_close(socket);
     } else {
@@ -91,10 +91,10 @@ TEST_F(NetworkTest, IPv6Socket) {
 ```cpp
 TEST_F(BufferTest, ReadDifferentSizes) {
     // Test boundary conditions
-    EXPECT_EQ(0, read_buffer(buffer, 0));        // Zero size
-    EXPECT_GT(read_buffer(buffer, 1), 0);        // Minimum size
-    EXPECT_GT(read_buffer(buffer, 4096), 0);     // Page size
-    EXPECT_GT(read_buffer(buffer, 65536), 0);    // Large buffer
+    ASSERT_EQ(0, read_buffer(buffer, 0));        // Zero size
+    ASSERT_GT(read_buffer(buffer, 1), 0);        // Minimum size
+    ASSERT_GT(read_buffer(buffer, 4096), 0);     // Page size
+    ASSERT_GT(read_buffer(buffer, 65536), 0);    // Large buffer
 }
 ```
 
@@ -114,7 +114,7 @@ TEST_F(FileTest, WriteChangesFileSize) {
     // Verify state change
     __wasi_filestat_t stat_after;
     ASSERT_EQ(__WASI_ESUCCESS, os_fstat(fd, &stat_after));
-    EXPECT_EQ(stat_before.st_size + strlen(data), stat_after.st_size);
+    ASSERT_EQ(stat_before.st_size + strlen(data), stat_after.st_size);
 }
 ```
 
@@ -141,17 +141,17 @@ TEST_F(BadTest, LeakyTest) {
 
 ### ❌ **Overly Permissive Assertions**
 ```cpp
-// Don't accept any result when you should expect specific outcomes
-EXPECT_TRUE(result == SUCCESS || result == FAILURE); // Too broad!
-EXPECT_TRUE(result >= 0 || result < 0);              // ALWAYS TRUE - meaningless!
-EXPECT_TRUE(result == 0 || result != 0);             // ALWAYS TRUE - meaningless!
+// Don't accept any result when you should ASSERT specific outcomes
+ASSERT_TRUE(result == SUCCESS || result == FAILURE); // Too broad!
+ASSERT_TRUE(result >= 0 || result < 0);              // ALWAYS TRUE - meaningless!
+ASSERT_TRUE(result == 0 || result != 0);             // ALWAYS TRUE - meaningless!
 ```
 
 ### ❌ **Testing Implementation Details**
 ```cpp
 // Don't test internal implementation, test public behavior
-EXPECT_EQ(3, internal_counter); // Implementation detail
-// Instead: EXPECT_EQ(expected_output, public_function());
+ASSERT_EQ(3, internal_counter); // Implementation detail
+// Instead: ASSERT_EQ(ASSERTed_output, public_function());
 ```
 
 ## Test Structure Template
@@ -176,16 +176,16 @@ protected:
     TestResource resource;
 };
 
-TEST_F(ModuleTest, FunctionName_Scenario_ExpectedOutcome) {
+TEST_F(ModuleTest, FunctionName_Scenario_ASSERTedOutcome) {
     // Arrange: Set up test conditions
     TestData input = create_test_data();
     
     // Act: Execute the function under test
     Result actual = function_under_test(input);
     
-    // Assert: Verify expected outcomes
-    EXPECT_EQ(expected_result, actual);
-    EXPECT_TRUE(verify_side_effects());
+    // Assert: Verify ASSERTed outcomes
+    ASSERT_EQ(ASSERTed_result, actual);
+    ASSERT_TRUE(verify_side_effects());
 }
 ```
 
@@ -197,7 +197,7 @@ TEST_F(ModuleTest, FunctionName_Scenario_ExpectedOutcome) {
 - Resource cleanup is automatic and reliable
 - Tests are independent and can run in any order
 - Platform differences are handled gracefully
-- Test names clearly describe the scenario and expectation
+- Test names clearly describe the scenario and ASSERTation
 
 ### ❌ **Low-Quality Test Indicators:**
 - Tests that always pass regardless of implementation
@@ -225,24 +225,24 @@ TEST_F(SocketTest, TcpSocketBindAndListen_Success) {
     // Create TCP socket
     int result = os_socket_create(&socket, true, true);
     ASSERT_EQ(0, result);
-    EXPECT_GT(socket, 0);
+    ASSERT_GT(socket, 0);
     
     // Bind to localhost with dynamic port
     int port = 0;
     result = os_socket_bind(socket, "127.0.0.1", &port);
-    EXPECT_EQ(0, result);
-    EXPECT_GT(port, 0);
+    ASSERT_EQ(0, result);
+    ASSERT_GT(port, 0);
     
     // Start listening
     result = os_socket_listen(socket, 5);
-    EXPECT_EQ(0, result);
+    ASSERT_EQ(0, result);
     
     // Verify socket is in listening state
     bh_sockaddr_t addr;
     result = os_socket_addr_local(socket, &addr);
-    EXPECT_EQ(0, result);
-    EXPECT_TRUE(addr.is_ipv4);
-    EXPECT_EQ(port, addr.port);
+    ASSERT_EQ(0, result);
+    ASSERT_TRUE(addr.is_ipv4);
+    ASSERT_EQ(port, addr.port);
 }
 ```
 

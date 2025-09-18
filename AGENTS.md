@@ -31,9 +31,13 @@ Current test directories in `tests/unit/`:
 - `compilation/`: AOT compilation pipeline
 
 ## Ignored Directories
-
 - **language-bindings/**
 - **zephyr/**
+- **wamr-sdk/**
+- **wamr-wasi-extensions/**
+- **ci/**
+- **samples/workload/**
+- **test-tools/**
 
 ## Coverage Report Location
 **Report Location**: `tests/unit/wamr-lcov/wamr-lcov/index.html`  
@@ -322,132 +326,157 @@ For each feature test suite, maintain quality metrics in `tests/unit/[ModuleName
   - Blockers: [LIST_ANY_BLOCKERS]
 ```
 
-## Test Quality Guidelines
-To generate meaningful and high-quality feature tests, you **must strictly follow these guidelines**:
+## Core Principles High Qaulity Code
 
-### 1. **Feature-Focused Testing Philosophy**
-✅ **Good Approach:**
+### 1. **Verify Actual Functionality, Not Just Execution**
+❌ **Bad Example:**
 ```cpp
-TEST_F(MemoryTest, LinearMemoryGrowthHandlesMaximumSize) {
-    // Test specific memory feature: growth to maximum allowed size
-    wasm_module_inst_t* inst = create_test_instance_with_memory(1, 65536); // 1 page, max 65536
-    
-    // Test growth to maximum
-    bool result = wasm_runtime_enlarge_memory(inst, 65535); // Grow to max
-    EXPECT_TRUE(result);
-    EXPECT_EQ(65536, get_memory_page_count(inst));
-    
-    // Test growth beyond maximum fails gracefully
-    result = wasm_runtime_enlarge_memory(inst, 1); // Try to exceed max
-    EXPECT_FALSE(result);
-    EXPECT_EQ(65536, get_memory_page_count(inst)); // Size unchanged
+TEST_F(MyTest, SomeFunction) {
+    some_function();
+    SUCCEED() << "Function executed successfully";
 }
 ```
 
-### 2. **Comprehensive Feature Validation**
-✅ **Complete Feature Testing:**
+✅ **Good Example:**
 ```cpp
-// Test suite covering all aspects of a feature
-TEST_F(ModuleLoadingTest, LoadValidWasmModule) {
-    // Test successful loading
-    WAMRModule module(valid_wasm_buffer, sizeof(valid_wasm_buffer));
-    EXPECT_NE(module.get(), nullptr);
-    EXPECT_TRUE(module.is_valid());
-}
-
-TEST_F(ModuleLoadingTest, LoadInvalidWasmModuleRejectsGracefully) {
-    // Test invalid module handling
-    WAMRModule module(invalid_wasm_buffer, sizeof(invalid_wasm_buffer));
-    EXPECT_EQ(module.get(), nullptr);
-    EXPECT_FALSE(module.is_valid());
-}
-
-TEST_F(ModuleLoadingTest, LoadEmptyBufferHandlesError) {
-    // Test edge case
-    WAMRModule module(nullptr, 0);
-    EXPECT_EQ(module.get(), nullptr);
-    EXPECT_FALSE(module.is_valid());
+TEST_F(MyTest, SomeFunctionReturnsASSERTedValue) {
+    int result = some_function();
+    ASSERT_EQ(42, result);
+    ASSERT_GT(result, 0);
 }
 ```
 
-### 3. **Integration and Cross-Feature Testing**
-✅ **Feature Integration:**
+### 2. **Use Specific Assertions, Avoid Tautologies**
+❌ **Bad Examples (Always True):**
 ```cpp
-TEST_F(MemoryAndExecutionTest, MemoryAccessDuringFunctionExecution) {
-    // Test memory feature integration with execution
-    WAMRModule module(memory_access_wasm, sizeof(memory_access_wasm));
-    WAMRInstance instance(module);
-    WAMRExecEnv exec_env(instance);
-    
-    // Execute function that accesses memory
-    wasm_val_t args[] = { WASM_I32_VAL(1024) }; // Memory offset
-    wasm_val_t results[1];
-    
-    bool success = wasm_runtime_call_wasm(exec_env.get(), "memory_read", 1, args, 1, results);
-    EXPECT_TRUE(success);
-    EXPECT_EQ(WASM_I32_VAL(42), results[0]); // Expected value at offset 1024
+ASSERT_TRUE(result == 0 || result != 0); // Always true - covers all integers!
+ASSERT_TRUE(result >= 0 || result < 0);  // Always true - covers all integers!
+ASSERT_TRUE(result == SUCCESS || result == FAILURE || result == OTHER); // Too permissive!
+```
+
+✅ **Good Examples:**
+```cpp
+ASSERT_EQ(0, result);                    // Specific success ASSERTation
+ASSERT_NE(0, result);                    // Specific failure ASSERTation  
+ASSERT_TRUE(result == 0 || result == -1); // Specific success OR specific error
+ASSERT_GE(result, 0);                    // Meaningful boundary check
+ASSERT_LT(result, MAX_VALUE);            // Meaningful upper bound
+```
+
+### 3. **Test Both Success and Error Paths**
+✅ **Complete Coverage:**
+```cpp
+TEST_F(FileTest, OpenValidFile) {
+    int fd = os_openat(AT_FDCWD, valid_file, O_CREAT, 0, 0, READ_WRITE, &handle);
+    ASSERT_EQ(__WASI_ESUCCESS, fd);
+    ASSERT_GE(handle, 0);
+}
+
+TEST_F(FileTest, OpenInvalidFile) {
+    int fd = os_openat(AT_FDCWD, "/nonexistent/path", 0, 0, 0, READ_ONLY, &handle);
+    ASSERT_EQ(__WASI_ENOENT, fd);
 }
 ```
 
-### 4. **Stress and Performance Testing**
-✅ **Stress Testing:**
+### 4. **Proper Resource Management**
+✅ **RAII Pattern:**
 ```cpp
-TEST_F(MemoryStressTest, MultipleMemoryAllocationsUnderPressure) {
-    std::vector<WAMRInstance> instances;
-    
-    // Create multiple instances to stress memory system
-    for (int i = 0; i < 100; i++) {
-        WAMRModule module(test_wasm_buffer, sizeof(test_wasm_buffer));
-        instances.emplace_back(module);
-        EXPECT_TRUE(instances.back().is_valid()) << "Failed at instance " << i;
+class ResourceTest : public testing::Test {
+protected:
+    void SetUp() override {
+        resource = acquire_resource();
     }
     
-    // Verify all instances are functional
-    for (size_t i = 0; i < instances.size(); i++) {
-        EXPECT_TRUE(instances[i].can_execute_functions()) << "Instance " << i << " not functional";
+    void TearDown() override {
+        if (resource_valid(resource)) {
+            release_resource(resource);
+        }
     }
-}
-```
-
-### 5. **Platform and Configuration Testing**
-✅ **Platform-Aware Testing:**
-```cpp
-TEST_F(PlatformFeatureTest, ThreadingFeatureAvailability) {
-    bool threading_supported = wasm_runtime_is_thread_supported();
     
-    if (threading_supported) {
-        // Test threading functionality
-        WAMRModule module(threading_wasm, sizeof(threading_wasm));
-        WAMRInstance instance(module);
-        
-        bool result = test_threading_operations(instance);
-        EXPECT_TRUE(result) << "Threading operations failed on supported platform";
+    Resource resource;
+};
+```
+### 5. **Handle Platform-Dependent Behavior Gracefully**
+✅ **Conditional Testing:**
+```cpp
+TEST_F(NetworkTest, IPv6Socket) {
+    int result = os_socket_create(&socket, false, true); // IPv6
+    if (result == 0) {
+        ASSERT_GT(socket, 0);
+        // Test IPv6-specific functionality
+        os_socket_close(socket);
     } else {
-        GTEST_SKIP() << "Threading not supported on this platform";
+        GTEST_SKIP() << "IPv6 not available on this system";
     }
 }
 ```
 
-### 6. **Error Recovery and Robustness Testing**
-✅ **Robustness Testing:**
+### 6. **Use Meaningful Test Data and Boundaries**
+✅ **Boundary Testing:**
 ```cpp
-TEST_F(ErrorRecoveryTest, RuntimeRecoveryAfterStackOverflow) {
-    WAMRModule module(recursive_wasm, sizeof(recursive_wasm));
-    WAMRInstance instance(module);
-    WAMRExecEnv exec_env(instance);
-    
-    // Trigger stack overflow
-    wasm_val_t args[] = { WASM_I32_VAL(10000) }; // Deep recursion
-    wasm_val_t results[1];
-    
-    bool success = wasm_runtime_call_wasm(exec_env.get(), "deep_recursion", 1, args, 1, results);
-    EXPECT_FALSE(success); // Should fail due to stack overflow
-    
-    // Verify runtime can recover and execute simple operations
-    wasm_val_t simple_args[] = { WASM_I32_VAL(5) };
-    success = wasm_runtime_call_wasm(exec_env.get(), "simple_add", 1, simple_args, 1, results);
-    EXPECT_TRUE(success) << "Runtime failed to recover after stack overflow";
+TEST_F(BufferTest, ReadDifferentSizes) {
+    // Test boundary conditions
+    ASSERT_EQ(0, read_buffer(buffer, 0));        // Zero size
+    ASSERT_GT(read_buffer(buffer, 1), 0);        // Minimum size
+    ASSERT_GT(read_buffer(buffer, 4096), 0);     // Page size
+    ASSERT_GT(read_buffer(buffer, 65536), 0);    // Large buffer
 }
+```
+
+### 7. **Validate State Changes and Side Effects**
+✅ **State Verification:**
+```cpp
+TEST_F(FileTest, WriteChangesFileSize) {
+    // Initial state
+    __wasi_filestat_t stat_before;
+    ASSERT_EQ(__WASI_ESUCCESS, os_fstat(fd, &stat_before));
+    
+    // Perform operation
+    const char* data = "test data";
+    size_t written;
+    ASSERT_EQ(__WASI_ESUCCESS, os_writev(fd, &iov, 1, &written));
+    
+    // Verify state change
+    __wasi_filestat_t stat_after;
+    ASSERT_EQ(__WASI_ESUCCESS, os_fstat(fd, &stat_after));
+    ASSERT_EQ(stat_before.st_size + strlen(data), stat_after.st_size);
+}
+```
+
+## Anti-Patterns to Avoid
+
+### ❌ **Meaningless Success Tests**
+```cpp
+// Don't write tests that only verify execution without checking results
+TEST_F(BadTest, FunctionRuns) {
+    function_call();
+    SUCCEED(); // Meaningless!
+}
+```
+
+### ❌ **Tests Without Cleanup**
+```cpp
+// Don't leave resources dangling
+TEST_F(BadTest, LeakyTest) {
+    int fd = open_file();
+    write_data(fd);
+    // Missing: close(fd);
+}
+```
+
+### ❌ **Overly Permissive Assertions**
+```cpp
+// Don't accept any result when you should ASSERT specific outcomes
+ASSERT_TRUE(result == SUCCESS || result == FAILURE); // Too broad!
+ASSERT_TRUE(result >= 0 || result < 0);              // ALWAYS TRUE - meaningless!
+ASSERT_TRUE(result == 0 || result != 0);             // ALWAYS TRUE - meaningless!
+```
+
+### ❌ **Testing Implementation Details**
+```cpp
+// Don't test internal implementation, test public behavior
+ASSERT_EQ(3, internal_counter); // Implementation detail
+// Instead: ASSERT_EQ(ASSERTed_output, public_function());
 ```
 
 ## Issue Resolution Protocol
@@ -478,33 +507,14 @@ When tests fail during execution, systematically debug:
 - Identify whether it's assertion failure or runtime error
 - Check expected vs actual values in failed assertions
 
-#### **Step 2: Fix Common Test Issues**
-```cpp
-// ❌ Common Issue: Wrong expected values
-EXPECT_EQ(0, result);  // If result is actually -1 for valid error case
-// ✅ Fix: Use correct expected value
-EXPECT_EQ(-1, result); // Or EXPECT_LT(result, 0) for error cases
-
-// ❌ Common Issue: Uninitialized resources  
-TEST_F(MyTest, SomeTest) {
-    int result = some_function(uninitialized_ptr);  // Crash!
-}
-// ✅ Fix: Proper initialization
-TEST_F(MyTest, SomeTest) {
-    setup_valid_resource();
-    int result = some_function(valid_ptr);
-    EXPECT_GE(result, 0);
-}
-```
-
-#### **Step 3: Validate Test Logic Against Feature Requirements**
+#### **Step 2: Validate Test Logic Against Feature Requirements**
 - **Read the feature specification** and implementation
 - **Understand feature behavior** under different conditions
 - Verify expected outcomes match feature specifications
 - Check error conditions and edge cases in the feature
 - Ensure test parameters exercise the intended feature paths
 
-#### **Step 4: Iterative Fix Process**
+#### **Step 3: Iterative Fix Process**
 1. **Fix ONE test at a time** - don't fix all tests simultaneously
 2. **Run single test** to verify fix:
     ```bash
@@ -538,9 +548,12 @@ Please refer and deeply understand the WAT file generation guide in `./agents/wa
 - Design test suites that validate complete feature functionality
 - Ensure tests demonstrate real feature validation with meaningful assertions
 - Eliminated all GTEST_SKIP() calls and SUCCEED() placeholders
-- Deep understand flow the **Generate WAT Files Guide** to generate code and analyze if WAT file is needed to generate test code
-- Follow the **Test Quality Guidelines** to generate high-quality code
+- Deeply understand and follow the **Generate WAT Files Guide** to generate code and analyze if WAT file is needed to generate test code
+
+- Deeply understand **Core Principles High Qaulity Code** when generate code
 - First refer the **Issue Resolution Protocol** to fix any problems
 
 **YOU MUST NOT:**
 - Change or modify any committed code files, except the CMakeLists.txt, If need, just created new files.
+- Use GTEST_SKIP() calls and SUCCEED() placeholders in test code.
+- Search any codes in the **Ignored Directories**
