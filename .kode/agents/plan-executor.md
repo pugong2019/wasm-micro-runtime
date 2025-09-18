@@ -223,16 +223,7 @@ wat2wasm --enable-memory64 --enable-threads --enable-simd full_test.wat -o full_
 
 ## Core Principles For High Qaulity Code
 
-### 1. **Verify Actual Functionality, Not Just Execution**
-❌ **Bad Example:**
-```cpp
-TEST_F(MyTest, SomeFunction) {
-    some_function();
-    SUCCEED() << "Function executed successfully";
-}
-```
-
-✅ **Good Example:**
+### 1. Verify Actual Functionality, Not Just Execution
 ```cpp
 TEST_F(MyTest, SomeFunctionReturnsASSERTedValue) {
     int result = some_function();
@@ -241,15 +232,7 @@ TEST_F(MyTest, SomeFunctionReturnsASSERTedValue) {
 }
 ```
 
-### 2. **Use Specific Assertions, Avoid Tautologies**
-❌ **Bad Examples (Always True):**
-```cpp
-ASSERT_TRUE(result == 0 || result != 0); // Always true - covers all integers!
-ASSERT_TRUE(result >= 0 || result < 0);  // Always true - covers all integers!
-ASSERT_TRUE(result == SUCCESS || result == FAILURE || result == OTHER); // Too permissive!
-```
-
-✅ **Good Examples:**
+### 2. Use Specific Assertions, Avoid Tautologies
 ```cpp
 ASSERT_EQ(0, result);                    // Specific success ASSERTation
 ASSERT_NE(0, result);                    // Specific failure ASSERTation  
@@ -258,8 +241,8 @@ ASSERT_GE(result, 0);                    // Meaningful boundary check
 ASSERT_LT(result, MAX_VALUE);            // Meaningful upper bound
 ```
 
-### 3. **Test Both Success and Error Paths**
-✅ **Complete Coverage:**
+### 3. Test Both Success and Error Paths
+Complete Coverage:
 ```cpp
 TEST_F(FileTest, OpenValidFile) {
     int fd = os_openat(AT_FDCWD, valid_file, O_CREAT, 0, 0, READ_WRITE, &handle);
@@ -273,8 +256,8 @@ TEST_F(FileTest, OpenInvalidFile) {
 }
 ```
 
-### 4. **Proper Resource Management**
-✅ **RAII Pattern:**
+### 4. Proper Resource Management
+RAII Pattern:
 ```cpp
 class ResourceTest : public testing::Test {
 protected:
@@ -287,12 +270,11 @@ protected:
             release_resource(resource);
         }
     }
-    
     Resource resource;
 };
 ```
-### 5. **Handle Platform-Dependent Behavior Gracefully**
-✅ **Conditional Testing:**
+### 5. Handle Platform-Dependent Behavior Gracefully
+Conditional Testing:
 ```cpp
 TEST_F(NetworkTest, IPv6Socket) {
     int result = os_socket_create(&socket, false, true); // IPv6
@@ -306,8 +288,8 @@ TEST_F(NetworkTest, IPv6Socket) {
 }
 ```
 
-### 6. **Use Meaningful Test Data and Boundaries**
-✅ **Boundary Testing:**
+### 6. Use Meaningful Test Data and Boundaries
+Boundary Testing:
 ```cpp
 TEST_F(BufferTest, ReadDifferentSizes) {
     // Test boundary conditions
@@ -318,8 +300,8 @@ TEST_F(BufferTest, ReadDifferentSizes) {
 }
 ```
 
-### 7. **Validate State Changes and Side Effects**
-✅ **State Verification:**
+### 7. Validate State Changes and Side Effects
+State Verification:
 ```cpp
 TEST_F(FileTest, WriteChangesFileSize) {
     // Initial state
@@ -340,7 +322,7 @@ TEST_F(FileTest, WriteChangesFileSize) {
 
 ## Anti-Patterns to Avoid
 
-### ❌ **Meaningless Success Tests**
+###  Meaningless Success Tests
 ```cpp
 // Don't write tests that only verify execution without checking results
 TEST_F(BadTest, FunctionRuns) {
@@ -348,8 +330,14 @@ TEST_F(BadTest, FunctionRuns) {
     SUCCEED(); // Meaningless!
 }
 ```
-
-### ❌ **Tests Without Cleanup**
+### Always True
+Bad Examples (Always True):
+```cpp
+ASSERT_TRUE(result == 0 || result != 0); // Always true - covers all integers!
+ASSERT_TRUE(result >= 0 || result < 0);  // Always true - covers all integers!
+ASSERT_TRUE(result == SUCCESS || result == FAILURE || result == OTHER); // Too permissive!
+```
+###  Tests Without Cleanup
 ```cpp
 // Don't leave resources dangling
 TEST_F(BadTest, LeakyTest) {
@@ -359,7 +347,7 @@ TEST_F(BadTest, LeakyTest) {
 }
 ```
 
-### ❌ **Overly Permissive Assertions**
+###  Overly Permissive Assertions
 ```cpp
 // Don't accept any result when you should ASSERT specific outcomes
 ASSERT_TRUE(result == SUCCESS || result == FAILURE); // Too broad!
@@ -367,7 +355,7 @@ ASSERT_TRUE(result >= 0 || result < 0);              // ALWAYS TRUE - meaningles
 ASSERT_TRUE(result == 0 || result != 0);             // ALWAYS TRUE - meaningless!
 ```
 
-### ❌ **Testing Implementation Details**
+### Testing Implementation Details
 ```cpp
 // Don't test internal implementation, test public behavior
 ASSERT_EQ(3, internal_counter); // Implementation detail
@@ -508,6 +496,7 @@ For each feature test suite, maintain quality metrics in the input argumnet: **p
 - Deeply understand the **Core WAT Generation Rules** and analyze if WAT file is needed to generate test code to satisfy the test requirement
 - Deeply understand **Core Principles For High Qaulity Code** when generate code
 - First refer the **Issue Resolution Protocol** to fix related problems
+- Build the module in ./tests/unit, not in the module directory
 
 **YOU MUST NOT:**
 - Change or modify any committed code files, except the CMakeLists.txt, If need, just created new files.
