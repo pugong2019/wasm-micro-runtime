@@ -70,12 +70,23 @@
       "coverage_improvement": "Function types comprehensive coverage",
       "issues_encountered": ["externref type not available, replaced with i32 for compatibility"],
       "notes": "Step 4 completed: 15 function type tests covering complex signatures, parameter/result validation, function type equality, edge cases, and memory management"
+    },
+    {
+      "step_number": 5,
+      "status": "completed",
+      "start_time": "2024-01-18T18:15:00Z",
+      "end_time": "2024-01-18T19:10:00Z",
+      "test_cases_generated": 20,
+      "test_cases_passed": 20,
+      "coverage_improvement": "Global/Table/Memory types comprehensive coverage",
+      "issues_encountered": ["WASM_ANYREF not available, replaced with WASM_FUNCREF", "Fixed double free error in mutability validation test by using separate valtype instances"],
+      "notes": "Step 5 completed: 20 global/table/memory type tests covering mutability validation, limits handling, boundary testing, error conditions, and type validation"
     }
   ],
   "overall_progress": {
-    "completed_steps": 4,
+    "completed_steps": 5,
     "total_steps": 12,
-    "current_coverage": "55%",
+    "current_coverage": "65%",
     "target_coverage": "85%",
     "estimated_completion": "2024-01-19T00:00:00Z"
   },
@@ -113,7 +124,7 @@
       "file": "test_global_table_memory_types.cc",
       "test_cases": 20,
       "duration_minutes": 55,
-      "status": "pending"
+      "status": "completed"
     },
     "step_6": {
       "name": "External Type System",
