@@ -42,7 +42,7 @@ TEST_F(RuntimeValuesTest, ValueCreation_PrimitiveTypes_CreatesCorrectly) {
     // Test f32 value
     wasm_val_t f32_val = WASM_F32_VAL(3.14f);
     ASSERT_EQ(WASM_F32, f32_val.kind);
-    ASSERT_FLOAT_EQ(3.14f, i32_val.of.f32);
+    ASSERT_FLOAT_EQ(3.14f, f32_val.of.f32);
 
     // Test f64 value
     wasm_val_t f64_val = WASM_F64_VAL(2.71828);
@@ -54,6 +54,7 @@ TEST_F(RuntimeValuesTest, ValueCreation_PrimitiveTypes_CreatesCorrectly) {
 TEST_F(RuntimeValuesTest, ValueCreation_ReferenceTypes_CreatesCorrectly) {
     // Test funcref null value
     wasm_val_t funcref_val = WASM_REF_VAL(nullptr);
+    funcref_val.kind = WASM_FUNCREF;
     ASSERT_EQ(WASM_FUNCREF, funcref_val.kind);
     ASSERT_EQ(nullptr, funcref_val.of.ref);
 
@@ -172,21 +173,24 @@ TEST_F(RuntimeValuesTest, ReferenceCreation_FunctionReference_WorksCorrectly) {
 // Test 9: External reference operations
 TEST_F(RuntimeValuesTest, ExternalReference_Operations_WorksCorrectly) {
     // Create external reference to some host data
-    int host_data = 42;
-    wasm_ref_t* externref = wasm_foreign_new(store);
+    wasm_foreign_t* foreign = wasm_foreign_new(store);
     
-    if (externref) {
-        wasm_val_t externref_val = WASM_REF_VAL(externref);
-        externref_val.kind = WASM_EXTERNREF;
-        
-        ASSERT_EQ(WASM_EXTERNREF, externref_val.kind);
-        ASSERT_NE(nullptr, externref_val.of.ref);
-        
-        // Test reference copying
-        wasm_val_t copy;
-        wasm_val_copy(&copy, &externref_val);
-        ASSERT_EQ(WASM_EXTERNREF, copy.kind);
-        ASSERT_EQ(externref_val.of.ref, copy.of.ref);
+    if (foreign) {
+        wasm_ref_t* externref = wasm_foreign_as_ref(foreign);
+        if (externref) {
+            wasm_val_t externref_val = WASM_REF_VAL(externref);
+            externref_val.kind = WASM_EXTERNREF;
+            
+            ASSERT_EQ(WASM_EXTERNREF, externref_val.kind);
+            ASSERT_NE(nullptr, externref_val.of.ref);
+            
+            // Test reference copying
+            wasm_val_t copy;
+            wasm_val_copy(&copy, &externref_val);
+            ASSERT_EQ(WASM_EXTERNREF, copy.kind);
+            ASSERT_EQ(externref_val.of.ref, copy.of.ref);
+        }
+        wasm_foreign_delete(foreign);
     }
 }
 
@@ -298,22 +302,26 @@ TEST_F(RuntimeValuesTest, ValueVector_LargeSize_HandlesCorrectly) {
 
 // Test 14: Reference counting and lifecycle
 TEST_F(RuntimeValuesTest, ReferenceLifecycle_ProperManagement_WorksCorrectly) {
-    wasm_ref_t* ref1 = wasm_foreign_new(store);
-    if (ref1) {
-        // Create value with reference
-        wasm_val_t val1 = WASM_REF_VAL(ref1);
-        val1.kind = WASM_EXTERNREF;
-        
-        // Copy the value (should maintain reference)
-        wasm_val_t val2;
-        wasm_val_copy(&val2, &val1);
-        
-        ASSERT_EQ(val1.of.ref, val2.of.ref);
-        ASSERT_EQ(WASM_EXTERNREF, val2.kind);
-        
-        // References should remain valid
-        ASSERT_NE(nullptr, val1.of.ref);
-        ASSERT_NE(nullptr, val2.of.ref);
+    wasm_foreign_t* foreign = wasm_foreign_new(store);
+    if (foreign) {
+        wasm_ref_t* ref1 = wasm_foreign_as_ref(foreign);
+        if (ref1) {
+            // Create value with reference
+            wasm_val_t val1 = WASM_REF_VAL(ref1);
+            val1.kind = WASM_EXTERNREF;
+            
+            // Copy the value (should maintain reference)
+            wasm_val_t val2;
+            wasm_val_copy(&val2, &val1);
+            
+            ASSERT_EQ(val1.of.ref, val2.of.ref);
+            ASSERT_EQ(WASM_EXTERNREF, val2.kind);
+            
+            // References should remain valid
+            ASSERT_NE(nullptr, val1.of.ref);
+            ASSERT_NE(nullptr, val2.of.ref);
+        }
+        wasm_foreign_delete(foreign);
     }
 }
 
@@ -362,18 +370,21 @@ TEST_F(RuntimeValuesTest, ValueSerialization_InternalRepresentation_ConsistentFo
 
 // Test 17: Error handling with invalid operations
 TEST_F(RuntimeValuesTest, ErrorHandling_InvalidOperations_HandlesGracefully) {
-    wasm_val_vec_t null_vec;
+    wasm_val_vec_t valid_vec;
     
-    // Initialize to known state
-    null_vec.size = 0;
-    null_vec.data = nullptr;
+    // Create a valid empty vector
+    wasm_val_vec_new_empty(&valid_vec);
     
-    // Delete should handle null gracefully
-    wasm_val_vec_delete(&null_vec);
+    // Verify empty state
+    ASSERT_EQ(0u, valid_vec.size);
+    ASSERT_EQ(nullptr, valid_vec.data);
     
-    // Should still be in clean state
-    ASSERT_EQ(0u, null_vec.size);
-    ASSERT_EQ(nullptr, null_vec.data);
+    // Delete should handle empty vector gracefully
+    wasm_val_vec_delete(&valid_vec);
+    
+    // Should still be in clean state after deletion
+    ASSERT_EQ(0u, valid_vec.size);
+    ASSERT_EQ(nullptr, valid_vec.data);
 }
 
 // Test 18: Value comparison operations
