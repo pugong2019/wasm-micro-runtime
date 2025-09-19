@@ -275,9 +275,11 @@ TEST_F(ModuleOperationsTest, ModuleSerialize_ValidModule_ReturnsEmptyInInterpret
     ASSERT_NE(nullptr, module);
 
     wasm_byte_vec_t serialized;
+    wasm_byte_vec_new_empty(&serialized);
     wasm_module_serialize(module, &serialized);
 
-    // In interpreter mode, serialization is not supported
+    // In interpreter mode, serialization is not supported and leaves vector uninitialized
+    // We should expect the vector to remain empty as we initialized it
     ASSERT_EQ(0u, serialized.size);
     ASSERT_EQ(nullptr, serialized.data);
 
@@ -297,8 +299,9 @@ TEST_F(ModuleOperationsTest, ModuleDeserialize_NotSupportedInInterpreterMode_Ret
     ASSERT_NE(nullptr, original_module);
 
     wasm_byte_vec_t serialized;
+    wasm_byte_vec_new_empty(&serialized);
     wasm_module_serialize(original_module, &serialized);
-    // In interpreter mode, serialization returns empty
+    // In interpreter mode, serialization returns empty as we initialized it
     ASSERT_EQ(0u, serialized.size);
 
     // Deserialization should return null in interpreter mode
