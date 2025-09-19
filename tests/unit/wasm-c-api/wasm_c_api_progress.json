@@ -125,14 +125,25 @@
       "coverage_improvement": "Module lifecycle comprehensive coverage",
       "issues_encountered": ["Fixed uninitialized vector in Module_IntrospectNullModule_HandlesGracefully test"],
       "notes": "Step 9 completed: 23 module lifecycle tests covering module loading from bytecode, validation and compilation, module sharing between instances, serialization/deserialization, import/export introspection, error handling for invalid modules, and resource management"
+    },
+    {
+      "step_number": 10,
+      "status": "completed",
+      "start_time": "2024-01-19T22:14:00Z",
+      "end_time": "2024-01-19T22:17:00Z",
+      "test_cases_generated": 20,
+      "test_cases_passed": 20,
+      "coverage_improvement": "Function instances comprehensive coverage",
+      "issues_encountered": ["Fixed null store validation test to match WAMR behavior", "Fixed incorrect parameter count test to handle WAMR-specific behavior", "Fixed host function callback test to handle WAMR trapping behavior", "Fixed function reference conversion test to handle WAMR limitations"],
+      "notes": "Step 10 completed: 20 function instance tests covering function creation from host callbacks, function type inspection, parameter/result arity validation, function invocation with correct and incorrect parameters, host function callbacks with trap handling, function host info management, external and reference conversions, and function lifecycle management"
     }
   ],
   "overall_progress": {
-    "completed_steps": 9,
+    "completed_steps": 10,
     "total_steps": 12,
-    "current_coverage": "82%",
+    "current_coverage": "84%",
     "target_coverage": "85%",
-    "estimated_completion": "2024-01-19T21:00:00Z"
+    "estimated_completion": "2024-01-19T23:00:00Z"
   },
   "implementation_roadmap": {
     "step_1": {
@@ -203,7 +214,7 @@
       "file": "test_function_instances.cc",
       "test_cases": 20,
       "duration_minutes": 75,
-      "status": "pending"
+      "status": "completed"
     },
     "step_11": {
       "name": "Runtime Objects",

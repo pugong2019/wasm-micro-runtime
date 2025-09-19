@@ -74,6 +74,7 @@ add_executable(wasm_c_api_test
   test_import_export_types.cc
   test_module_operations.cc
   test_module_lifecycle.cc
+  test_function_instances.cc
   test_runtime_values.cc
   test_instance_execution.cc
 )
