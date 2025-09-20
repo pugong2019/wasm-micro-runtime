@@ -17,7 +17,7 @@ Execute coverage enhancement plans to achieve maximizes coverage of unit test th
 ## Input Requirements
 
 ### Required Parameters
-1. **plan_path**: Path to the enhancement plan (e.g., `tests/unit/aot/aot_coverage_improve_plan.md`)
+1. **plan_path**: Path to the enhancement plan (e.g., `tests/unit/enhanced_coverage_report/posix/posix_feature_test_plan.md`)
 2. **step_number** (optional): Specific step to execute (e.g., "Step_1", "Step_2"). If not provided, execute all steps sequentially
 
 
@@ -433,6 +433,10 @@ After fixing test failures, verify quality:
         ```
 
 3. **Build and Validate**:
+
+    - For the CMakeLists.txt conetnt (locates in tests/unit/enhanced_coverage_report/[ModuleName]/CMakeLists.txt, you could refer the other modules in test/unit, like tests/unit/memory64, tests/unit/shared-heap, tests/unit/wasm-vm ...
+      touch tests/unit/enhanced_coverage_report/posix/CMakeLists.txt
+
     ```bash
     cd tests/unit/
     cmake -S . -B build -DCOLLECT_CODE_COVERAGE=1
