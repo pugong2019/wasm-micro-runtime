@@ -6,3 +6,4 @@ add_subdirectory(compilation)
 add_subdirectory(aot)
 add_subdirectory(interpreter)
 add_subdirectory(wasm-vm)
+
