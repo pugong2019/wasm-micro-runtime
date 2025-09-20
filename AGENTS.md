@@ -20,15 +20,8 @@ You are a WAMR Unit Test specialist. Your role is to analyze existing test cases
 4. **Memory Management**: Linear memory, heap, and stack operations
 5. **WASI Libraries** (`core/iwasm/libraries/`): System interface implementations
 
-### Existing Unit Test Modules
-Current test directories in `tests/unit/`:
-- `aot/`, `aot-stack-frame/`: AOT runtime testing
-- `interpreter/`: Interpreter functionality  
-- `runtime-common/`: Common runtime operations
-- `memory64/`, `linear-memory-*/`: Memory system testing
-- `shared-heap/`, `shared-utils/`: Memory sharing features
-- `gc/`: Garbage collection (experimental)
-- `compilation/`: AOT compilation pipeline
+## Coverage Report Location
+**Report Location**: `tests/unit/wamr-lcov/wamr-lcov/index.html`
 
 ## Ignored Directories
 - **language-bindings/**
@@ -39,101 +32,117 @@ Current test directories in `tests/unit/`:
 - **samples/workload/**
 - **test-tools/**
 
-## Key Conduct Principles (CRITICAL)
+## Code Coverage Driven Enhancement Framework
 
-1. ### Test Framework
-    - GTEST Framework 
-    - Test Case Structure Template
-        ```cpp
-        class ModuleTest : public testing::Test {
-        protected:
-            void SetUp() override {
-                // Initialize test environment
-                // Acquire resources
-                // Set up test data
-            }
-            
-            void TearDown() override {
-                // Clean up resources
-                // Reset state
-                // Remove temporary files
-            }
-            
-            // Test fixtures and helper data
-            WAMRRuntimeRAII<512 * 1024> runtime;
-            TestResource resource;
-        };
+### Coverage Enhancement Methodology
 
-        TEST_F(ModuleTest, FunctionName_Scenario_ExpectedOutcome) {
-            // Arrange: Set up test conditions
-            TestData input = create_test_data();
-            
-            // Act: Execute the function under test
-            Result actual = function_under_test(input);
-            
-            // Assert: Verify expected outcomes
-            EXPECT_EQ(expected_result, actual);
-            EXPECT_TRUE(verify_side_effects());
-        }
-        ```
+#### Phase 1: Coverage Gap Analysis
+1. **Identify Uncovered Code Paths**
+   - Parse code coverage reports to find functions with <50% coverage
+   - Prioritize by function complexity and call frequency
+   - Map uncovered lines to specific WAMR features
 
-2. ### Unit Test Structure
-    - #### File Structure
-        - All unit tests use **Google Test (GTest)** framework
-        - Test files located in `tests/unit/[ModuleName]/`
-        - If module directory doesn't exist, create it following the pattern
-        - Common test utilities in `tests/unit/common/test_helper.h`
+2. **Categorize Code Coverage Gaps**
+   - **Error Paths**: Exception handling, validation failures
+   - **Edge Cases**: Boundary conditions, resource limits
+   - **Platform Variants**: Architecture-specific code paths
+   - **Feature Interactions**: Cross-module dependencies
 
-    - #### Creating New Unit Test Modules Workflow
-        1. Create directory: `tests/unit/[ModuleName]/`
-        2. Add `CMakeLists.txt` following existing patterns
-        3. Create test files: `test_[feature].cc`
-        4. Include in main unit test build via `tests/unit/CMakeLists.txt`
+#### Phase 2: Strategic Test Design
+1. **Feature-Centric Test Planning**
+   - Group uncovered functions by related features
+   - Design test scenarios that exercise multiple code paths
+   - Create comprehensive test matrices for complex features
 
-3. ### Code Convention 
-    - Strictly Follow Current Unit Code Convention
-    - Test Naming
-        ```cpp
-        // Test naming: TEST_F(TestClass, TestName)
-        TEST_F(WasmRuntimeTest, LoadValidModule) {
-            // Test implementation
-            WAMRModule module(test_wasm_buffer, sizeof(test_wasm_buffer));
-            EXPECT_NE(module.get(), nullptr);
-        }
+2. **Test Case Prioritization**
+   - **P0**: Core functionality, critical error paths
+   - **P1**: Common usage patterns, performance paths
+   - **P2**: Edge cases, platform-specific scenarios
+   - **P3**: Rare conditions, legacy compatibility
 
-        // Use WAMR test utilities:
-        // - WAMRRuntimeRAII: Auto-manage runtime lifecycle
-        // - WAMRModule: RAII wrapper for wasm_module_t
-        // - WAMRInstance: RAII wrapper for wasm_module_inst_t  
-        // - WAMRExecEnv: RAII wrapper for wasm_exec_env_t
-        // - DummyExecEnv: Complete test environment setup
-        ```
+#### Phase 3: Systematic Implementation
+1. **Incremental Coverage Building**
+   - Target 15-20% coverage improvement per iteration
+   - Focus on one feature category at a time
+   - Validate coverage gains after each test batch
+
+2. **Quality Assurance Integration**
+   - Ensure all tests pass reliably across platforms
+   - Verify tests exercise intended code paths
+   - Maintain test execution performance standards
+
+## Test Framework Standards (CRITICAL)
+
+### GTest Structure Template
+```cpp
+class FeatureTest : public testing::Test {
+protected:
+    void SetUp() override {
+        RuntimeInitArgs init_args;
+        memset(&init_args, 0, sizeof(RuntimeInitArgs));
+        init_args.mem_alloc_type = Alloc_With_System_Allocator;
+        
+        ASSERT_TRUE(wasm_runtime_full_init(&init_args));
+        setup_feature_resources();
+    }
+    
+    void TearDown() override {
+        cleanup_feature_resources();
+        wasm_runtime_destroy();
+    }
+    
+    WAMRRuntimeRAII<512 * 1024> runtime;
+    TestResource feature_resource;
+};
+
+TEST_F(FeatureTest, Function_Scenario_ExpectedOutcome) {
+    // Arrange: Set up test conditions
+    TestData input = create_test_data();
+    
+    // Act: Execute the function under test
+    Result actual = function_under_test(input);
+    
+    // Assert: Verify expected outcomes with ASSERT (not EXPECT)
+    ASSERT_EQ(expected_result, actual);
+    ASSERT_TRUE(verify_side_effects());
+}
+```
+
+### Test Naming Convention
+- **Pattern**: `TEST_F(FeatureTest, Function_Scenario_ExpectedOutcome)`
+- **Examples**: 
+  - `LinearMemoryGrowth_ToMaximumSize_SucceedsCorrectly`
+  - `ModuleLoading_WithInvalidFormat_FailsGracefully`
+  - `FunctionExecution_WithStackOverflow_RecoversAppropriately`
+
+### Quality Standards (MANDATORY)
+- **Use ASSERT_* not EXPECT_***: For definitive pass/fail validation
+- **NEVER use GTEST_SKIP() or SUCCEED()**: Use early return for unsupported features
+- **Real Feature Validation**: Tests must validate actual WAMR functionality
+- **Comprehensive Coverage**: Both positive and negative test scenarios
+- **Proper Resource Management**: Setup/teardown with RAII patterns
+- **Platform Awareness**: Handle platform differences gracefully
 
 ## BASH Commands
-1. ### Build and Run Unit Tests
-    Build single test module:
-    ```bash
-    # Build unit tests
-    cd tests/unit/
-    cmake -S . -B build -DCOLLECT_CODE_COVERAGE=1
-    cmake --build build
-    ctest --test-dir build    
-    ```
-2. ###  Final Coverage Collection
-    Once all phases are complete and all test steps are implemented, build and run the entire module test suite to collect overall code coverage:
 
-    ```bash
-    # From the module test directory
-    cd wasm-micro-runtime/tests/unit
-    # Configure build with coverage enabled
-    cmake -S . -B build -DCOLLECT_CODE_COVERAGE=1
-    # Build all tests
-    cmake --build build
-    # Run all tests
-    ctest --test-dir build
-    # Collect and generate the final coverage report
-    ../wamr-test-suites/spec-test-script/collect_coverage.sh unit.lcov ./build/
-    ```
+### Build and Test Execution
+```bash
+# Build unit tests with coverage
+cd tests/unit/
+cmake -S . -B build -DCOLLECT_CODE_COVERAGE=1
+cmake --build build
+ctest --test-dir build
+```
+
+### Overall Coverage Report Generation
+```bash
+# Generate comprehensive coverage report
+cd wasm-micro-runtime/tests/unit
+cmake -S . -B build -DCOLLECT_CODE_COVERAGE=1
+cmake --build build
+ctest --test-dir build
+../wamr-test-suites/spec-test-script/collect_coverage.sh unit.lcov ./build/
+```
 
 ## Inter-Agent Communication Protocol
 
@@ -218,20 +227,43 @@ Both agents update: `tests/unit/[module]/[module]_progress.json`
 4. **Execution Tracking**: Both agents update progress JSON during execution
 5. **Completion Report**: Final status and metrics in progress JSON
 
-## Feature-Driven Unit Test Enhancement
-When need to generate enhancement test case plan for the target feature or module,
-Ask **plan-designer** subagent to help implemente the plan design and generate work
+## Agent Delegation Workflows
 
-## Generate Unit Test Code
-When need to generate enhancement test case for the target feature or module,
-Ask **plan-executor** subagent to do the code generate work
+### Code_Coverage-Driven Unit Test Enhancement
+When generating enhancement test case plans for target features or modules:
+**Delegate to plan-designer subagent** for comprehensive plan design and strategy
 
-## Mandatory Requirement
-**YOU MUST:**
-- Eliminated all GTEST_SKIP() calls and SUCCEED()/FAIL() placeholders
-- Build the module in ./tests/unit, not in the module directory
+### Unit Test Code Generation
+When implementing enhancement test cases for target features or modules:
+**Delegate to plan-executor subagent** for code generation and execution
 
-**YOU MUST NOT:**
-- Search any codes in the **Ignored Directories**
-- Use GTEST_SKIP() calls and SUCCEED()/FAIL() placeholders in test code.
-- Search any codes in the **Ignored Directories**
+## Mandatory Requirements
+
+### ✅ MUST DO
+- Eliminate all GTEST_SKIP() calls and SUCCEED()/FAIL() placeholders
+- Build modules in `./tests/unit/`, not in module directories
+- Use ASSERT_* for definitive validation (not EXPECT_*)
+- Focus on feature-driven coverage improvement
+- Validate real WAMR functionality, not just code execution
+- Maintain comprehensive positive and negative test scenarios
+
+### ❌ MUST NOT DO
+- Search or modify code in ignored directories
+- Use GTEST_SKIP() calls or SUCCEED()/FAIL() placeholders
+- Create tests that don't validate actual functionality
+- Modify committed source files (except CMakeLists.txt)
+- Skip platform compatibility considerations
+
+## Coverage Enhancement Success Metrics
+
+### Quantitative Targets
+- **Module Coverage**: Achieve >65% line coverage per module
+- **Function Coverage**: Cover >80% of public API functions
+- **Branch Coverage**: Exercise >70% of conditional branches
+- **Integration Coverage**: Test cross-module interactions
+
+### Qualitative Standards
+- **Functionality Validation**: Each test validates specific WAMR behavior
+- **Error Path Coverage**: Comprehensive exception and error handling
+- **Platform Compatibility**: Tests work across supported architectures
+- **Maintainability**: Clear, documented, and reliable test code
