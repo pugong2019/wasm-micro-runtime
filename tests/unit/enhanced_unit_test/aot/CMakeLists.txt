@@ -33,7 +33,7 @@ include (${IWASM_DIR}/compilation/iwasm_compl.cmake)
 
 include_directories (${CMAKE_CURRENT_SOURCE_DIR})
 
-file (GLOB_RECURSE source_all ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
+file (GLOB source_all ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
 
 set (UNIT_SOURCE ${source_all})
 
@@ -55,6 +55,7 @@ add_executable (aot_enhanced_test ${unit_test_sources})
 
 target_link_libraries (aot_enhanced_test ${LLVM_AVAILABLE_LIBS} gtest_main )
 
+include(GoogleTest)
 gtest_discover_tests(aot_enhanced_test)
 
 # Custom commands to compile WAT files to WASM and then to AOT
