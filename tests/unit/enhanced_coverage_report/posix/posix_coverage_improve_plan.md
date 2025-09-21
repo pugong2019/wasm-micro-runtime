@@ -1,426 +1,470 @@
 # Code Coverage Improve Plan for POSIX Module
 
 ## Current Coverage Status
-- **Line Coverage**: 679/1311 (51.8%)
-- **Function Coverage**: 99/176 (56.2%)
-- **Branch Coverage**: 255/714 (35.7%)
-- **Coverage Report**: `tests/unit/wamr-lcov/wamr-lcov/index.html`
-- **Target Coverage**: 71.8%+ (20% improvement)
+- Line Coverage: 909/1311 (69.3%)
+- Function Coverage: 130/176 (73.9%)
+- Branch Coverage: 361/714 (50.6%)
+- **Coverage Report**: `tests/unit/wamr-lcov/wamr-lcov/BUILD_WPE/wasm-micro-runtime/core/shared/platform/common/posix/index.html`
 
 ## Uncovered Code Analysis
 
 ### Critical Uncovered Functions with Line Details
 
-Based on ACTUAL LCOV coverage data from `/tests/unit/wamr-lcov/BUILD_WPE/wasm-micro-runtime/core/shared/platform/common/posix/`:
+Based on LCOV analysis of POSIX module files, the following functions have significant coverage gaps:
 
-#### LCOV Extraction Results - VERIFIED Functions (0 hits):
+#### POSIX Socket Functions (posix_socket.c) - 27 uncovered functions
+- **File**: `core/shared/platform/common/posix/posix_socket.c`
+- **Current Coverage**: 245/399 lines (61.4%), 34/61 functions (55.7%)
+- **Target**: Achieve 90%+ coverage
 
-#### posix_file.c - Directory and File Operations (21 functions)
-1. **`convert_timestamp()`** - 0 hits, ~8 lines
-2. **`convert_utimens_arguments()`** - 0 hits, ~12 lines  
-3. **`os_fadvise()`** - 0 hits, ~15 lines
-4. **`os_file_get_access_mode()`** - 0 hits, ~18 lines
-5. **`os_file_get_fdflags()`** - 0 hits, ~22 lines
-6. **`os_file_set_fdflags()`** - 0 hits, ~25 lines
-7. **`os_futimens()`** - 0 hits, ~20 lines
-8. **`os_get_invalid_dir_stream()`** - 0 hits, ~6 lines
-9. **`os_is_dir_stream_valid()`** - 0 hits, ~8 lines
-10. **`os_linkat()`** - 0 hits, ~28 lines
-11. **`os_mkdirat()`** - 0 hits, ~24 lines
-12. **`os_open_preopendir()`** - 0 hits, ~16 lines
-13. **`os_readdir()`** - 0 hits, ~35 lines
-14. **`os_readlinkat()`** - 0 hits, ~30 lines
-15. **`os_realpath()`** - 0 hits, ~22 lines
-16. **`os_renameat()`** - 0 hits, ~26 lines
-17. **`os_rewinddir()`** - 0 hits, ~12 lines
-18. **`os_seekdir()`** - 0 hits, ~14 lines
-19. **`os_symlinkat()`** - 0 hits, ~18 lines
-20. **`os_unlinkat()`** - 0 hits, ~20 lines
-21. **`os_utimensat()`** - 0 hits, ~32 lines
+**High Priority Uncovered Functions (0 hits)**:
+1. `os_socket_get_broadcast()` - 0 hits
+2. `os_socket_get_ip_multicast_loop()` - 0 hits  
+3. `os_socket_get_ip_multicast_ttl()` - 0 hits
+4. `os_socket_get_ip_ttl()` - 0 hits
+5. `os_socket_get_ipv6_only()` - 0 hits
+6. `os_socket_get_keep_alive()` - 0 hits
+7. `os_socket_get_linger()` - 0 hits
+8. `os_socket_get_tcp_fastopen_connect()` - 0 hits
+9. `os_socket_get_tcp_keep_idle()` - 0 hits
+10. `os_socket_get_tcp_keep_intvl()` - 0 hits
+11. `os_socket_get_tcp_no_delay()` - 0 hits
+12. `os_socket_get_tcp_quick_ack()` - 0 hits
+13. `os_socket_inet_network()` - 0 hits
+14. `os_socket_set_broadcast()` - 0 hits
+15. `os_socket_set_ip_add_membership()` - 0 hits
+16. `os_socket_set_ip_drop_membership()` - 0 hits
+17. `os_socket_set_ip_multicast_loop()` - 0 hits
+18. `os_socket_set_ip_multicast_ttl()` - 0 hits
+19. `os_socket_set_ip_ttl()` - 0 hits
+20. `os_socket_set_ipv6_only()` - 0 hits
+21. `os_socket_set_keep_alive()` - 0 hits
+22. `os_socket_set_linger()` - 0 hits
+23. `os_socket_set_tcp_fastopen_connect()` - 0 hits
+24. `os_socket_set_tcp_keep_idle()` - 0 hits
+25. `os_socket_set_tcp_keep_intvl()` - 0 hits
+26. `os_socket_set_tcp_no_delay()` - 0 hits
+27. `os_socket_set_tcp_quick_ack()` - 0 hits
 
-#### posix_socket.c - Network Operations (40+ functions)
-1. **`getaddrinfo_error_to_errno()`** - 0 hits, ~45 lines
-2. **`is_addrinfo_supported()`** - 0 hits, ~12 lines
-3. **`os_socket_addr_resolve()`** - 0 hits, ~85 lines
-4. **`os_socket_connect()`** - 0 hits, ~25 lines
-5. **`os_socket_get_recv_buf_size()`** - 0 hits, ~18 lines
-6. **`os_socket_get_recv_timeout()`** - 0 hits, ~22 lines
-7. **`os_socket_get_reuse_addr()`** - 0 hits, ~16 lines
-8. **`os_socket_get_reuse_port()`** - 0 hits, ~16 lines
-9. **`os_socket_get_send_buf_size()`** - 0 hits, ~18 lines
-10. **`os_socket_get_send_timeout()`** - 0 hits, ~22 lines
-11. **`os_socket_listen()`** - 0 hits, ~15 lines
-12. **`os_socket_recv()`** - 0 hits, ~28 lines
-13. **`os_socket_recv_from()`** - 0 hits, ~35 lines
-14. **`os_socket_send()`** - 0 hits, ~25 lines
-15. **`os_socket_send_to()`** - 0 hits, ~32 lines
-16. **`os_socket_set_recv_buf_size()`** - 0 hits, ~20 lines
-17. **`os_socket_set_recv_timeout()`** - 0 hits, ~24 lines
-18. **`os_socket_set_reuse_addr()`** - 0 hits, ~18 lines
-19. **`os_socket_set_reuse_port()`** - 0 hits, ~18 lines
-20. **`os_socket_set_send_buf_size()`** - 0 hits, ~20 lines
-21. **`os_socket_set_send_timeout()`** - 0 hits, ~24 lines
-22. **`os_socket_shutdown()`** - 0 hits, ~16 lines
-23. **Address conversion functions** - Multiple 0 hit functions, ~15-25 lines each
+#### POSIX File Functions (posix_file.c) - Partial coverage gaps
+- **File**: `core/shared/platform/common/posix/posix_file.c`
+- **Current Coverage**: 310/407 lines (76.2%), 44/47 functions (93.6%)
+- **Target**: Achieve 95%+ coverage (focus on uncovered error paths)
 
-#### posix_blocking_op.c - Signal Operations (3 functions)
-1. **`blocking_op_sighandler()`** - 0 hits, ~8 lines
-2. **`os_set_signal_number_for_blocking_op()`** - 0 hits, ~6 lines
-3. **`os_begin_blocking_op()`** - 0 hits, ~12 lines
+#### POSIX Thread Functions (posix_thread.c) - Significant gaps
+- **File**: `core/shared/platform/common/posix/posix_thread.c`
+- **Current Coverage**: 193/299 lines (64.5%), 31/43 functions (72.1%)
+- **Target**: Achieve 90%+ coverage
 
-**Verification Notes**:
-- ✅ All functions confirmed 0 hits in LCOV function table
-- ✅ Line counts estimated from function complexity analysis
-- ✅ Functions exist in current source tree
-- ✅ Functions are built in current POSIX configuration
+#### POSIX Blocking Operations (posix_blocking_op.c) - Low coverage
+- **File**: `core/shared/platform/common/posix/posix_blocking_op.c`
+- **Current Coverage**: 16/28 lines (57.1%), 3/6 functions (50.0%)
+- **Target**: Achieve 85%+ coverage
 
 ## Test Generation Sub-Plans
 
-### Step 1: Core File Operations (10 functions, ~200 lines)
+### Step 1: Socket Option Functions (10 functions maximum)
 **Target Functions with Line Coverage Goals**:
 
-##### Function 1: `os_fadvise()` [0 hits, ~15 lines]
-- **File**: `core/shared/platform/common/posix/posix_file.c`
+##### Function 1: `os_socket_get_broadcast()` [0 hits, ~12 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_fadvise_valid_advice()` → **Target: advice validation and syscall execution**
-  - [ ] `test_os_fadvise_invalid_fd()` → **Target: error handling for invalid file descriptor**
+  - [ ] `test_os_socket_get_broadcast_valid_socket()` → Test broadcast option retrieval
+  - [ ] `test_os_socket_get_broadcast_invalid_socket()` → Test error handling
 
-##### Function 2: `os_file_get_access_mode()` [0 hits, ~18 lines]
-- **File**: `core/shared/platform/common/posix/posix_file.c`
+##### Function 2: `os_socket_set_broadcast()` [0 hits, ~12 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_file_get_access_mode_read()` → **Target: read-only file access mode**
-  - [ ] `test_os_file_get_access_mode_write()` → **Target: write access mode detection**
+  - [ ] `test_os_socket_set_broadcast_enable()` → Enable broadcast option
+  - [ ] `test_os_socket_set_broadcast_disable()` → Disable broadcast option
 
-##### Function 3: `os_file_get_fdflags()` [0 hits, ~22 lines]
-- **File**: `core/shared/platform/common/posix/posix_file.c`
+##### Function 3: `os_socket_get_keep_alive()` [0 hits, ~12 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_file_get_fdflags_normal()` → **Target: standard file descriptor flags**
-  - [ ] `test_os_file_get_fdflags_append()` → **Target: append mode flag detection**
+  - [ ] `test_os_socket_get_keep_alive_valid()` → Get keep-alive status
+  - [ ] `test_os_socket_get_keep_alive_error()` → Test error conditions
 
-##### Function 4: `os_file_set_fdflags()` [0 hits, ~25 lines]
-- **File**: `core/shared/platform/common/posix/posix_file.c`
+##### Function 4: `os_socket_set_keep_alive()` [0 hits, ~12 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_file_set_fdflags_append()` → **Target: setting append flag**
-  - [ ] `test_os_file_set_fdflags_invalid()` → **Target: error handling for invalid flags**
+  - [ ] `test_os_socket_set_keep_alive_enable()` → Enable keep-alive
+  - [ ] `test_os_socket_set_keep_alive_disable()` → Disable keep-alive
 
-##### Function 5: `os_futimens()` [0 hits, ~20 lines]
-- **File**: `core/shared/platform/common/posix/posix_file.c`
+##### Function 5: `os_socket_get_linger()` [0 hits, ~15 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_futimens_update_times()` → **Target: file timestamp modification**
-  - [ ] `test_os_futimens_invalid_fd()` → **Target: error handling for invalid descriptor**
+  - [ ] `test_os_socket_get_linger_valid()` → Get linger settings
+  - [ ] `test_os_socket_get_linger_error()` → Test error handling
 
-##### Function 6: `os_utimensat()` [0 hits, ~32 lines]
-- **File**: `core/shared/platform/common/posix/posix_file.c`
+##### Function 6: `os_socket_set_linger()` [0 hits, ~15 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_utimensat_file_times()` → **Target: file timestamp update via path**
-  - [ ] `test_os_utimensat_follow_symlinks()` → **Target: symlink following behavior**
+  - [ ] `test_os_socket_set_linger_enable()` → Enable linger with timeout
+  - [ ] `test_os_socket_set_linger_disable()` → Disable linger
 
-##### Function 7: `convert_timestamp()` [0 hits, ~8 lines]
-- **File**: `core/shared/platform/common/posix/posix_file.c`
+##### Function 7: `os_socket_get_tcp_no_delay()` [0 hits, ~12 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_convert_timestamp_valid()` → **Target: timestamp conversion logic**
+  - [ ] `test_os_socket_get_tcp_no_delay_valid()` → Get TCP_NODELAY status
+  - [ ] `test_os_socket_get_tcp_no_delay_error()` → Test error conditions
 
-##### Function 8: `convert_utimens_arguments()` [0 hits, ~12 lines]
-- **File**: `core/shared/platform/common/posix/posix_file.c`
+##### Function 8: `os_socket_set_tcp_no_delay()` [0 hits, ~12 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_convert_utimens_arguments_valid()` → **Target: argument conversion**
+  - [ ] `test_os_socket_set_tcp_no_delay_enable()` → Enable TCP_NODELAY
+  - [ ] `test_os_socket_set_tcp_no_delay_disable()` → Disable TCP_NODELAY
 
-##### Function 9: `os_get_invalid_dir_stream()` [0 hits, ~6 lines]
-- **File**: `core/shared/platform/common/posix/posix_file.c`
+##### Function 9: `os_socket_get_ipv6_only()` [0 hits, ~12 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_get_invalid_dir_stream()` → **Target: invalid directory stream constant**
+  - [ ] `test_os_socket_get_ipv6_only_valid()` → Get IPv6-only status
+  - [ ] `test_os_socket_get_ipv6_only_error()` → Test error handling
 
-##### Function 10: `os_is_dir_stream_valid()` [0 hits, ~8 lines]
-- **File**: `core/shared/platform/common/posix/posix_file.c`
+##### Function 10: `os_socket_set_ipv6_only()` [0 hits, ~12 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_is_dir_stream_valid_true()` → **Target: valid directory stream check**
-  - [ ] `test_os_is_dir_stream_valid_false()` → **Target: invalid directory stream check**
+  - [ ] `test_os_socket_set_ipv6_only_enable()` → Enable IPv6-only mode
+  - [ ] `test_os_socket_set_ipv6_only_disable()` → Disable IPv6-only mode
 
 **Step Metrics**:
-- **Total Functions in Step**: 10
-- **Total Uncovered Lines in Step**: ~166 lines
-- **Expected Coverage**: 166+ lines (12.7%+ coverage improvement)
-- **Status**: COMPLETED (Date: 2024-09-21)
-- **Test Cases**: 15/15 passing (comprehensive feature validation)
-- **Quality Score**: HIGH (real POSIX functionality validation)
-- **Coverage Impact**: +166 lines covered in target functions
-- **Implementation Notes**: Created posix_coverage_improve_step_1.cc with ASSERT-based tests
+- **Total Functions in Step**: 10 (maximum limit)
+- **Total Uncovered Lines in Step**: ~130 lines
+- **Expected Coverage**: 130+ lines (10%+ coverage improvement)
+- **Status**: PENDING
 
-### Step 2: Directory Operations (8 functions, ~180 lines)
+### Step 2: TCP Socket Advanced Options (8 functions maximum)
 **Target Functions with Line Coverage Goals**:
 
-##### Function 1: `os_mkdirat()` [0 hits, ~24 lines]
-- **File**: `core/shared/platform/common/posix/posix_file.c`
+##### Function 1: `os_socket_get_tcp_keep_idle()` [0 hits, ~12 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_mkdirat_create_directory()` → **Target: directory creation**
-  - [ ] `test_os_mkdirat_invalid_path()` → **Target: error handling for invalid paths**
+  - [ ] `test_os_socket_get_tcp_keep_idle_valid()` → Get TCP keep-alive idle time
+  - [ ] `test_os_socket_get_tcp_keep_idle_error()` → Test error conditions
 
-##### Function 2: `os_readdir()` [0 hits, ~35 lines]
-- **File**: `core/shared/platform/common/posix/posix_file.c`
+##### Function 2: `os_socket_set_tcp_keep_idle()` [0 hits, ~12 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_readdir_entries()` → **Target: reading directory entries**
-  - [ ] `test_os_readdir_end_of_dir()` → **Target: end of directory handling**
+  - [ ] `test_os_socket_set_tcp_keep_idle_valid()` → Set TCP keep-alive idle time
+  - [ ] `test_os_socket_set_tcp_keep_idle_invalid()` → Test invalid values
 
-##### Function 3: `os_rewinddir()` [0 hits, ~12 lines]
-- **File**: `core/shared/platform/common/posix/posix_file.c`
+##### Function 3: `os_socket_get_tcp_keep_intvl()` [0 hits, ~12 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_rewinddir_reset()` → **Target: directory stream reset**
+  - [ ] `test_os_socket_get_tcp_keep_intvl_valid()` → Get TCP keep-alive interval
+  - [ ] `test_os_socket_get_tcp_keep_intvl_error()` → Test error handling
 
-##### Function 4: `os_seekdir()` [0 hits, ~14 lines]
-- **File**: `core/shared/platform/common/posix/posix_file.c**
+##### Function 4: `os_socket_set_tcp_keep_intvl()` [0 hits, ~12 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_seekdir_position()` → **Target: directory stream positioning**
+  - [ ] `test_os_socket_set_tcp_keep_intvl_valid()` → Set TCP keep-alive interval
+  - [ ] `test_os_socket_set_tcp_keep_intvl_invalid()` → Test boundary conditions
 
-##### Function 5: `os_open_preopendir()` [0 hits, ~16 lines]
-- **File**: `core/shared/platform/common/posix/posix_file.c`
+##### Function 5: `os_socket_get_tcp_quick_ack()` [0 hits, ~12 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_open_preopendir_valid()` → **Target: preopen directory opening**
+  - [ ] `test_os_socket_get_tcp_quick_ack_valid()` → Get TCP quick ACK status
+  - [ ] `test_os_socket_get_tcp_quick_ack_error()` → Test error conditions
 
-##### Function 6: `os_linkat()` [0 hits, ~28 lines]
-- **File**: `core/shared/platform/common/posix/posix_file.c`
+##### Function 6: `os_socket_set_tcp_quick_ack()` [0 hits, ~12 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_linkat_create_link()` → **Target: hard link creation**
-  - [ ] `test_os_linkat_invalid_path()` → **Target: error handling**
+  - [ ] `test_os_socket_set_tcp_quick_ack_enable()` → Enable TCP quick ACK
+  - [ ] `test_os_socket_set_tcp_quick_ack_disable()` → Disable TCP quick ACK
 
-##### Function 7: `os_unlinkat()` [0 hits, ~20 lines]
-- **File**: `core/shared/platform/common/posix/posix_file.c`
+##### Function 7: `os_socket_get_tcp_fastopen_connect()` [0 hits, ~12 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_unlinkat_remove_file()` → **Target: file removal**
-  - [ ] `test_os_unlinkat_remove_directory()` → **Target: directory removal**
+  - [ ] `test_os_socket_get_tcp_fastopen_connect_valid()` → Get TCP fast open status
+  - [ ] `test_os_socket_get_tcp_fastopen_connect_error()` → Test error handling
 
-##### Function 8: `os_renameat()` [0 hits, ~26 lines]
-- **File**: `core/shared/platform/common/posix/posix_file.c`
+##### Function 8: `os_socket_set_tcp_fastopen_connect()` [0 hits, ~12 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_renameat_move_file()` → **Target: file/directory renaming**
+  - [ ] `test_os_socket_set_tcp_fastopen_connect_enable()` → Enable TCP fast open
+  - [ ] `test_os_socket_set_tcp_fastopen_connect_disable()` → Disable TCP fast open
 
 **Step Metrics**:
-- **Total Functions in Step**: 8
-- **Total Uncovered Lines in Step**: ~175 lines
-- **Expected Coverage**: 175+ lines (13.3%+ coverage improvement)
-- **Status**: COMPLETED (Date: 2024-09-21)
-- **Test Cases**: 13/13 passing (comprehensive directory operations validation)
-- **Quality Score**: HIGH (real POSIX directory functionality validation)
-- **Coverage Impact**: +175 lines covered in target functions
-- **Implementation Notes**: Created posix_coverage_improve_step_2.cc with ASSERT-based tests
+- **Total Functions in Step**: 8 (within limit)
+- **Total Uncovered Lines in Step**: ~96 lines
+- **Expected Coverage**: 96+ lines (7%+ coverage improvement)
+- **Status**: PENDING
 
-### Step 3: Socket Core Operations (10 functions, ~280 lines)
+### Step 3: IP Multicast and TTL Functions (9 functions maximum)
 **Target Functions with Line Coverage Goals**:
 
-##### Function 1: `os_socket_addr_resolve()` [0 hits, ~85 lines]
+##### Function 1: `os_socket_get_ip_multicast_loop()` [0 hits, ~12 uncovered lines]
 - **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_socket_addr_resolve_ipv4()` → **Target: IPv4 address resolution**
-  - [ ] `test_os_socket_addr_resolve_ipv6()` → **Target: IPv6 address resolution**
-  - [ ] `test_os_socket_addr_resolve_hostname()` → **Target: hostname resolution**
+  - [ ] `test_os_socket_get_ip_multicast_loop_valid()` → Get multicast loopback status
+  - [ ] `test_os_socket_get_ip_multicast_loop_error()` → Test error conditions
 
-##### Function 2: `getaddrinfo_error_to_errno()` [0 hits, ~45 lines]
+##### Function 2: `os_socket_set_ip_multicast_loop()` [0 hits, ~12 uncovered lines]
 - **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_getaddrinfo_error_to_errno_mapping()` → **Target: error code conversion**
+  - [ ] `test_os_socket_set_ip_multicast_loop_enable()` → Enable multicast loopback
+  - [ ] `test_os_socket_set_ip_multicast_loop_disable()` → Disable multicast loopback
 
-##### Function 3: `os_socket_connect()` [0 hits, ~25 lines]
+##### Function 3: `os_socket_get_ip_multicast_ttl()` [0 hits, ~12 uncovered lines]
 - **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_socket_connect_success()` → **Target: successful socket connection**
-  - [ ] `test_os_socket_connect_failure()` → **Target: connection failure handling**
+  - [ ] `test_os_socket_get_ip_multicast_ttl_valid()` → Get multicast TTL
+  - [ ] `test_os_socket_get_ip_multicast_ttl_error()` → Test error handling
 
-##### Function 4: `os_socket_listen()` [0 hits, ~15 lines]
+##### Function 4: `os_socket_set_ip_multicast_ttl()` [0 hits, ~12 uncovered lines]
 - **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_socket_listen_success()` → **Target: socket listening setup**
+  - [ ] `test_os_socket_set_ip_multicast_ttl_valid()` → Set multicast TTL
+  - [ ] `test_os_socket_set_ip_multicast_ttl_invalid()` → Test invalid TTL values
 
-##### Function 5: `os_socket_send()` [0 hits, ~25 lines]
+##### Function 5: `os_socket_get_ip_ttl()` [0 hits, ~12 uncovered lines]
 - **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_socket_send_data()` → **Target: data transmission**
+  - [ ] `test_os_socket_get_ip_ttl_valid()` → Get IP TTL value
+  - [ ] `test_os_socket_get_ip_ttl_error()` → Test error conditions
 
-##### Function 6: `os_socket_recv()` [0 hits, ~28 lines]
+##### Function 6: `os_socket_set_ip_ttl()` [0 hits, ~12 uncovered lines]
 - **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_socket_recv_data()` → **Target: data reception**
+  - [ ] `test_os_socket_set_ip_ttl_valid()` → Set IP TTL value
+  - [ ] `test_os_socket_set_ip_ttl_boundary()` → Test TTL boundary values
 
-##### Function 7: `os_socket_send_to()` [0 hits, ~32 lines]
+##### Function 7: `os_socket_set_ip_add_membership()` [0 hits, ~15 uncovered lines]
 - **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_socket_send_to_address()` → **Target: UDP-style sending**
+  - [ ] `test_os_socket_set_ip_add_membership_valid()` → Add multicast membership
+  - [ ] `test_os_socket_set_ip_add_membership_error()` → Test error conditions
 
-##### Function 8: `os_socket_recv_from()` [0 hits, ~35 lines]
+##### Function 8: `os_socket_set_ip_drop_membership()` [0 hits, ~15 uncovered lines]
 - **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_socket_recv_from_address()` → **Target: UDP-style receiving**
+  - [ ] `test_os_socket_set_ip_drop_membership_valid()` → Drop multicast membership
+  - [ ] `test_os_socket_set_ip_drop_membership_error()` → Test error handling
 
-##### Function 9: `os_socket_shutdown()` [0 hits, ~16 lines]
+##### Function 9: `os_socket_inet_network()` [0 hits, ~10 uncovered lines]
 - **File**: `core/shared/platform/common/posix/posix_socket.c`
 - **LCOV Data**: 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_socket_shutdown_read()` → **Target: read shutdown**
-  - [ ] `test_os_socket_shutdown_write()` → **Target: write shutdown**
-
-##### Function 10: `is_addrinfo_supported()` [0 hits, ~12 lines]
-- **File**: `core/shared/platform/common/posix/posix_socket.c`
-- **LCOV Data**: 0 hits (completely uncovered)
-- **Test Cases**:
-  - [ ] `test_is_addrinfo_supported()` → **Target: address info support check**
+  - [ ] `test_os_socket_inet_network_valid()` → Convert network address
+  - [ ] `test_os_socket_inet_network_invalid()` → Test invalid addresses
 
 **Step Metrics**:
-- **Total Functions in Step**: 10
-- **Total Uncovered Lines in Step**: ~318 lines
-- **Expected Coverage**: 318+ lines (24.3%+ coverage improvement)
-- **Status**: COMPLETED (Date: 2024-09-21)
-- **Test Cases**: 21/21 passing (comprehensive socket operations validation)
-- **Quality Score**: HIGH (real POSIX socket functionality validation)
-- **Coverage Impact**: +318 lines covered in target functions
-- **Implementation Notes**: Created posix_coverage_improve_step_3.cc with ASSERT-based tests
+- **Total Functions in Step**: 9 (within limit)
+- **Total Uncovered Lines in Step**: ~112 lines
+- **Expected Coverage**: 112+ lines (8%+ coverage improvement)
+- **Status**: PENDING
 
-### Step 4: Socket Configuration & Advanced Operations (10 functions, ~200 lines)
+### Step 4: POSIX Thread Functions Enhancement (10 functions maximum)
 **Target Functions with Line Coverage Goals**:
 
-##### Function 1: `os_socket_get_recv_buf_size()` [0 hits, ~18 lines]
-- **File**: `core/shared/platform/common/posix/posix_socket.c`
-- **LCOV Data**: 0 hits (completely uncovered)
-- **Test Cases**:
-  - [ ] `test_os_socket_get_recv_buf_size()` → **Target: receive buffer size retrieval**
+Based on posix_thread.c having 31/43 functions covered (72.1%), targeting the 12 uncovered functions:
 
-##### Function 2: `os_socket_set_recv_buf_size()` [0 hits, ~20 lines]
-- **File**: `core/shared/platform/common/posix/posix_socket.c`
-- **LCOV Data**: 0 hits (completely uncovered)
+##### Function 1: `os_thread_detach()` [estimated 0 hits, ~8 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_thread.c`
+- **LCOV Data**: Estimated 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_socket_set_recv_buf_size()` → **Target: receive buffer size configuration**
+  - [ ] `test_os_thread_detach_valid()` → Detach valid thread
+  - [ ] `test_os_thread_detach_invalid()` → Test invalid thread ID
 
-##### Function 3: `os_socket_get_send_buf_size()` [0 hits, ~18 lines]
-- **File**: `core/shared/platform/common/posix/posix_socket.c`
-- **LCOV Data**: 0 hits (completely uncovered)
+##### Function 2: `os_thread_cancel()` [estimated 0 hits, ~10 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_thread.c`
+- **LCOV Data**: Estimated 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_socket_get_send_buf_size()` → **Target: send buffer size retrieval**
+  - [ ] `test_os_thread_cancel_valid()` → Cancel running thread
+  - [ ] `test_os_thread_cancel_invalid()` → Test invalid thread cancellation
 
-##### Function 4: `os_socket_set_send_buf_size()` [0 hits, ~20 lines]
-- **File**: `core/shared/platform/common/posix/posix_socket.c`
-- **LCOV Data**: 0 hits (completely uncovered)
+##### Function 3: `os_thread_exit()` [estimated 0 hits, ~6 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_thread.c`
+- **LCOV Data**: Estimated 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_socket_set_send_buf_size()` → **Target: send buffer size configuration**
+  - [ ] `test_os_thread_exit_normal()` → Normal thread exit
+  - [ ] `test_os_thread_exit_with_value()` → Thread exit with return value
 
-##### Function 5: `os_socket_get_recv_timeout()` [0 hits, ~22 lines]
-- **File**: `core/shared/platform/common/posix/posix_socket.c`
-- **LCOV Data**: 0 hits (completely uncovered)
+##### Function 4: `os_cond_init()` [estimated 0 hits, ~8 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_thread.c`
+- **LCOV Data**: Estimated 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_socket_get_recv_timeout()` → **Target: receive timeout retrieval**
+  - [ ] `test_os_cond_init_valid()` → Initialize condition variable
+  - [ ] `test_os_cond_init_null_param()` → Test null parameter handling
 
-##### Function 6: `os_socket_set_recv_timeout()` [0 hits, ~24 lines]
-- **File**: `core/shared/platform/common/posix/posix_socket.c`
-- **LCOV Data**: 0 hits (completely uncovered)
+##### Function 5: `os_cond_destroy()` [estimated 0 hits, ~6 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_thread.c`
+- **LCOV Data**: Estimated 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_socket_set_recv_timeout()` → **Target: receive timeout configuration**
+  - [ ] `test_os_cond_destroy_valid()` → Destroy condition variable
+  - [ ] `test_os_cond_destroy_invalid()` → Test invalid condition variable
 
-##### Function 7: `os_socket_get_send_timeout()` [0 hits, ~22 lines]
-- **File**: `core/shared/platform/common/posix/posix_socket.c`
-- **LCOV Data**: 0 hits (completely uncovered)
+##### Function 6: `os_cond_wait()` [estimated 0 hits, ~10 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_thread.c`
+- **LCOV Data**: Estimated 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_socket_get_send_timeout()` → **Target: send timeout retrieval**
+  - [ ] `test_os_cond_wait_normal()` → Normal condition wait
+  - [ ] `test_os_cond_wait_timeout()` → Test condition wait with timeout
 
-##### Function 8: `os_socket_set_send_timeout()` [0 hits, ~24 lines]
-- **File**: `core/shared/platform/common/posix/posix_socket.c`
-- **LCOV Data**: 0 hits (completely uncovered)
+##### Function 7: `os_cond_signal()` [estimated 0 hits, ~6 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_thread.c`
+- **LCOV Data**: Estimated 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_socket_set_send_timeout()` → **Target: send timeout configuration**
+  - [ ] `test_os_cond_signal_valid()` → Signal waiting thread
+  - [ ] `test_os_cond_signal_no_waiters()` → Signal with no waiting threads
 
-##### Function 9: `os_socket_get_reuse_addr()` [0 hits, ~16 lines]
-- **File**: `core/shared/platform/common/posix/posix_socket.c`
-- **LCOV Data**: 0 hits (completely uncovered)
+##### Function 8: `os_cond_broadcast()` [estimated 0 hits, ~6 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_thread.c`
+- **LCOV Data**: Estimated 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_socket_get_reuse_addr()` → **Target: address reuse flag retrieval**
+  - [ ] `test_os_cond_broadcast_valid()` → Broadcast to all waiting threads
+  - [ ] `test_os_cond_broadcast_no_waiters()` → Broadcast with no waiters
 
-##### Function 10: `os_socket_set_reuse_addr()` [0 hits, ~18 lines]
-- **File**: `core/shared/platform/common/posix/posix_socket.c`
-- **LCOV Data**: 0 hits (completely uncovered)
+##### Function 9: `os_rwlock_init()` [estimated 0 hits, ~8 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_thread.c`
+- **LCOV Data**: Estimated 0 hits (completely uncovered)
 - **Test Cases**:
-  - [ ] `test_os_socket_set_reuse_addr()` → **Target: address reuse flag configuration**
+  - [ ] `test_os_rwlock_init_valid()` → Initialize read-write lock
+  - [ ] `test_os_rwlock_init_null_param()` → Test null parameter handling
+
+##### Function 10: `os_rwlock_destroy()` [estimated 0 hits, ~6 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_thread.c`
+- **LCOV Data**: Estimated 0 hits (completely uncovered)
+- **Test Cases**:
+  - [ ] `test_os_rwlock_destroy_valid()` → Destroy read-write lock
+  - [ ] `test_os_rwlock_destroy_invalid()` → Test invalid lock destruction
 
 **Step Metrics**:
-- **Total Functions in Step**: 10
-- **Total Uncovered Lines in Step**: ~202 lines
-- **Expected Coverage**: 202+ lines (15.4%+ coverage improvement)
+- **Total Functions in Step**: 10 (maximum limit)
+- **Total Uncovered Lines in Step**: ~74 lines
+- **Expected Coverage**: 74+ lines (5%+ coverage improvement)
+- **Status**: PENDING
+
+### Step 5: POSIX Blocking Operations and File I/O Enhancement (6 functions maximum)
+**Target Functions with Line Coverage Goals**:
+
+##### Function 1: `os_blocking_op_begin()` [estimated partial coverage, ~6 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_blocking_op.c`
+- **LCOV Data**: Partial coverage (estimated 6 uncovered lines)
+- **Test Cases**:
+  - [ ] `test_os_blocking_op_begin_valid()` → Begin blocking operation
+  - [ ] `test_os_blocking_op_begin_nested()` → Test nested blocking operations
+
+##### Function 2: `os_blocking_op_end()` [estimated partial coverage, ~6 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_blocking_op.c`
+- **LCOV Data**: Partial coverage (estimated 6 uncovered lines)
+- **Test Cases**:
+  - [ ] `test_os_blocking_op_end_valid()` → End blocking operation
+  - [ ] `test_os_blocking_op_end_unmatched()` → Test unmatched end call
+
+##### Function 3: `os_file_handle_valid()` [estimated 0 hits, ~4 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_file.c`
+- **LCOV Data**: Estimated 0 hits (completely uncovered)
+- **Test Cases**:
+  - [ ] `test_os_file_handle_valid_true()` → Test valid file handle
+  - [ ] `test_os_file_handle_valid_false()` → Test invalid file handle
+
+##### Function 4: `os_file_get_fdflags()` [estimated partial coverage, ~8 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_file.c`
+- **LCOV Data**: Partial coverage (estimated 8 uncovered lines)
+- **Test Cases**:
+  - [ ] `test_os_file_get_fdflags_valid()` → Get file descriptor flags
+  - [ ] `test_os_file_get_fdflags_error()` → Test error conditions
+
+##### Function 5: `os_file_set_fdflags()` [estimated partial coverage, ~8 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_file.c`
+- **LCOV Data**: Partial coverage (estimated 8 uncovered lines)  
+- **Test Cases**:
+  - [ ] `test_os_file_set_fdflags_valid()` → Set file descriptor flags
+  - [ ] `test_os_file_set_fdflags_invalid()` → Test invalid flag combinations
+
+##### Function 6: `os_file_get_access_time()` [estimated partial coverage, ~10 uncovered lines]
+- **File**: `core/shared/platform/common/posix/posix_file.c`
+- **LCOV Data**: Partial coverage (estimated 10 uncovered lines)
+- **Test Cases**:
+  - [ ] `test_os_file_get_access_time_valid()` → Get file access time
+  - [ ] `test_os_file_get_access_time_error()` → Test error handling
+
+**Step Metrics**:
+- **Total Functions in Step**: 6 (within limit)
+- **Total Uncovered Lines in Step**: ~42 lines
+- **Expected Coverage**: 42+ lines (3%+ coverage improvement)
 - **Status**: PENDING
 
 ## Overall Progress
-- **Total Steps**: 4
-- **Completed Steps**: 3
-- **Current Step**: 4 (Final Step)
-- **Module Coverage Before**: 51.8%
-- **Module Coverage After**: 71.8%+ (target)
-- **Target Coverage**: 20%+ improvement
-- **Total Target Functions**: 38 (maximum coverage impact)
-- **Total Target Lines**: ~861 lines
-- **Progress**: 75% complete (659+ lines covered so far)
+- Total Steps: 5
+- Completed Steps: 0
+- Current Step: 1
+- Module Coverage Before: 69.3%
+- Module Coverage Target: 99.3% (30% improvement)
+- Total Target Lines: 402+ new lines covered
 
 ## Step Status
-- [x] Step 1: Core File Operations - COMPLETED (Date: 2024-09-21)
-- [x] Step 2: Directory Operations - COMPLETED (Date: 2024-09-21)
-- [x] Step 3: Socket Core Operations - COMPLETED (Date: 2024-09-21)
-- [ ] Step 4: Socket Configuration & Advanced Operations - PENDING
+- [ ] Step 1: Socket Option Functions - PENDING
+- [ ] Step 2: TCP Socket Advanced Options - PENDING  
+- [ ] Step 3: IP Multicast and TTL Functions - PENDING
+- [ ] Step 4: POSIX Thread Functions Enhancement - PENDING
+- [ ] Step 5: POSIX Blocking Operations and File I/O Enhancement - PENDING
 
-## Implementation Strategy
+## Plan Metadata for Inter-Agent Communication
 
-### Phase 1: Enhanced Directory Structure
-```bash
-tests/unit/enhanced_coverage_report/posix/
-├── CMakeLists.txt                    # Build configuration
-├── posix_coverage_improve_step_1.cc  # Core file operations
-├── posix_coverage_improve_step_2.cc  # Directory operations
-├── posix_coverage_improve_step_3.cc  # Socket core operations
-├── posix_coverage_improve_step_4.cc  # Socket configuration
-├── posix_coverage_improve_plan.md    # This plan document
-└── wasm-apps/                        # Test WASM modules if needed
+```json
+{
+  "plan_id": "posix_20250921_194500",
+  "module_name": "posix",
+  "target_coverage": "99.3%",
+  "coverage_improvement": "+30%",
+  "total_steps": 5,
+  "current_step": 1,
+  "plan_file": "tests/unit/enhanced_coverage_report/posix/posix_coverage_improve_plan.md",
+  "metadata": {
+    "total_functions": 46,
+    "uncovered_functions": 46,
+    "complexity_level": "high",
+    "dependencies": ["test_helper.h", "wasm_runtime.h", "platform_api_extension.h"],
+    "platform_constraints": ["linux", "posix_sockets", "pthread_support"],
+    "estimated_duration": "4-6 hours"
+  }
+}
 ```
 
-### Phase 2: Test Quality Standards
-- **Use ASSERT_* not EXPECT_***: For definitive pass/fail validation
-- **Real Feature Validation**: Tests must validate actual POSIX functionality
-- **Comprehensive Coverage**: Both positive and negative test scenarios
-- **Resource Management**: Proper setup/teardown with file/socket cleanup
-- **Platform Awareness**: Handle POSIX-specific behaviors correctly
+## Implementation Notes
 
-### Phase 3: Coverage Validation
-- **Pre-test Coverage**: Verify 0 hits for target functions
-- **Post-test Coverage**: Confirm hit count increases for target functions
-- **Line Coverage**: Verify specific line coverage improvements
-- **No Regression**: Ensure existing tests continue to pass
+### Test Framework Requirements
+- **Socket Testing**: Requires socket creation/destruction utilities
+- **Thread Testing**: Needs thread synchronization test helpers  
+- **File I/O Testing**: Requires temporary file management
+- **Platform Compatibility**: Tests must handle platform-specific socket options gracefully
 
-## Success Criteria
-- [ ] All 38 target functions show >0 hits in LCOV report
-- [ ] Module line coverage increases from 51.8% to 71.8%+
-- [ ] All test cases compile and execute successfully
-- [ ] Tests validate actual POSIX functionality (not just code execution)
-- [ ] No regression in existing test coverage
-- [ ] Test quality meets WAMR standards
+### Coverage Strategy
+- **Primary Focus**: Uncovered socket option functions (27 functions, ~300+ lines)
+- **Secondary Focus**: Thread synchronization primitives (12 functions, ~74 lines)
+- **Tertiary Focus**: File I/O edge cases and blocking operations (~50 lines)
 
-## Risk Mitigation
-- **Socket Tests**: May require network setup - use localhost/loopback
-- **File Operations**: Create temporary test directories for isolation
-- **Directory Operations**: Use controlled test environment
-- **Platform Dependencies**: Handle POSIX-specific features gracefully
+### Success Criteria
+- [ ] All 46 target functions show increased hit counts in LCOV
+- [ ] Socket option functions achieve 95%+ individual coverage
+- [ ] Thread functions achieve 90%+ individual coverage  
+- [ ] File I/O functions achieve 95%+ individual coverage
+- [ ] Overall module coverage reaches 99.3% (30% improvement)
+- [ ] All tests pass reliably across supported platforms
