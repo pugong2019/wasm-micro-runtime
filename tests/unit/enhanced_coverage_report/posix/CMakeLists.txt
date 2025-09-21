@@ -1,5 +1,5 @@
-# Enhanced POSIX Unit Tests CMakeLists.txt
-# Coverage-driven test enhancement for POSIX module
+# Copyright (C) 2024 Intel Corporation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
 cmake_minimum_required(VERSION 3.14)
 
@@ -80,3 +80,38 @@ endif()
 
 # Create test data directory if needed
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/test_data)
+set(WAMR_BUILD_PLATFORM "linux")
+set(WAMR_BUILD_TARGET "X86_64")
+set(WAMR_BUILD_INTERP 1)
+set(WAMR_BUILD_AOT 1)
+set(WAMR_BUILD_JIT 0)
+set(WAMR_BUILD_FAST_INTERP 1)
+set(WAMR_BUILD_SHARED_MEMORY 1)
+
+# Include unit test common configuration
+
+# Include IWASM compilation configuration
+include(${IWASM_DIR}/compilation/iwasm_compl.cmake)
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../common)
+
+# Collect all test source files
+file(GLOB_RECURSE source_all ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
+
+set(UNIT_SOURCE ${source_all})
+
+aux_source_directory(. SRC_LIST)
+
+set(unit_test_sources
+    ${UNIT_SOURCE}
+    ${WAMR_RUNTIME_LIB_SOURCE}
+    ${UNCOMMON_SHARED_SOURCE}
+    ${SRC_LIST}
+)
+
+# Create POSIX enhanced test executable
+add_executable(posix_enhanced_test ${unit_test_sources})
+
+target_link_libraries(posix_enhanced_test ${LLVM_AVAILABLE_LIBS} gtest_main -lm -ldl -lpthread)
+
+gtest_discover_tests(posix_enhanced_test)
