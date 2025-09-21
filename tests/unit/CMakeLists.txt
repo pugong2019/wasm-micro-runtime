@@ -82,4 +82,5 @@ if (NOT WAMR_BUILD_TARGET STREQUAL "X86_32")
 
   # HW_BOUND_CHECK is not supported on X86_32
   add_subdirectory (runtime-common)
+  add_subdirectory (enhanced_coverage_report/runtime-common)
 endif ()
