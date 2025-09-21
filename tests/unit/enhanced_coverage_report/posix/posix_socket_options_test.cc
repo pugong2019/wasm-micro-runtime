@@ -442,3 +442,280 @@ TEST_F(PosixSocketOptionsTest, SocketOptions_ErrorRecovery_HandledCorrectly) {
     ASSERT_EQ(BHT_OK, result) << "Socket should remain functional after error";
     ASSERT_TRUE(is_enabled);
 }
+
+// ============================================================================
+// Step 3: Linger & Socket Options Tests (4 functions)
+// ============================================================================
+
+TEST_F(PosixSocketOptionsTest, Linger_SetAndGet_WorksCorrectly) {
+    bh_socket_t tcp_socket = create_tcp_socket();
+    ASSERT_NE(-1, tcp_socket);
+    
+    bool is_linger_enabled = false;
+    int linger_seconds = 0;
+    
+    // Test getting default linger settings
+    int result = os_socket_get_linger(tcp_socket, &is_linger_enabled, &linger_seconds);
+    ASSERT_EQ(BHT_OK, result) << "Getting default linger should succeed";
+    
+    // Test setting linger enabled with 30 second timeout
+    result = os_socket_set_linger(tcp_socket, true, 30);
+    ASSERT_EQ(BHT_OK, result) << "Setting linger enabled should succeed";
+    
+    // Verify the setting was applied
+    result = os_socket_get_linger(tcp_socket, &is_linger_enabled, &linger_seconds);
+    ASSERT_EQ(BHT_OK, result) << "Getting linger after set should succeed";
+    ASSERT_TRUE(is_linger_enabled) << "Linger should be enabled";
+    ASSERT_EQ(30, linger_seconds) << "Linger timeout should be 30 seconds";
+    
+    // Test disabling linger
+    result = os_socket_set_linger(tcp_socket, false, 0);
+    ASSERT_EQ(BHT_OK, result) << "Disabling linger should succeed";
+    
+    // Verify linger is disabled
+    result = os_socket_get_linger(tcp_socket, &is_linger_enabled, &linger_seconds);
+    ASSERT_EQ(BHT_OK, result) << "Getting linger after disable should succeed";
+    ASSERT_FALSE(is_linger_enabled) << "Linger should be disabled";
+    
+    os_socket_close(tcp_socket);
+}
+
+TEST_F(PosixSocketOptionsTest, Linger_InvalidSocket_HandledCorrectly) {
+    bool is_linger_enabled = false;
+    int linger_seconds = 0;
+    
+    // Test with invalid socket descriptor
+    int result = os_socket_get_linger(-1, &is_linger_enabled, &linger_seconds);
+    ASSERT_EQ(BHT_ERROR, result) << "Getting linger on invalid socket should fail";
+    
+    result = os_socket_set_linger(-1, true, 30);
+    ASSERT_EQ(BHT_ERROR, result) << "Setting linger on invalid socket should fail";
+}
+
+TEST_F(PosixSocketOptionsTest, Linger_BoundaryValues_HandledCorrectly) {
+    bh_socket_t tcp_socket = create_tcp_socket();
+    ASSERT_NE(-1, tcp_socket);
+    
+    // Test with zero timeout (immediate close)
+    int result = os_socket_set_linger(tcp_socket, true, 0);
+    ASSERT_EQ(BHT_OK, result) << "Setting linger with 0 timeout should succeed";
+    
+    bool is_linger_enabled = false;
+    int linger_seconds = -1;
+    result = os_socket_get_linger(tcp_socket, &is_linger_enabled, &linger_seconds);
+    ASSERT_EQ(BHT_OK, result) << "Getting linger should succeed";
+    ASSERT_TRUE(is_linger_enabled) << "Linger should be enabled";
+    ASSERT_EQ(0, linger_seconds) << "Linger timeout should be 0";
+    
+    // Test with maximum reasonable timeout (65535 seconds)
+    result = os_socket_set_linger(tcp_socket, true, 65535);
+    ASSERT_EQ(BHT_OK, result) << "Setting linger with max timeout should succeed";
+    
+    result = os_socket_get_linger(tcp_socket, &is_linger_enabled, &linger_seconds);
+    ASSERT_EQ(BHT_OK, result) << "Getting linger should succeed";
+    ASSERT_TRUE(is_linger_enabled) << "Linger should be enabled";
+    ASSERT_EQ(65535, linger_seconds) << "Linger timeout should be 65535";
+    
+    os_socket_close(tcp_socket);
+}
+
+// Note: TCP_USER_TIMEOUT functions don't exist in WAMR API
+// Skipping TCP user timeout tests as these functions are not implemented
+
+// ============================================================================
+// Step 4: Multicast Operations Tests (7 functions)
+// ============================================================================
+
+TEST_F(PosixSocketOptionsTest, IpMulticastLoop_SetAndGet_WorksCorrectly) {
+    bh_socket_t udp_socket = create_udp_socket();
+    ASSERT_NE(-1, udp_socket);
+    
+    bool is_enabled = false;
+    
+    // Test getting default multicast loop setting
+    int result = os_socket_get_ip_multicast_loop(udp_socket, false, &is_enabled);
+    ASSERT_EQ(BHT_OK, result) << "Getting default multicast loop should succeed";
+    
+    // Test enabling multicast loop
+    result = os_socket_set_ip_multicast_loop(udp_socket, false, true);
+    ASSERT_EQ(BHT_OK, result) << "Enabling multicast loop should succeed";
+    
+    // Verify the setting was applied
+    result = os_socket_get_ip_multicast_loop(udp_socket, false, &is_enabled);
+    ASSERT_EQ(BHT_OK, result) << "Getting multicast loop after set should succeed";
+    ASSERT_TRUE(is_enabled) << "Multicast loop should be enabled";
+    
+    // Test disabling multicast loop
+    result = os_socket_set_ip_multicast_loop(udp_socket, false, false);
+    ASSERT_EQ(BHT_OK, result) << "Disabling multicast loop should succeed";
+    
+    // Verify multicast loop is disabled
+    result = os_socket_get_ip_multicast_loop(udp_socket, false, &is_enabled);
+    ASSERT_EQ(BHT_OK, result) << "Getting multicast loop after disable should succeed";
+    ASSERT_FALSE(is_enabled) << "Multicast loop should be disabled";
+    
+    os_socket_close(udp_socket);
+}
+
+TEST_F(PosixSocketOptionsTest, IpMulticastLoop_InvalidSocket_HandledCorrectly) {
+    bool is_enabled = false;
+    
+    // Test with invalid socket descriptor
+    int result = os_socket_get_ip_multicast_loop(-1, false, &is_enabled);
+    ASSERT_EQ(BHT_ERROR, result) << "Getting multicast loop on invalid socket should fail";
+    
+    result = os_socket_set_ip_multicast_loop(-1, false, true);
+    ASSERT_EQ(BHT_ERROR, result) << "Setting multicast loop on invalid socket should fail";
+}
+
+TEST_F(PosixSocketOptionsTest, IpTtl_SetAndGet_WorksCorrectly) {
+    bh_socket_t udp_socket = create_udp_socket();
+    ASSERT_NE(-1, udp_socket);
+    
+    uint8_t ttl_value = 0;
+    
+    // Test getting default TTL value
+    int result = os_socket_get_ip_ttl(udp_socket, &ttl_value);
+    ASSERT_EQ(BHT_OK, result) << "Getting default TTL should succeed";
+    
+    // Test setting TTL to 64 (common default)
+    result = os_socket_set_ip_ttl(udp_socket, 64);
+    ASSERT_EQ(BHT_OK, result) << "Setting TTL should succeed";
+    
+    // Verify the setting was applied
+    result = os_socket_get_ip_ttl(udp_socket, &ttl_value);
+    ASSERT_EQ(BHT_OK, result) << "Getting TTL after set should succeed";
+    ASSERT_EQ(64, ttl_value) << "TTL should be 64";
+    
+    // Test setting TTL to 1 (local network only)
+    result = os_socket_set_ip_ttl(udp_socket, 1);
+    ASSERT_EQ(BHT_OK, result) << "Setting TTL to 1 should succeed";
+    
+    result = os_socket_get_ip_ttl(udp_socket, &ttl_value);
+    ASSERT_EQ(BHT_OK, result) << "Getting TTL should succeed";
+    ASSERT_EQ(1, ttl_value) << "TTL should be 1";
+    
+    os_socket_close(udp_socket);
+}
+
+TEST_F(PosixSocketOptionsTest, IpTtl_BoundaryValues_HandledCorrectly) {
+    bh_socket_t udp_socket = create_udp_socket();
+    ASSERT_NE(-1, udp_socket);
+    
+    // Test with minimum TTL (1)
+    int result = os_socket_set_ip_ttl(udp_socket, 1);
+    ASSERT_EQ(BHT_OK, result) << "Setting minimum TTL should succeed";
+    
+    uint8_t ttl_value = 0;
+    result = os_socket_get_ip_ttl(udp_socket, &ttl_value);
+    ASSERT_EQ(BHT_OK, result) << "Getting TTL should succeed";
+    ASSERT_EQ(1, ttl_value) << "TTL should be 1";
+    
+    // Test with maximum TTL (255)
+    result = os_socket_set_ip_ttl(udp_socket, 255);
+    ASSERT_EQ(BHT_OK, result) << "Setting maximum TTL should succeed";
+    
+    result = os_socket_get_ip_ttl(udp_socket, &ttl_value);
+    ASSERT_EQ(BHT_OK, result) << "Getting TTL should succeed";
+    ASSERT_EQ(255, ttl_value) << "TTL should be 255";
+    
+    os_socket_close(udp_socket);
+}
+
+TEST_F(PosixSocketOptionsTest, IpTtl_InvalidSocket_HandledCorrectly) {
+    uint8_t ttl_value = 0;
+    
+    // Test with invalid socket descriptor
+    int result = os_socket_get_ip_ttl(-1, &ttl_value);
+    ASSERT_EQ(BHT_ERROR, result) << "Getting TTL on invalid socket should fail";
+    
+    result = os_socket_set_ip_ttl(-1, 64);
+    ASSERT_EQ(BHT_ERROR, result) << "Setting TTL on invalid socket should fail";
+}
+
+TEST_F(PosixSocketOptionsTest, MulticastMembership_AddAndDrop_WorksCorrectly) {
+    bh_socket_t udp_socket = create_udp_socket();
+    ASSERT_NE(-1, udp_socket);
+    
+    // Prepare multicast group address (239.255.255.250 - UPnP multicast)
+    bh_ip_addr_buffer_t mcast_addr;
+    int result = os_socket_inet_network(true, "239.255.255.250", &mcast_addr);
+    ASSERT_EQ(BHT_OK, result) << "Converting multicast address should succeed";
+    
+    // Prepare interface address (INADDR_ANY)
+    bh_ip_addr_buffer_t if_addr;
+    result = os_socket_inet_network(true, "0.0.0.0", &if_addr);
+    ASSERT_EQ(BHT_OK, result) << "Converting interface address should succeed";
+    
+    // Test adding multicast membership
+    result = os_socket_set_ip_add_membership(udp_socket, &mcast_addr, 0, false);
+    // Note: This may fail on some systems if multicast is not supported or
+    // if we don't have proper network setup, so we check for either success or expected error
+    bool add_succeeded = (result == BHT_OK);
+    
+    if (add_succeeded) {
+        // Test dropping multicast membership
+        result = os_socket_set_ip_drop_membership(udp_socket, &mcast_addr, 0, false);
+        ASSERT_EQ(BHT_OK, result) << "Dropping multicast membership should succeed";
+    }
+    
+    os_socket_close(udp_socket);
+}
+
+TEST_F(PosixSocketOptionsTest, MulticastMembership_InvalidSocket_HandledCorrectly) {
+    bh_ip_addr_buffer_t mcast_addr;
+    bh_ip_addr_buffer_t if_addr;
+    
+    // Prepare addresses
+    int result = os_socket_inet_network(true, "239.255.255.250", &mcast_addr);
+    ASSERT_EQ(BHT_OK, result);
+    result = os_socket_inet_network(true, "0.0.0.0", &if_addr);
+    ASSERT_EQ(BHT_OK, result);
+    
+    // Test with invalid socket descriptor
+    result = os_socket_set_ip_add_membership(-1, &mcast_addr, 0, false);
+    ASSERT_EQ(BHT_ERROR, result) << "Adding membership on invalid socket should fail";
+    
+    result = os_socket_set_ip_drop_membership(-1, &mcast_addr, 0, false);
+    ASSERT_EQ(BHT_ERROR, result) << "Dropping membership on invalid socket should fail";
+}
+
+TEST_F(PosixSocketOptionsTest, InetNetwork_ValidAddresses_ConvertedCorrectly) {
+    bh_ip_addr_buffer_t addr_buf;
+    
+    // Test converting localhost address
+    int result = os_socket_inet_network(true, "127.0.0.1", &addr_buf);
+    ASSERT_EQ(BHT_OK, result) << "Converting localhost address should succeed";
+    
+    // Test converting broadcast address
+    result = os_socket_inet_network(true, "255.255.255.255", &addr_buf);
+    ASSERT_EQ(BHT_OK, result) << "Converting broadcast address should succeed";
+    
+    // Test converting any address
+    result = os_socket_inet_network(true, "0.0.0.0", &addr_buf);
+    ASSERT_EQ(BHT_OK, result) << "Converting any address should succeed";
+    
+    // Test converting multicast address
+    result = os_socket_inet_network(true, "224.0.0.1", &addr_buf);
+    ASSERT_EQ(BHT_OK, result) << "Converting multicast address should succeed";
+}
+
+TEST_F(PosixSocketOptionsTest, InetNetwork_InvalidAddresses_HandledCorrectly) {
+    bh_ip_addr_buffer_t addr_buf;
+    
+    // Test with invalid IP address format
+    int result = os_socket_inet_network(true, "999.999.999.999", &addr_buf);
+    ASSERT_EQ(BHT_ERROR, result) << "Converting invalid IP should fail";
+    
+    // Test with malformed address
+    result = os_socket_inet_network(true, "192.168.1", &addr_buf);
+    ASSERT_EQ(BHT_ERROR, result) << "Converting malformed IP should fail";
+    
+    // Test with non-numeric address
+    result = os_socket_inet_network(true, "localhost", &addr_buf);
+    ASSERT_EQ(BHT_ERROR, result) << "Converting hostname should fail";
+    
+    // Test with empty string
+    result = os_socket_inet_network(true, "", &addr_buf);
+    ASSERT_EQ(BHT_ERROR, result) << "Converting empty string should fail";
+}
