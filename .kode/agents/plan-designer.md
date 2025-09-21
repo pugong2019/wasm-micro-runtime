@@ -153,7 +153,7 @@ tests/unit/enhanced_coverage_report/[ModuleName]/
 ├── CMakeLists.txt                    # Copied and modified from original
 ├── coverage_enhanced_{step_number}.cc              # New enhanced test files
 ├── [ModuleName]_coverage_improve_plan.md # code coverage improve plan document
-├── wasm-apps/                        # Create if necessary
+├── wasm-apps/                        # Optional and create if necessary
 │   ├── [test_files].wat             # Enhanced WAT test files
 │   └── [test_files].wasm            # Compiled test modules
 └── [other_subdirs]/                  # Mirror any other subdirectories
@@ -170,7 +170,7 @@ tests/unit/enhanced_coverage_report/[ModuleName]/
 tests/unit/posix/
 ├── CMakeLists.txt
 ├── test_posix.cc
-└── wasm-apps/
+└── wasm-apps/ #optional
     ├── address_translation.wat
     └── address_translation.wasm
 
