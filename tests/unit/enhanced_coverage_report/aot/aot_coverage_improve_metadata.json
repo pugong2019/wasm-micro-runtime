@@ -1,0 +1,170 @@
+{
+  "plan_id": "aot_20250921_150300",
+  "module_name": "aot",
+  "target_coverage": "73.3%",
+  "total_steps": 5,
+  "current_step": 1,
+  "plan_file": "tests/unit/enhanced_coverage_report/aot/aot_coverage_improve_plan.md",
+  "metadata": {
+    "total_functions": 242,
+    "covered_functions": 177,
+    "uncovered_functions": 65,
+    "total_lines": 3592,
+    "covered_lines": 1913,
+    "uncovered_lines": 1679,
+    "current_coverage": "53.3%",
+    "target_improvement": "20%",
+    "complexity_level": "high",
+    "dependencies": [
+      "wasm_runtime.h",
+      "aot_runtime.h", 
+      "aot_loader.h",
+      "aot_intrinsic.h",
+      "wasm_export.h",
+      "bh_platform.h",
+      "LLVM libraries"
+    ],
+    "platform_constraints": [
+      "linux",
+      "LLVM_required",
+      "AOT_compilation_support"
+    ],
+    "estimated_duration": "4-6 hours",
+    "source_files": {
+      "aot_runtime.c": {
+        "line_coverage": "42.8%",
+        "function_coverage": "62.7%",
+        "uncovered_functions": 31,
+        "priority": "HIGH"
+      },
+      "aot_loader.c": {
+        "line_coverage": "58.7%", 
+        "function_coverage": "80.0%",
+        "uncovered_functions": 16,
+        "priority": "MEDIUM"
+      },
+      "aot_intrinsic.c": {
+        "line_coverage": "73.6%",
+        "function_coverage": "77.2%", 
+        "uncovered_functions": 18,
+        "priority": "MEDIUM"
+      }
+    }
+  },
+  "step_breakdown": [
+    {
+      "step_number": 1,
+      "step_name": "AOT Runtime Core Functions",
+      "target_functions": 10,
+      "estimated_lines": 300,
+      "estimated_coverage_gain": "8-10%",
+      "priority": "HIGH",
+      "functions": [
+        "aot_call_indirect",
+        "aot_get_exception", 
+        "aot_get_function_instance",
+        "aot_enlarge_memory_with_idx",
+        "aot_data_drop",
+        "aot_get_aux_stack",
+        "aot_set_aux_stack",
+        "aot_alloc_tiny_frame",
+        "aot_free_tiny_frame",
+        "aot_memory_init"
+      ]
+    },
+    {
+      "step_number": 2,
+      "step_name": "AOT Loader Functions",
+      "target_functions": 10,
+      "estimated_lines": 250,
+      "estimated_coverage_gain": "6-8%",
+      "priority": "MEDIUM",
+      "functions": [
+        "aot_load_from_sections",
+        "do_data_relocation", 
+        "exchange_uint16",
+        "exchange_uint32",
+        "exchange_uint64",
+        "load_import_globals",
+        "destroy_import_globals",
+        "destroy_import_memories",
+        "load_name_section",
+        "load_native_symbol_section"
+      ]
+    },
+    {
+      "step_number": 3,
+      "step_name": "AOT Intrinsic Functions",
+      "target_functions": 10,
+      "estimated_lines": 180,
+      "estimated_coverage_gain": "4-6%",
+      "priority": "MEDIUM",
+      "functions": [
+        "aot_intrinsic_i32_div_s",
+        "aot_intrinsic_i32_div_u",
+        "aot_intrinsic_i64_div_s", 
+        "aot_intrinsic_i64_div_u",
+        "aot_intrinsic_i32_rem_s",
+        "aot_intrinsic_i32_rem_u",
+        "aot_intrinsic_i64_rem_s",
+        "aot_intrinsic_i64_rem_u",
+        "aot_intrinsic_i64_shl",
+        "aot_intrinsic_i64_shr_s"
+      ]
+    },
+    {
+      "step_number": 4,
+      "step_name": "AOT Utility and Support Functions",
+      "target_functions": 10,
+      "estimated_lines": 200,
+      "estimated_coverage_gain": "3-5%",
+      "priority": "LOW",
+      "functions": [
+        "aot_lookup_memory",
+        "aot_get_memory_with_idx",
+        "aot_lookup_function_with_idx",
+        "aot_memmove",
+        "aot_sqrt",
+        "aot_sqrtf", 
+        "aot_resolve_function",
+        "aot_resolve_function_ex",
+        "aot_resolve_symbols",
+        "aot_get_module_name"
+      ]
+    },
+    {
+      "step_number": 5,
+      "step_name": "AOT Intrinsic Support Functions",
+      "target_functions": 5,
+      "estimated_lines": 120,
+      "estimated_coverage_gain": "2-4%",
+      "priority": "LOW",
+      "functions": [
+        "add_f32xi32_intrinsics",
+        "add_f32xi64_intrinsics",
+        "add_f64xi32_intrinsics",
+        "add_f64xi64_intrinsics",
+        "aot_intrinsic_i64_shr_u"
+      ]
+    }
+  ],
+  "build_requirements": {
+    "cmake_flags": [
+      "-DWASM_ENABLE_WAMR_COMPILER=1",
+      "-DWASM_ENABLE_DUMP_CALL_STACK=1", 
+      "-DWASM_ENABLE_AOT_STACK_FRAME=1",
+      "-DCOLLECT_CODE_COVERAGE=1"
+    ],
+    "llvm_required": true,
+    "llvm_path": "${WAMR_ROOT_DIR}/core/deps/llvm/build",
+    "additional_libs": ["${LLVM_AVAILABLE_LIBS}", "gtest_main"]
+  },
+  "validation_criteria": {
+    "minimum_coverage_gain": "15%",
+    "target_coverage": "73.3%",
+    "all_tests_pass": true,
+    "no_gtest_skip": true,
+    "meaningful_assertions": true,
+    "platform_compatibility": ["linux", "x86_64"]
+  }
+}
