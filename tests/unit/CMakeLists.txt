@@ -70,6 +70,7 @@ add_subdirectory(gc)
 add_subdirectory(tid-allocator)
 add_subdirectory(enhanced_unit_test)
 add_subdirectory(posix)
+add_subdirectory(enhanced_coverage_report)
 
 if (NOT WAMR_BUILD_TARGET STREQUAL "X86_32")
   # should enable 32-bit llvm when X86_32

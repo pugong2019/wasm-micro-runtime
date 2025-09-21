@@ -1,0 +1,119 @@
+{
+  "plan_id": "posix_20250921_143000",
+  "module_name": "posix",
+  "target_coverage": "71.8%",
+  "total_steps": 4,
+  "current_step": 1,
+  "plan_file": "tests/unit/enhanced_coverage_report/posix/posix_coverage_improve_plan.md",
+  "metadata": {
+    "total_functions": 64,
+    "uncovered_functions": 38,
+    "complexity_level": "high",
+    "dependencies": ["test_helper.h", "wasm_export.h", "posix_file.c", "posix_socket.c", "posix_blocking_op.c"],
+    "platform_constraints": ["linux", "posix_compliant", "socket_support"],
+    "estimated_duration": "6-8 hours"
+  },
+  "coverage_analysis": {
+    "current_line_coverage": "679/1311 (51.8%)",
+    "current_function_coverage": "99/176 (56.2%)",
+    "current_branch_coverage": "255/714 (35.7%)",
+    "target_line_coverage": "71.8%+",
+    "expected_line_improvement": "861+ lines",
+    "coverage_gap_categories": {
+      "file_operations": 21,
+      "socket_operations": 40,
+      "blocking_operations": 3
+    }
+  },
+  "step_breakdown": {
+    "step_1": {
+      "name": "Core File Operations",
+      "functions": 10,
+      "target_lines": 166,
+      "coverage_improvement": "12.7%",
+      "functions_list": [
+        "os_fadvise()",
+        "os_file_get_access_mode()",
+        "os_file_get_fdflags()",
+        "os_file_set_fdflags()",
+        "os_futimens()",
+        "os_utimensat()",
+        "convert_timestamp()",
+        "convert_utimens_arguments()",
+        "os_get_invalid_dir_stream()",
+        "os_is_dir_stream_valid()"
+      ]
+    },
+    "step_2": {
+      "name": "Directory Operations",
+      "functions": 8,
+      "target_lines": 175,
+      "coverage_improvement": "13.3%",
+      "functions_list": [
+        "os_mkdirat()",
+        "os_readdir()",
+        "os_rewinddir()",
+        "os_seekdir()",
+        "os_open_preopendir()",
+        "os_linkat()",
+        "os_unlinkat()",
+        "os_renameat()"
+      ]
+    },
+    "step_3": {
+      "name": "Socket Core Operations",
+      "functions": 10,
+      "target_lines": 318,
+      "coverage_improvement": "24.3%",
+      "functions_list": [
+        "os_socket_addr_resolve()",
+        "getaddrinfo_error_to_errno()",
+        "os_socket_connect()",
+        "os_socket_listen()",
+        "os_socket_send()",
+        "os_socket_recv()",
+        "os_socket_send_to()",
+        "os_socket_recv_from()",
+        "os_socket_shutdown()",
+        "is_addrinfo_supported()"
+      ]
+    },
+    "step_4": {
+      "name": "Socket Configuration & Advanced Operations",
+      "functions": 10,
+      "target_lines": 202,
+      "coverage_improvement": "15.4%",
+      "functions_list": [
+        "os_socket_get_recv_buf_size()",
+        "os_socket_set_recv_buf_size()",
+        "os_socket_get_send_buf_size()",
+        "os_socket_set_send_buf_size()",
+        "os_socket_get_recv_timeout()",
+        "os_socket_set_recv_timeout()",
+        "os_socket_get_send_timeout()",
+        "os_socket_set_send_timeout()",
+        "os_socket_get_reuse_addr()",
+        "os_socket_set_reuse_addr()"
+      ]
+    }
+  },
+  "test_files": {
+    "step_1": "posix_coverage_improve_step_1.cc",
+    "step_2": "posix_coverage_improve_step_2.cc", 
+    "step_3": "posix_coverage_improve_step_3.cc",
+    "step_4": "posix_coverage_improve_step_4.cc"
+  },
+  "quality_standards": {
+    "assertion_type": "ASSERT_* (not EXPECT_*)",
+    "skip_policy": "early_return (no GTEST_SKIP)",
+    "validation_type": "real_functionality",
+    "resource_management": "RAII_with_cleanup",
+    "platform_handling": "posix_aware"
+  },
+  "risk_factors": {
+    "socket_networking": "requires localhost/loopback setup",
+    "file_operations": "needs temporary directory isolation", 
+    "directory_operations": "controlled test environment required",
+    "platform_dependencies": "posix-specific feature handling"
+  }
+}
