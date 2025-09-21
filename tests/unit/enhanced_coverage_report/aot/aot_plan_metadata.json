@@ -1,0 +1,55 @@
+{
+  "plan_id": "aot_20250921_143000",
+  "module_name": "aot",
+  "target_coverage": "73.3%",
+  "total_steps": 2,
+  "current_step": 1,
+  "plan_file": "tests/unit/enhanced_coverage_report/aot/aot_coverage_improve_plan.md",
+  "metadata": {
+    "total_functions": 242,
+    "uncovered_functions": 16,
+    "current_coverage_lines": "1913/3592 (53.3%)",
+    "current_coverage_functions": "177/242 (73.1%)",
+    "current_coverage_branches": "971/2914 (33.3%)",
+    "target_coverage_improvement": "+20%",
+    "expected_line_improvement": "686+ lines",
+    "complexity_level": "high",
+    "dependencies": [
+      "aot_runtime.h",
+      "aot_loader.h", 
+      "wasm_export.h",
+      "test_helper.h"
+    ],
+    "platform_constraints": [
+      "linux",
+      "aot_compilation_enabled",
+      "memory_limits_512MB"
+    ],
+    "estimated_duration": "4-6 hours",
+    "build_requirements": {
+      "WAMR_BUILD_AOT": 1,
+      "WAMR_BUILD_INTERP": 0,
+      "WAMR_BUILD_FAST_JIT": 0,
+      "WAMR_BUILD_JIT": 0,
+      "WAMR_BUILD_LIBC_BUILTIN": 1,
+      "WAMR_BUILD_LIBC_WASI": 0
+    },
+    "test_file_locations": {
+      "step_1": "tests/unit/enhanced_coverage_report/aot/aot_coverage_improve_step_1.cc",
+      "step_2": "tests/unit/enhanced_coverage_report/aot/aot_coverage_improve_step_2.cc",
+      "cmake": "tests/unit/enhanced_coverage_report/aot/CMakeLists.txt"
+    },
+    "coverage_targets": {
+      "step_1": {
+        "functions": 10,
+        "expected_lines": 498,
+        "categories": ["core_functionality", "resource_cleanup", "section_loading"]
+      },
+      "step_2": {
+        "functions": 7,
+        "expected_lines": 188,
+        "categories": ["utility_functions", "error_handling", "endianness_conversion"]
+      }
+    }
+  }
+}
