@@ -1,0 +1,26 @@
+{
+  "plan_metadata": {
+    "plan_id": "shared_heap_20241222_143000",
+    "module_name": "shared-heap",
+    "target_coverage": "75%",
+    "total_steps": 4,
+    "current_step": 1,
+    "plan_file": "tests/unit/enhanced_unit_test/shared-heap/shared_heap_feature_test_plan.md",
+    "metadata": {
+      "total_functions": 28,
+      "uncovered_functions": 15,
+      "complexity_level": "medium",
+      "dependencies": ["test_helper.h", "wasm_runtime_common.h", "wasm_memory.c"],
+      "platform_constraints": ["linux", "memory_limits", "shared_memory_support"],
+      "estimated_duration": "3-4 hours"
+    }
+  },
+  "execution_history": [],
+  "overall_progress": {
+    "completed_steps": 0,
+    "total_steps": 4,
+    "current_coverage": "45%",
+    "target_coverage": "75%",
+    "estimated_completion": "2024-12-22T18:30:00Z"
+  }
+}
