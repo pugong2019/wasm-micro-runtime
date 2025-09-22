@@ -1,0 +1,161 @@
+{
+  "plan_id": "interpreter_20250922_142530",
+  "module_name": "interpreter",
+  "target_coverage": "55.8%",
+  "current_coverage": "45.8%",
+  "coverage_improvement": "+10%",
+  "total_steps": 4,
+  "current_step": 1,
+  "plan_file": "tests/unit/enhanced_coverage_report/interpreter/interpreter_coverage_improve_plan.md",
+  "metadata": {
+    "total_functions": 300,
+    "covered_functions": 202,
+    "uncovered_functions": 98,
+    "total_lines": 9348,
+    "covered_lines": 4282,
+    "uncovered_lines": 5066,
+    "target_additional_lines": 935,
+    "complexity_level": "high",
+    "dependencies": [
+      "test_helper.h",
+      "wasm_runtime.h", 
+      "wasm_interp.h",
+      "wasm_loader.h",
+      "wasm_export.h"
+    ],
+    "platform_constraints": [
+      "linux",
+      "memory_limits",
+      "wasm_module_compilation"
+    ],
+    "estimated_duration": "4-6 hours"
+  },
+  "step_details": [
+    {
+      "step_number": 1,
+      "step_name": "Arithmetic and Bitwise Operations",
+      "target_functions": 10,
+      "target_lines": 140,
+      "expected_coverage_gain": "1.5%",
+      "priority_functions": [
+        "clz32", "clz64", "ctz32", "ctz64", 
+        "rotl32", "rotr32", "rotl64", "rotr64",
+        "popcount32", "popcount64"
+      ],
+      "test_file": "interpreter_coverage_improve_step_1.cc",
+      "wat_files_needed": ["arithmetic_operations.wat"],
+      "estimated_time": "60-90 minutes"
+    },
+    {
+      "step_number": 2,
+      "step_name": "Floating Point Operations",
+      "target_functions": 6,
+      "target_lines": 90,
+      "expected_coverage_gain": "1.0%",
+      "priority_functions": [
+        "f32_min", "f32_max", "f64_min", "f64_max",
+        "local_copysignf", "local_copysign"
+      ],
+      "test_file": "interpreter_coverage_improve_step_2.cc",
+      "wat_files_needed": ["floating_point_operations.wat"],
+      "estimated_time": "45-60 minutes"
+    },
+    {
+      "step_number": 3,
+      "step_name": "Function Invocation and Stack Operations",
+      "target_functions": 6,
+      "target_lines": 180,
+      "expected_coverage_gain": "1.9%",
+      "priority_functions": [
+        "call_indirect", "wasm_call_indirect", "wasm_interp_call_func_import",
+        "copy_stack_values", "execute_malloc_function", "execute_free_function"
+      ],
+      "test_file": "interpreter_coverage_improve_step_3.cc",
+      "wat_files_needed": ["function_calls.wat", "memory_management.wat"],
+      "estimated_time": "90-120 minutes"
+    },
+    {
+      "step_number": 4,
+      "step_name": "Module Loading and Validation",
+      "target_functions": 5,
+      "target_lines": 110,
+      "expected_coverage_gain": "1.2%",
+      "priority_functions": [
+        "check_simd_shuffle_mask", "check_table_elem_type", "check_table_index",
+        "load_datacount_section", "load_table_segment_section"
+      ],
+      "test_file": "interpreter_coverage_improve_step_4.cc",
+      "wat_files_needed": ["simd_operations.wat", "table_operations.wat"],
+      "estimated_time": "60-90 minutes"
+    }
+  ],
+  "implementation_guidance": {
+    "build_requirements": {
+      "cmake_flags": [
+        "-DCOLLECT_CODE_COVERAGE=1",
+        "-DWASM_ENABLE_INTERP=1",
+        "-DWASM_ENABLE_FAST_INTERP=1",
+        "-DWASM_ENABLE_LIBC_BUILTIN=1"
+      ],
+      "dependencies": ["vmlib", "gtest_main"],
+      "include_paths": [
+        "${WAMR_ROOT_DIR}/core/iwasm/interpreter",
+        "${WAMR_ROOT_DIR}/core/iwasm/include",
+        "${WAMR_ROOT_DIR}/core/iwasm/common"
+      ]
+    },
+    "test_framework_standards": {
+      "assertion_type": "ASSERT_* (not EXPECT_*)",
+      "no_skip_calls": "Avoid GTEST_SKIP() and SUCCEED()",
+      "validation_focus": "Real WAMR functionality validation",
+      "coverage_mapping": "Document line coverage mapping in test comments",
+      "resource_management": "Proper SetUp/TearDown with RAII patterns"
+    },
+    "wat_compilation": {
+      "tool": "wat2wasm",
+      "output_dir": "wasm-apps/",
+      "naming_convention": "[function_category]_test.wasm"
+    },
+    "coverage_verification": {
+      "lcov_report_path": "tests/unit/wamr-lcov/wamr-lcov/index.html",
+      "target_files": [
+        "wasm_interp_classic.c",
+        "wasm_interp_fast.c", 
+        "wasm_loader.c",
+        "wasm_runtime.c"
+      ],
+      "validation_method": "Manual LCOV report inspection after each step"
+    }
+  },
+  "risk_assessment": {
+    "high_risk_areas": [
+      "Function invocation mechanisms require careful WAT module design",
+      "Memory management functions need proper allocation/deallocation testing",
+      "SIMD operations may have platform-specific behavior"
+    ],
+    "mitigation_strategies": [
+      "Create comprehensive WAT test modules for each function category",
+      "Use runtime initialization in SetUp() to ensure proper WAMR state",
+      "Add platform-specific conditional compilation where needed"
+    ],
+    "potential_blockers": [
+      "Missing WASM module compilation dependencies",
+      "Platform-specific function availability",
+      "Complex function call chains requiring multiple WAT modules"
+    ]
+  },
+  "success_criteria": {
+    "quantitative_targets": {
+      "line_coverage": "55.8%+",
+      "function_coverage": "75%+", 
+      "branch_coverage": "40%+",
+      "additional_lines_covered": "935+"
+    },
+    "qualitative_standards": {
+      "functionality_validation": "Each test validates specific WAMR interpreter behavior",
+      "error_path_coverage": "Comprehensive exception and error handling tests",
+      "platform_compatibility": "Tests work across supported architectures",
+      "maintainability": "Clear, documented, and reliable test code"
+    }
+  }
+}
