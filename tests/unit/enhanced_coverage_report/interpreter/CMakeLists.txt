@@ -15,6 +15,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/../../unit_common.cmake)
 # Set up interpreter coverage test executable
 set(INTERPRETER_COVERAGE_TEST_SOURCES
     interpreter_coverage_improve_step_1.cc
+    interpreter_coverage_improve_step_2.cc
 )
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
@@ -66,4 +67,5 @@ add_custom_command(TARGET interpreter_enhanced_coverage_test POST_BUILD
 )
 
 # Add test to CTest
+include(GoogleTest)
 gtest_discover_tests(interpreter_enhanced_coverage_test)
