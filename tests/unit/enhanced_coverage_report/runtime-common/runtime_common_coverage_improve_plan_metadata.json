@@ -1,0 +1,88 @@
+{
+  "plan_id": "runtime_common_20250922_143000",
+  "module_name": "runtime-common",
+  "target_coverage": "61.3%",
+  "total_steps": 5,
+  "current_step": 1,
+  "plan_file": "tests/unit/enhanced_coverage_report/runtime-common/runtime_common_coverage_improve_plan.md",
+  "metadata": {
+    "total_functions": 748,
+    "covered_functions": 421,
+    "uncovered_functions": 327,
+    "total_lines": 7240,
+    "covered_lines": 2988,
+    "uncovered_lines": 4252,
+    "current_line_coverage": "41.3%",
+    "current_function_coverage": "56.3%",
+    "current_branch_coverage": "37.8%",
+    "target_line_coverage": "61.3%",
+    "target_function_coverage": "76.3%",
+    "target_branch_coverage": "57.8%",
+    "complexity_level": "high",
+    "dependencies": [
+      "test_helper.h",
+      "wasm_runtime_common.h",
+      "wasm_exec_env.h",
+      "wasm_memory.h",
+      "wasm_native.h",
+      "wasm_c_api.h"
+    ],
+    "platform_constraints": [
+      "linux",
+      "thread_support_required",
+      "blocking_operations_support",
+      "debug_features_conditional"
+    ],
+    "estimated_duration": "2-3 weeks",
+    "build_requirements": [
+      "WASM_ENABLE_INTERP=1",
+      "WASM_ENABLE_AOT=1", 
+      "WASM_ENABLE_THREAD_MGR=1",
+      "COLLECT_CODE_COVERAGE=1"
+    ],
+    "key_uncovered_files": [
+      "wasm_runtime_common.c",
+      "wasm_blocking_op.c",
+      "wasm_c_api.c",
+      "wasm_native.c",
+      "wasm_shared_memory.c"
+    ],
+    "step_breakdown": {
+      "step_1": {
+        "name": "Core Function Call and Parameter Handling",
+        "functions": 8,
+        "estimated_lines": 140,
+        "coverage_improvement": "1.9%"
+      },
+      "step_2": {
+        "name": "Debugging and Diagnostics Functions", 
+        "functions": 6,
+        "estimated_lines": 120,
+        "coverage_improvement": "1.7%"
+      },
+      "step_3": {
+        "name": "Thread Management and Blocking Operations",
+        "functions": 8, 
+        "estimated_lines": 150,
+        "coverage_improvement": "2.1%"
+      },
+      "step_4": {
+        "name": "Module Introspection and Type System",
+        "functions": 12,
+        "estimated_lines": 137,
+        "coverage_improvement": "1.9%"
+      },
+      "step_5": {
+        "name": "Advanced Runtime Features",
+        "functions": 10,
+        "estimated_lines": 132,
+        "coverage_improvement": "1.8%"
+      }
+    },
+    "total_expected_improvement": {
+      "lines": 679,
+      "percentage": "9.4%",
+      "functions": 44
+    }
+  }
+}

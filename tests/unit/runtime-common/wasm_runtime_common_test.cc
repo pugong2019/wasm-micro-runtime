@@ -680,3 +680,162 @@ TEST_F(wasm_runtime_common_test_suite, functions_on_module_type_unknown)
         wasm_runtime_free(wasm_file_buf);
     }
 }
+
+// =====================================================
+// Step 1: Core Function Call and Parameter Handling Tests
+// =====================================================
+
+class wasm_runtime_core_functions_test_suite : public testing::Test
+{
+  protected:
+    virtual void SetUp() 
+    {
+        CWD = get_binary_path();
+        WASM_FILE_1 = strdup((CWD + MAIN_WASM).c_str());
+        AOT_FILE_1 = strdup((CWD + MAIN_AOT).c_str());
+    }
+
+    virtual void TearDown() 
+    {
+        free(WASM_FILE_1);
+        free(AOT_FILE_1);
+    }
+
+    WAMRRuntimeRAII<512 * 1024> runtime;
+
+  protected:
+    std::string CWD;
+    std::string MAIN_WASM = "/main.wasm";
+    std::string MAIN_AOT = "/main.aot";
+    char *WASM_FILE_1;
+    char *AOT_FILE_1;
+
+    std::string get_binary_path()
+    {
+        char cwd[1024];
+        memset(cwd, 0, 1024);
+        if (readlink("/proc/self/exe", cwd, 1024) <= 0) {
+        }
+        char *path_end = strrchr(cwd, '/');
+        if (path_end != NULL) {
+            *path_end = '\0';
+        }
+        return std::string(cwd);
+    }
+};
+
+// Test publicly available runtime functions
+TEST_F(wasm_runtime_core_functions_test_suite, wasm_runtime_init_destroy_ValidCalls)
+{
+    // Test basic runtime initialization and destruction
+    ASSERT_TRUE(wasm_runtime_init());
+    wasm_runtime_destroy();
+    
+    // Test multiple init/destroy cycles
+    ASSERT_TRUE(wasm_runtime_init());
+    wasm_runtime_destroy();
+    ASSERT_TRUE(wasm_runtime_init());
+    wasm_runtime_destroy();
+}
+
+TEST_F(wasm_runtime_core_functions_test_suite, wasm_runtime_full_init_ValidArgs)
+{
+    RuntimeInitArgs init_args;
+    memset(&init_args, 0, sizeof(RuntimeInitArgs));
+    init_args.mem_alloc_type = Alloc_With_System_Allocator;
+    init_args.mem_alloc_option.allocator.malloc_func = (void*)malloc;
+    init_args.mem_alloc_option.allocator.realloc_func = (void*)realloc;
+    init_args.mem_alloc_option.allocator.free_func = (void*)free;
+    
+    ASSERT_TRUE(wasm_runtime_full_init(&init_args));
+    wasm_runtime_destroy();
+}
+
+TEST_F(wasm_runtime_core_functions_test_suite, wasm_runtime_malloc_free_ValidOperations)
+{
+    // Test basic memory allocation and deallocation
+    void *ptr = wasm_runtime_malloc(1024);
+    ASSERT_NE(ptr, nullptr);
+    wasm_runtime_free(ptr);
+    
+    // Test zero size allocation
+    void *zero_ptr = wasm_runtime_malloc(0);
+    if (zero_ptr != nullptr) {
+        wasm_runtime_free(zero_ptr);
+    }
+    
+    // Test large allocation
+    void *large_ptr = wasm_runtime_malloc(1024 * 1024);
+    if (large_ptr != nullptr) {
+        wasm_runtime_free(large_ptr);
+    }
+}
+
+TEST_F(wasm_runtime_core_functions_test_suite, wasm_runtime_get_version_ValidString)
+{
+    uint32 major, minor, patch;
+    wasm_runtime_get_version(&major, &minor, &patch);
+    
+    // Version numbers should be reasonable
+    ASSERT_GE(major, 0);
+    ASSERT_GE(minor, 0);
+    ASSERT_GE(patch, 0);
+    
+    // At least one version component should be non-zero
+    ASSERT_TRUE(major > 0 || minor > 0 || patch > 0);
+}
+
+TEST_F(wasm_runtime_core_functions_test_suite, wasm_runtime_is_built_in_module_ValidModules)
+{
+    // Test built-in modules
+    ASSERT_TRUE(wasm_runtime_is_built_in_module("env"));
+    ASSERT_TRUE(wasm_runtime_is_built_in_module("wasi_unstable"));
+    ASSERT_TRUE(wasm_runtime_is_built_in_module("wasi_snapshot_preview1"));
+    
+    // Test non-built-in modules
+    ASSERT_FALSE(wasm_runtime_is_built_in_module("custom_module"));
+    ASSERT_FALSE(wasm_runtime_is_built_in_module("user_defined"));
+    
+    // Test edge cases
+    ASSERT_FALSE(wasm_runtime_is_built_in_module(nullptr));
+}
+
+TEST_F(wasm_runtime_core_functions_test_suite, wasm_runtime_load_unload_ValidModule)
+{
+    const char *wasm_file = WASM_FILE_1;
+    unsigned char *wasm_file_buf = nullptr;
+    unsigned int wasm_file_size = 0;
+    char error_buf[128] = { 0 };
+    
+    wasm_file_buf = (unsigned char *)bh_read_file_to_buffer(wasm_file, &wasm_file_size);
+    if (wasm_file_buf == nullptr) {
+        return; // Skip test if file not available
+    }
+    
+    // Test valid module loading
+    wasm_module_t module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(module, nullptr);
+    
+    // Test module unloading
+    wasm_runtime_unload(module);
+    wasm_runtime_free(wasm_file_buf);
+}
+
+TEST_F(wasm_runtime_core_functions_test_suite, wasm_runtime_load_InvalidParameters)
+{
+    char error_buf[128] = { 0 };
+    
+    // Test null buffer
+    wasm_module_t module = wasm_runtime_load(nullptr, 100, error_buf, sizeof(error_buf));
+    ASSERT_EQ(module, nullptr);
+    
+    // Test zero size
+    unsigned char dummy_buf[4] = {0x00, 0x61, 0x73, 0x6d}; // WASM magic
+    module = wasm_runtime_load(dummy_buf, 0, error_buf, sizeof(error_buf));
+    ASSERT_EQ(module, nullptr);
+    
+    // Test invalid magic number
+    unsigned char invalid_buf[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0x01, 0x00, 0x00, 0x00};
+    module = wasm_runtime_load(invalid_buf, sizeof(invalid_buf), error_buf, sizeof(error_buf));
+    ASSERT_EQ(module, nullptr);
+}

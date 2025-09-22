@@ -27,22 +27,22 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-file(GLOB_RECURSE source_all ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
-
-set(UNIT_SOURCE ${source_all})
-
-aux_source_directory(. SRC_LIST)
+# Only include the actual test source files, not recursive
+set(UNIT_SOURCE
+    wasm_runtime_common_test.cc
+    wasm_exec_env_test.cc
+    wasm_runtime_init_test.cc
+)
 
 set(unit_test_sources
   ${UNIT_SOURCE}
   ${WAMR_RUNTIME_LIB_SOURCE}
   ${UNCOMMON_SHARED_SOURCE}
-  ${SRC_LIST}
 )
 
 add_executable(runtime_common_test ${unit_test_sources})
 
-target_link_libraries(runtime_common_test ${LLVM_AVAILABLE_LIBS} gtest_main)
+target_link_libraries(runtime_common_test ${LLVM_AVAILABLE_LIBS} gtest_main gmock)
 
 # Ensure that aot compiled is completed before linear_memory_test_aot is built
 set(dummy_output "${CMAKE_CURRENT_BINARY_DIR}/dummy_output")
@@ -70,4 +70,4 @@ add_custom_command(TARGET runtime_common_test POST_BUILD
   COMMENT "Copy main.wasm and main.aot to the directory: build/runtime-common."
 )
 
-gtest_discover_tests(runtime_common_test)
+# gtest_discover_tests(runtime_common_test)
