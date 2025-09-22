@@ -17,6 +17,7 @@ set(INTERPRETER_COVERAGE_TEST_SOURCES
     interpreter_coverage_improve_step_1.cc
     interpreter_coverage_improve_step_2.cc
     interpreter_coverage_improve_step_3.cc
+    interpreter_coverage_improve_step_4.cc
 )
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
