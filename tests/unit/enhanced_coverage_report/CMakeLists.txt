@@ -9,3 +9,5 @@ add_subdirectory(posix)
 # Add AOT enhanced coverage tests
 add_subdirectory(aot)
 add_subdirectory(runtime-common)
+# Add enhanced unit test subdirectories
+add_subdirectory(interpreter)
