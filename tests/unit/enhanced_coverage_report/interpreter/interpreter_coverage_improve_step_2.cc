@@ -32,25 +32,44 @@ protected:
     {
         runtime = std::make_unique<WAMRRuntimeRAII<512 * 1024>>();
         
-        // Load the floating_point_operations.wasm module using DummyExecEnv
-        dummy_env = std::make_unique<DummyExecEnv>("floating_point_operations.wasm");
-        ASSERT_NE(dummy_env->get(), nullptr) << "Failed to create execution environment";
+        // Load the floating_point_operations.wasm module using standard WAMR pattern
+        wasm_file_buf = (unsigned char *)bh_read_file_to_buffer("floating_point_operations.wasm", &wasm_file_size);
+        ASSERT_NE(wasm_file_buf, nullptr) << "Failed to read WASM file";
+        
+        module = std::make_unique<WAMRModule>(wasm_file_buf, wasm_file_size);
+        ASSERT_NE(module->get(), nullptr) << "Failed to load WASM module";
+        
+        instance = std::make_unique<WAMRInstance>(*module, 8192, 8192);
+        ASSERT_NE(instance->get(), nullptr) << "Failed to instantiate WASM module";
+        
+        exec_env = std::make_unique<WAMRExecEnv>(*instance, 8192);
+        ASSERT_NE(exec_env->get(), nullptr) << "Failed to create execution environment";
     }
     
     void TearDown() override
     {
-        dummy_env.reset();
+        exec_env.reset();
+        instance.reset();
+        module.reset();
+        if (wasm_file_buf) {
+            wasm_runtime_free(wasm_file_buf);
+            wasm_file_buf = nullptr;
+        }
         runtime.reset();
     }
     
     // Helper function to call WASM functions with f32 parameters
     float call_wasm_f32_f32_f32(const char* func_name, float param1, float param2)
     {
+        wasm_function_inst_t func = wasm_runtime_lookup_function(instance->get(), func_name);
+        if (!func) return NAN;
+        
         uint32_t wasm_argv[2];
         memcpy(&wasm_argv[0], &param1, sizeof(float));
         memcpy(&wasm_argv[1], &param2, sizeof(float));
-        bool success = dummy_env->execute(func_name, 2, wasm_argv);
-        EXPECT_TRUE(success) << "Function call failed: " << dummy_env->get_exception();
+        
+        bool success = wasm_runtime_call_wasm(exec_env->get(), func, 2, wasm_argv);
+        if (!success) return NAN;
         
         float result;
         memcpy(&result, &wasm_argv[0], sizeof(float));
@@ -60,11 +79,15 @@ protected:
     // Helper function to call WASM functions with f64 parameters
     double call_wasm_f64_f64_f64(const char* func_name, double param1, double param2)
     {
+        wasm_function_inst_t func = wasm_runtime_lookup_function(instance->get(), func_name);
+        if (!func) return NAN;
+        
         uint32_t wasm_argv[4]; // f64 takes 2 slots
         memcpy(&wasm_argv[0], &param1, sizeof(double));
         memcpy(&wasm_argv[2], &param2, sizeof(double));
-        bool success = dummy_env->execute(func_name, 4, wasm_argv);
-        EXPECT_TRUE(success) << "Function call failed: " << dummy_env->get_exception();
+        
+        bool success = wasm_runtime_call_wasm(exec_env->get(), func, 4, wasm_argv);
+        if (!success) return NAN;
         
         double result;
         memcpy(&result, &wasm_argv[0], sizeof(double));
@@ -74,9 +97,12 @@ protected:
     // Helper function to call WASM functions with no parameters
     float call_wasm_f32_void(const char* func_name)
     {
+        wasm_function_inst_t func = wasm_runtime_lookup_function(instance->get(), func_name);
+        if (!func) return NAN;
+        
         uint32_t wasm_argv[1];
-        bool success = dummy_env->execute(func_name, 0, wasm_argv);
-        EXPECT_TRUE(success) << "Function call failed: " << dummy_env->get_exception();
+        bool success = wasm_runtime_call_wasm(exec_env->get(), func, 0, wasm_argv);
+        if (!success) return NAN;
         
         float result;
         memcpy(&result, &wasm_argv[0], sizeof(float));
@@ -84,7 +110,11 @@ protected:
     }
     
     std::unique_ptr<WAMRRuntimeRAII<512 * 1024>> runtime;
-    std::unique_ptr<DummyExecEnv> dummy_env;
+    std::unique_ptr<WAMRModule> module;
+    std::unique_ptr<WAMRInstance> instance;
+    std::unique_ptr<WAMRExecEnv> exec_env;
+    unsigned char *wasm_file_buf = nullptr;
+    uint32_t wasm_file_size = 0;
 };
 
 // Test f32_min() function - covers ~15 lines in wasm_interp_classic.c

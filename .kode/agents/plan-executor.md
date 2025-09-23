@@ -286,8 +286,9 @@ fi
 // Platform detection utility for tests - REQUIRED in every test file
 class PlatformTestContext {
 public:
+    // Architecture detection
     static bool IsX86_64() {
-#if defined(BUILD_TARGET_X86_64)
+#if defined(BUILD_TARGET_X86) || defined(BUILD_TARGET_X86_64)
         return true;
 #else
         return false;
@@ -295,7 +296,15 @@ public:
     }
     
     static bool IsARM64() {
-#if defined(BUILD_TARGET_AARCH64)
+#if defined(BUILD_TARGET_AARCH64) || defined(BUILD_TARGET_ARM64)
+        return true;
+#else
+        return false;
+#endif
+    }
+    
+    static bool IsARM32() {
+#if defined(BUILD_TARGET_ARM) && !defined(BUILD_TARGET_AARCH64)
         return true;
 #else
         return false;
@@ -303,13 +312,30 @@ public:
     }
     
     static bool IsRISCV() {
-#if defined(BUILD_TARGET_RISCV64_LP64D) || defined(BUILD_TARGET_RISCV32_ILP32)
+#if defined(BUILD_TARGET_RISCV) || defined(BUILD_TARGET_RISCV64) || defined(BUILD_TARGET_RISCV32)
         return true;
 #else
         return false;
 #endif
     }
     
+    static bool IsMIPS() {
+#if defined(BUILD_TARGET_MIPS) || defined(BUILD_TARGET_MIPS32)
+        return true;
+#else
+        return false;
+#endif
+    }
+    
+    static bool IsXtensa() {
+#if defined(BUILD_TARGET_XTENSA) || defined(BUILD_TARGET_XTENSA_32)
+        return true;
+#else
+        return false;
+#endif
+    }
+    
+    // Feature detection
     static bool HasSIMDSupport() {
 #if WASM_ENABLE_SIMD != 0
         return true;
@@ -334,12 +360,78 @@ public:
 #endif
     }
     
+    static bool HasFastJITSupport() {
+#if WASM_ENABLE_FAST_JIT != 0
+        return true;
+#else
+        return false;
+#endif
+    }
+    
     static bool HasMemory64Support() {
 #if WASM_ENABLE_MEMORY64 != 0
         return true;
 #else
         return false;
 #endif
+    }
+    
+    static bool HasSharedMemorySupport() {
+#if WASM_ENABLE_SHARED_MEMORY != 0
+        return true;
+#else
+        return false;
+#endif
+    }
+    
+    static bool HasPthreadSupport() {
+#if WASM_ENABLE_LIB_PTHREAD != 0
+        return true;
+#else
+        return false;
+#endif
+    }
+    
+    // Runtime mode detection
+    static bool HasMultiModuleSupport() {
+#if WASM_ENABLE_MULTI_MODULE != 0
+        return true;
+#else
+        return false;
+#endif
+    }
+    
+    static bool HasLibcBuiltinSupport() {
+#if WASM_ENABLE_LIBC_BUILTIN != 0
+        return true;
+#else
+        return false;
+#endif
+    }
+    
+    static bool HasLibcWASISupport() {
+#if WASM_ENABLE_LIBC_WASI != 0
+        return true;
+#else
+        return false;
+#endif
+    }
+    
+    // Platform capability helpers
+    static bool Is64BitArchitecture() {
+        return IsX86_64() || IsARM64() || (IsRISCV() && sizeof(void*) == 8);
+    }
+    
+    static bool Is32BitArchitecture() {
+        return IsARM32() || IsMIPS() || IsXtensa() || (IsRISCV() && sizeof(void*) == 4);
+    }
+    
+    static bool SupportsLargeMemory() {
+        return Is64BitArchitecture() && HasMemory64Support();
+    }
+    
+    static bool SupportsAtomicOperations() {
+        return HasSharedMemorySupport() && !IsXtensa();
     }
 };
 ```
