@@ -1,0 +1,82 @@
+{
+  "plan_metadata": {
+    "plan_id": "aot_arch_add_40_20250923_143000",
+    "module_name": "aot-arch",
+    "target_coverage": "+40%",
+    "total_steps": 3,
+    "current_step": 1,
+    "plan_file": "tests/unit/enhanced_coverage_report/aot-arch/aot_arch_add_40_plan.md",
+    "metadata": {
+      "total_functions": 8,
+      "uncovered_functions": 1,
+      "partially_covered_functions": 1,
+      "complexity_level": "high",
+      "dependencies": ["aot_reloc.h", "wasm_runtime.h", "bh_platform.h"],
+      "platform_constraints": ["linux", "x86_64", "aot_support"],
+      "estimated_duration": "3-4 hours"
+    }
+  },
+  "execution_history": [],
+  "overall_progress": {
+    "completed_steps": 0,
+    "total_steps": 3,
+    "current_coverage": "57.9%",
+    "target_coverage": "97.9%",
+    "estimated_completion": "2025-09-23T18:30:00Z"
+  },
+  "coverage_analysis": {
+    "current_line_coverage": {
+      "hit": 55,
+      "total": 95,
+      "percentage": 57.9
+    },
+    "current_function_coverage": {
+      "hit": 7,
+      "total": 8,
+      "percentage": 87.5
+    },
+    "current_branch_coverage": {
+      "hit": 12,
+      "total": 72,
+      "percentage": 16.7
+    },
+    "target_improvements": {
+      "additional_lines_needed": 38,
+      "additional_branches_needed": 40,
+      "focus_areas": [
+        "error_handling_paths",
+        "relocation_type_coverage",
+        "edge_case_validation"
+      ]
+    }
+  },
+  "step_details": [
+    {
+      "step_number": 1,
+      "name": "Error Handling and Edge Cases",
+      "status": "pending",
+      "target_functions": ["set_error_buf", "apply_relocation (error paths)"],
+      "expected_line_improvement": 21,
+      "test_cases_planned": 5,
+      "implementation_file": "aot_arch_add_40_step_1.cc"
+    },
+    {
+      "step_number": 2,
+      "name": "Relocation Type Coverage - R_X86_64_64",
+      "status": "pending",
+      "target_functions": ["apply_relocation (R_X86_64_64)"],
+      "expected_line_improvement": 12,
+      "test_cases_planned": 2,
+      "implementation_file": "aot_arch_add_40_step_2.cc"
+    },
+    {
+      "step_number": 3,
+      "name": "Advanced Relocation Types Coverage",
+      "status": "pending",
+      "target_functions": ["apply_relocation (PC64, 32, 32S)"],
+      "expected_line_improvement": 34,
+      "test_cases_planned": 6,
+      "implementation_file": "aot_arch_add_40_step_3.cc"
+    }
+  ]
+}
