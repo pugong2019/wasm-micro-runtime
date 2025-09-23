@@ -25,6 +25,6 @@ set (unit_test_sources
 
 add_executable (shared_utils_test ${unit_test_sources})
 
-target_link_libraries (shared_utils_test gtest_main)
+target_link_libraries (shared_utils_test gtest_main pthread)
 
 gtest_discover_tests(shared_utils_test)

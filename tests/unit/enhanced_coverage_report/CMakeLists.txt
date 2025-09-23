@@ -12,3 +12,4 @@ add_subdirectory(runtime-common)
 # Add enhanced unit test subdirectories
 add_subdirectory(interpreter)
 add_subdirectory(aot-arch)
+add_subdirectory(shared-utils)
