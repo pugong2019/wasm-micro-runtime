@@ -3,7 +3,7 @@
   "module_name": "aot",
   "target_coverage": "73.3%",
   "total_steps": 2,
-  "current_step": 1,
+  "current_step": 2,
   "plan_file": "tests/unit/enhanced_coverage_report/aot/aot_coverage_improve_plan.md",
   "metadata": {
     "total_functions": 242,
