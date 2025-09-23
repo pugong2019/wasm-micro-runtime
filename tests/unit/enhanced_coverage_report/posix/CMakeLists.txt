@@ -13,18 +13,18 @@ set(WAMR_BUILD_APP_FRAMEWORK 0)
 # Include common unit test configuration
 include(${CMAKE_CURRENT_SOURCE_DIR}/../../unit_common.cmake)
 
-# Set test executable name
-set(POSIX_ENHANCED_TEST_NAME posix_coverage_improve_test)
+# Set test executable name for +23% coverage improvement
+set(POSIX_ENHANCED_TEST_NAME posix_add_23_coverage_test)
 
 # Include directories for POSIX platform headers
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-# Enhanced test source files (step-by-step implementation)
+# Enhanced test source files (step-by-step implementation for +23% coverage)
 set(POSIX_ENHANCED_SOURCES
-    posix_coverage_improve_step_1.cc  # Core file operations
-    posix_coverage_improve_step_2.cc  # Directory operations  
-    posix_coverage_improve_step_3.cc  # Socket core operations
-    posix_coverage_improve_step_4.cc  # Socket configuration
+    posix_add_23_step_1.cc  # Core File I/O Operations (15 functions, ~280 lines)
+    posix_add_23_step_2.cc  # Network Socket Operations (12 functions, ~220 lines)
+    posix_add_23_step_3.cc  # Memory and Thread Operations (10 functions, ~180 lines)
+    posix_add_23_step_4.cc  # System and Time Operations (8 functions, ~120 lines)
 )
 
 # Filter source files that actually exist
