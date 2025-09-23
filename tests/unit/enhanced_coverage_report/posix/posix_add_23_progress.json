@@ -1,0 +1,64 @@
+{
+  "plan_metadata": {
+    "plan_id": "posix_add_23_20250923_143000",
+    "module_name": "posix",
+    "target_coverage": "+23%",
+    "total_steps": 4,
+    "current_step": 1,
+    "plan_file": "tests/unit/enhanced_coverage_report/posix/posix_add_23_plan.md",
+    "metadata": {
+      "total_functions": 45,
+      "uncovered_functions": 45,
+      "complexity_level": "high",
+      "dependencies": ["posix_test_helper.h", "platform_api_extension.h", "libc_errno.h"],
+      "platform_constraints": ["linux", "posix_standard"],
+      "estimated_duration": "4-6 hours"
+    }
+  },
+  "execution_history": [],
+  "overall_progress": {
+    "completed_steps": 0,
+    "total_steps": 4,
+    "current_coverage": "baseline",
+    "target_coverage": "+23%",
+    "estimated_completion": "2025-09-23T20:30:00Z"
+  },
+  "step_details": [
+    {
+      "step_number": 1,
+      "name": "Core File I/O Operations",
+      "functions_count": 15,
+      "estimated_lines": 280,
+      "expected_coverage_gain": "8%",
+      "status": "pending",
+      "implementation_file": "posix_add_23_step_1.cc"
+    },
+    {
+      "step_number": 2,
+      "name": "Network Socket Operations", 
+      "functions_count": 12,
+      "estimated_lines": 220,
+      "expected_coverage_gain": "6%",
+      "status": "pending",
+      "implementation_file": "posix_add_23_step_2.cc"
+    },
+    {
+      "step_number": 3,
+      "name": "Memory and Thread Operations",
+      "functions_count": 10,
+      "estimated_lines": 180,
+      "expected_coverage_gain": "5%",
+      "status": "pending",
+      "implementation_file": "posix_add_23_step_3.cc"
+    },
+    {
+      "step_number": 4,
+      "name": "System and Time Operations",
+      "functions_count": 8,
+      "estimated_lines": 120,
+      "expected_coverage_gain": "4%",
+      "status": "pending", 
+      "implementation_file": "posix_add_23_step_4.cc"
+    }
+  ]
+}
