@@ -221,6 +221,712 @@ wat2wasm --enable-threads atomic_test.wat -o atomic_test.wasm
 wat2wasm --enable-memory64 --enable-threads --enable-simd full_test.wat -o full_test.wasm
 ```
 
+## Platform-Specific Compilation Flags Integration (CRITICAL)
+
+### Understanding WAMR Platform Context
+When generating unit tests, the plan-executor **MUST** consider the current WAMR build configuration and target platform. This ensures generated tests are compatible with the specific WAMR build variant being tested.
+
+#### Platform Detection and Configuration (MANDATORY)
+```bash
+# Detect current build configuration BEFORE generating any tests
+# STEP 1: Check if build directory exists, if not, create initial build
+if [ ! -f build/CMakeCache.txt ]; then
+    echo "=== No build configuration found. Creating initial build ==="
+    
+    # Create build directory if it doesn't exist
+    mkdir -p build
+    cd build
+    
+    # Run initial cmake configuration to generate CMakeCache.txt
+    cmake .. -DCMAKE_BUILD_TYPE=Debug -DCOLLECT_CODE_COVERAGE=1
+    
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Failed to create initial build configuration"
+        echo "Please check CMake configuration and dependencies"
+        exit 1
+    fi
+    
+    cd ..
+    echo "=== Initial build configuration created ==="
+fi
+
+# STEP 2: Extract current build configuration
+if [ -f build/CMakeCache.txt ]; then
+    # Extract current build target
+    BUILD_TARGET=$(grep "WAMR_BUILD_TARGET" build/CMakeCache.txt | cut -d'=' -f2)
+    
+    # Extract enabled features
+    SIMD_ENABLED=$(grep "WAMR_BUILD_SIMD:BOOL=ON" build/CMakeCache.txt && echo "ON" || echo "OFF")
+    AOT_ENABLED=$(grep "WAMR_BUILD_AOT:BOOL=ON" build/CMakeCache.txt && echo "ON" || echo "OFF")
+    JIT_ENABLED=$(grep "WAMR_BUILD_JIT:BOOL=ON" build/CMakeCache.txt && echo "ON" || echo "OFF")
+    MEMORY64_ENABLED=$(grep "WAMR_BUILD_MEMORY64:BOOL=ON" build/CMakeCache.txt && echo "ON" || echo "OFF")
+    FAST_JIT_ENABLED=$(grep "WAMR_BUILD_FAST_JIT:BOOL=ON" build/CMakeCache.txt && echo "ON" || echo "OFF")
+    SHARED_MEMORY_ENABLED=$(grep "WAMR_BUILD_SHARED_MEMORY:BOOL=ON" build/CMakeCache.txt && echo "ON" || echo "OFF")
+    
+    echo "=== WAMR Platform Configuration Detected ==="
+    echo "  Target: $BUILD_TARGET"
+    echo "  SIMD: $SIMD_ENABLED"
+    echo "  AOT: $AOT_ENABLED" 
+    echo "  JIT: $JIT_ENABLED"
+    echo "  Fast JIT: $FAST_JIT_ENABLED"
+    echo "  Memory64: $MEMORY64_ENABLED"
+    echo "  Shared Memory: $SHARED_MEMORY_ENABLED"
+    echo "=============================================="
+else
+    echo "ERROR: Could not find or create build configuration"
+    exit 1
+fi
+```
+
+#### Platform-Aware Test Generation Principles (MUST FOLLOW)
+
+##### 1. Platform Detection Utility Class (MANDATORY)
+**ALWAYS include this utility class in every test file:**
+```cpp
+// Platform detection utility for tests - REQUIRED in every test file
+class PlatformTestContext {
+public:
+    static bool IsX86_64() {
+#if defined(BUILD_TARGET_X86_64)
+        return true;
+#else
+        return false;
+#endif
+    }
+    
+    static bool IsARM64() {
+#if defined(BUILD_TARGET_AARCH64)
+        return true;
+#else
+        return false;
+#endif
+    }
+    
+    static bool IsRISCV() {
+#if defined(BUILD_TARGET_RISCV64_LP64D) || defined(BUILD_TARGET_RISCV32_ILP32)
+        return true;
+#else
+        return false;
+#endif
+    }
+    
+    static bool HasSIMDSupport() {
+#if WASM_ENABLE_SIMD != 0
+        return true;
+#else
+        return false;
+#endif
+    }
+    
+    static bool HasAOTSupport() {
+#if WASM_ENABLE_AOT != 0
+        return true;
+#else
+        return false;
+#endif
+    }
+    
+    static bool HasJITSupport() {
+#if WASM_ENABLE_JIT != 0
+        return true;
+#else
+        return false;
+#endif
+    }
+    
+    static bool HasMemory64Support() {
+#if WASM_ENABLE_MEMORY64 != 0
+        return true;
+#else
+        return false;
+#endif
+    }
+};
+```
+
+##### 2. Feature-Conditional Test Generation (CRITICAL)
+**ALL tests MUST check platform compatibility before execution:**
+```cpp
+// Example: SIMD-aware test generation
+TEST_F(ModuleTest, VectorOperations_WithCurrentConfig_ExecutesCorrectly) {
+    if (!PlatformTestContext::HasSIMDSupport()) {
+        return; // Skip gracefully - NO GTEST_SKIP()
+    }
+    
+    // SIMD-specific test logic
+    auto result = execute_simd_operation();
+    ASSERT_TRUE(result.is_valid());
+}
+
+// Example: Architecture-specific memory tests
+TEST_F(MemoryTest, LargeAllocation_OnCurrentArch_SucceedsCorrectly) {
+    size_t max_allocation;
+    
+    if (PlatformTestContext::IsX86_64()) {
+        max_allocation = 8ULL * 1024 * 1024 * 1024; // 8GB on x86_64
+    } else if (PlatformTestContext::IsARM64()) {
+        max_allocation = 4ULL * 1024 * 1024 * 1024; // 4GB on ARM64
+    } else {
+        max_allocation = 1ULL * 1024 * 1024 * 1024; // 1GB on 32-bit
+    }
+    
+    auto result = test_memory_allocation(max_allocation);
+    ASSERT_TRUE(result.success);
+}
+
+// Example: Runtime mode conditional testing
+TEST_F(ExecutionTest, ModuleExecution_WithCurrentMode_PerformsCorrectly) {
+    if (PlatformTestContext::HasJITSupport()) {
+        // Test JIT-specific execution paths
+        auto result = execute_with_jit();
+        ASSERT_TRUE(result.is_optimized);
+    } else if (PlatformTestContext::HasAOTSupport()) {
+        // Test AOT-specific execution paths  
+        auto result = execute_with_aot();
+        ASSERT_TRUE(result.is_compiled);
+    } else {
+        // Test interpreter execution paths
+        auto result = execute_with_interpreter();
+        ASSERT_TRUE(result.is_interpreted);
+    }
+}
+
+// Example: Memory64 conditional testing
+TEST_F(Memory64Test, LargeAddressing_WithMemory64_HandlesCorrectly) {
+    if (!PlatformTestContext::HasMemory64Support()) {
+        return; // Skip gracefully for 32-bit builds
+    }
+    
+    // Memory64-specific test logic
+    uint64_t large_address = 0x100000000ULL; // 4GB+
+    auto result = test_memory64_access(large_address);
+    ASSERT_TRUE(result.success);
+}
+```
+
+##### 3. CMakeLists.txt Platform Integration (MANDATORY)
+**EVERY CMakeLists.txt MUST include platform detection:**
+```cmake
+# Enhanced CMakeLists.txt template for platform-aware tests
+
+# Detect current WAMR configuration
+if(WAMR_BUILD_TARGET MATCHES "X86_.*")
+    target_compile_definitions(${TEST_TARGET} PRIVATE BUILD_TARGET_X86=1)
+    message("-- Enhanced tests: X86 target detected")
+elseif(WAMR_BUILD_TARGET MATCHES "AARCH64.*")
+    target_compile_definitions(${TEST_TARGET} PRIVATE BUILD_TARGET_AARCH64=1)
+    message("-- Enhanced tests: ARM64 target detected")
+elseif(WAMR_BUILD_TARGET MATCHES "RISCV.*")
+    target_compile_definitions(${TEST_TARGET} PRIVATE BUILD_TARGET_RISCV=1)
+    message("-- Enhanced tests: RISC-V target detected")
+endif()
+
+# Feature-specific definitions (CRITICAL)
+if(WAMR_BUILD_SIMD EQUAL 1)
+    target_compile_definitions(${TEST_TARGET} PRIVATE WASM_ENABLE_SIMD=1)
+    message("-- Enhanced tests: SIMD support enabled")
+else()
+    target_compile_definitions(${TEST_TARGET} PRIVATE WASM_ENABLE_SIMD=0)
+endif()
+
+if(WAMR_BUILD_AOT EQUAL 1)
+    target_compile_definitions(${TEST_TARGET} PRIVATE WASM_ENABLE_AOT=1)
+    message("-- Enhanced tests: AOT support enabled")
+else()
+    target_compile_definitions(${TEST_TARGET} PRIVATE WASM_ENABLE_AOT=0)
+endif()
+
+if(WAMR_BUILD_JIT EQUAL 1)
+    target_compile_definitions(${TEST_TARGET} PRIVATE WASM_ENABLE_JIT=1)
+    message("-- Enhanced tests: JIT support enabled")
+else()
+    target_compile_definitions(${TEST_TARGET} PRIVATE WASM_ENABLE_JIT=0)
+endif()
+
+if(WAMR_BUILD_FAST_JIT EQUAL 1)
+    target_compile_definitions(${TEST_TARGET} PRIVATE WASM_ENABLE_FAST_JIT=1)
+    message("-- Enhanced tests: Fast JIT support enabled")
+else()
+    target_compile_definitions(${TEST_TARGET} PRIVATE WASM_ENABLE_FAST_JIT=0)
+endif()
+
+# Memory configuration
+if(WAMR_BUILD_MEMORY64 EQUAL 1)
+    target_compile_definitions(${TEST_TARGET} PRIVATE WASM_ENABLE_MEMORY64=1)
+    message("-- Enhanced tests: Memory64 support enabled")
+else()
+    target_compile_definitions(${TEST_TARGET} PRIVATE WASM_ENABLE_MEMORY64=0)
+endif()
+
+if(WAMR_BUILD_SHARED_MEMORY EQUAL 1)
+    target_compile_definitions(${TEST_TARGET} PRIVATE WASM_ENABLE_SHARED_MEMORY=1)
+    message("-- Enhanced tests: Shared memory support enabled")
+else()
+    target_compile_definitions(${TEST_TARGET} PRIVATE WASM_ENABLE_SHARED_MEMORY=0)
+endif()
+
+# Threading support
+if(WAMR_BUILD_LIB_PTHREAD EQUAL 1)
+    target_compile_definitions(${TEST_TARGET} PRIVATE WASM_ENABLE_LIB_PTHREAD=1)
+    message("-- Enhanced tests: Pthread support enabled")
+else()
+    target_compile_definitions(${TEST_TARGET} PRIVATE WASM_ENABLE_LIB_PTHREAD=0)
+endif()
+```
+
+##### 4. Platform-Specific WAT File Generation (CRITICAL)
+**Generate different WAT files based on platform capabilities:**
+```wat
+;; SIMD-enabled WAT file (simd_operations.wat) - Only when SIMD enabled
+(module
+  (func $simd_add (param $a v128) (param $b v128) (result v128)
+    local.get $a
+    local.get $b
+    i32x4.add
+  )
+  (export "simd_add" (func $simd_add))
+)
+
+;; Non-SIMD fallback WAT file (scalar_operations.wat) - For non-SIMD builds
+(module
+  (func $scalar_add (param $a i32) (param $b i32) (result i32)
+    local.get $a
+    local.get $b
+    i32.add
+  )
+  (export "scalar_add" (func $scalar_add))
+)
+
+;; Memory64 WAT file (memory64_operations.wat) - Only when Memory64 enabled
+(module
+  (memory i64 1 100)
+  (func $memory64_load (param $addr i64) (result i32)
+    local.get $addr
+    i32.load
+  )
+  (export "memory64_load" (func $memory64_load))
+)
+
+;; Standard memory WAT file (memory32_operations.wat) - For 32-bit memory builds
+(module  
+  (memory i32 1 100)
+  (func $memory32_load (param $addr i32) (result i32)
+    local.get $addr
+    i32.load
+  )
+  (export "memory32_load" (func $memory32_load))
+)
+```
+
+##### 5. Platform Configuration Detection Protocol (MANDATORY)
+**ALWAYS run this detection before generating tests:**
+```bash
+# Enhanced build script for platform detection - RUN BEFORE TEST GENERATION
+#!/bin/bash
+
+WAMR_ROOT=$(pwd)
+BUILD_DIR="build"
+
+# STEP 1: Ensure build configuration exists
+if [ ! -f "$BUILD_DIR/CMakeCache.txt" ]; then
+    echo "=== No build configuration found. Creating initial build ==="
+    
+    # Create build directory if it doesn't exist
+    mkdir -p "$BUILD_DIR"
+    cd "$BUILD_DIR"
+    
+    # Run initial cmake configuration to generate CMakeCache.txt
+    cmake .. -DCMAKE_BUILD_TYPE=Debug -DCOLLECT_CODE_COVERAGE=1
+    
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Failed to create initial build configuration"
+        echo "Please check CMake configuration and dependencies"
+        exit 1
+    fi
+    
+    cd "$WAMR_ROOT"
+    echo "=== Initial build configuration created ==="
+fi
+
+# STEP 2: Extract platform configuration
+echo "=== Detecting WAMR Platform Configuration ==="
+
+# Architecture detection
+if grep -q "WAMR_BUILD_TARGET.*X86_64" build/CMakeCache.txt; then
+    echo "Architecture: X86_64"
+    ARCH_FAMILY="x86_64"
+elif grep -q "WAMR_BUILD_TARGET.*AARCH64" build/CMakeCache.txt; then
+    echo "Architecture: ARM64"  
+    ARCH_FAMILY="arm64"
+elif grep -q "WAMR_BUILD_TARGET.*ARM" build/CMakeCache.txt; then
+    echo "Architecture: ARM32"
+    ARCH_FAMILY="arm32"
+elif grep -q "WAMR_BUILD_TARGET.*RISCV" build/CMakeCache.txt; then
+    echo "Architecture: RISC-V"
+    ARCH_FAMILY="riscv"
+elif grep -q "WAMR_BUILD_TARGET.*MIPS" build/CMakeCache.txt; then
+    echo "Architecture: MIPS"
+    ARCH_FAMILY="mips"
+elif grep -q "WAMR_BUILD_TARGET.*XTENSA" build/CMakeCache.txt; then
+    echo "Architecture: Xtensa"
+    ARCH_FAMILY="xtensa"
+else
+    echo "Architecture: Unknown - defaulting to X86_64"
+    ARCH_FAMILY="x86_64"
+fi
+
+# Feature detection
+SIMD_ENABLED=$(grep -q "WAMR_BUILD_SIMD:BOOL=ON" build/CMakeCache.txt && echo "1" || echo "0")
+AOT_ENABLED=$(grep -q "WAMR_BUILD_AOT:BOOL=ON" build/CMakeCache.txt && echo "1" || echo "0")
+JIT_ENABLED=$(grep -q "WAMR_BUILD_JIT:BOOL=ON" build/CMakeCache.txt && echo "1" || echo "0")
+FAST_JIT_ENABLED=$(grep -q "WAMR_BUILD_FAST_JIT:BOOL=ON" build/CMakeCache.txt && echo "1" || echo "0")
+MEMORY64_ENABLED=$(grep -q "WAMR_BUILD_MEMORY64:BOOL=ON" build/CMakeCache.txt && echo "1" || echo "0")
+SHARED_MEMORY_ENABLED=$(grep -q "WAMR_BUILD_SHARED_MEMORY:BOOL=ON" build/CMakeCache.txt && echo "1" || echo "0")
+PTHREAD_ENABLED=$(grep -q "WAMR_BUILD_LIB_PTHREAD:BOOL=ON" build/CMakeCache.txt && echo "1" || echo "0")
+
+echo "Features:"
+echo "  SIMD: $SIMD_ENABLED"
+echo "  AOT: $AOT_ENABLED"
+echo "  JIT: $JIT_ENABLED"
+echo "  Fast JIT: $FAST_JIT_ENABLED"
+echo "  Memory64: $MEMORY64_ENABLED"
+echo "  Shared Memory: $SHARED_MEMORY_ENABLED"
+echo "  Pthread: $PTHREAD_ENABLED"
+
+# STEP 3: Write configuration header for test usage
+cat > build/wamr_test_config.h << EOF
+#pragma once
+// Auto-generated WAMR test configuration
+#define WAMR_TEST_ARCH_${ARCH_FAMILY} 1
+#define WAMR_TEST_SIMD_ENABLED ${SIMD_ENABLED}
+#define WAMR_TEST_AOT_ENABLED ${AOT_ENABLED}  
+#define WAMR_TEST_JIT_ENABLED ${JIT_ENABLED}
+#define WAMR_TEST_FAST_JIT_ENABLED ${FAST_JIT_ENABLED}
+#define WAMR_TEST_MEMORY64_ENABLED ${MEMORY64_ENABLED}
+#define WAMR_TEST_SHARED_MEMORY_ENABLED ${SHARED_MEMORY_ENABLED}
+#define WAMR_TEST_PTHREAD_ENABLED ${PTHREAD_ENABLED}
+EOF
+
+echo "Configuration written to build/wamr_test_config.h"
+echo "================================================="
+
+# STEP 4: Validate critical build requirements
+echo "=== Build Validation ==="
+if [ "$MEMORY64_ENABLED" = "1" ] && [ "$ARCH_FAMILY" != "x86_64" ] && [ "$ARCH_FAMILY" != "arm64" ] && [ "$ARCH_FAMILY" != "riscv" ]; then
+    echo "WARNING: Memory64 enabled on 32-bit architecture - tests may fail"
+fi
+
+if [ "$JIT_ENABLED" = "1" ] || [ "$FAST_JIT_ENABLED" = "1" ]; then
+    echo "INFO: JIT enabled - ensure LLVM dependencies are available"
+fi
+
+echo "Build validation complete"
+```
+
+#### Platform-Aware Test Planning Integration (MANDATORY)
+
+**EVERY test plan MUST include platform context:**
+
+```markdown
+# Code Coverage Improve Plan for [Module Name]
+
+## Platform Configuration Context (REQUIRED)
+- **Target Architecture**: X86_64 / AARCH64 / RISCV64 / etc.
+- **Enabled Features**: SIMD, AOT, JIT, Fast-JIT, Memory64, etc.
+- **Platform**: linux / android / esp-idf / windows / etc.
+- **Build Configuration**: Debug / Release
+- **Special Constraints**: Memory limits, threading support, etc.
+
+## Platform-Specific Test Categories (MANDATORY)
+
+### Architecture-Dependent Tests
+Functions that behave differently on different architectures:
+- Memory alignment requirements
+- Instruction set specific optimizations  
+- Register usage patterns
+- Stack frame layouts
+
+### Feature-Conditional Tests (CRITICAL)
+Functions that are only available with certain features:
+- SIMD operations (requires WAMR_BUILD_SIMD=1)
+- JIT compilation paths (requires WAMR_BUILD_JIT=1)
+- AOT validation (requires WAMR_BUILD_AOT=1)
+- Memory64 operations (requires WAMR_BUILD_MEMORY64=1)
+
+### Platform-Specific Error Handling
+Error conditions that vary by platform:
+- Memory allocation limits
+- File system access permissions
+- Threading capabilities
+- Signal handling mechanisms
+```
+
+## WAMR Platform-Specific Feature Compatibility Reference
+
+### Architecture Support Matrix
+
+#### **X86_64 / AMD_64**
+✅ **Fully Supported Features:**
+- SIMD (128-bit vector operations)
+- AOT compilation
+- JIT compilation (LLVM JIT)
+- Fast JIT
+- Memory64 (64-bit addressing)
+- Shared memory/threads
+- All WebAssembly proposals
+- Linux perf integration
+- GS register optimization (Linux only)
+
+⚠️ **Platform-Specific:**
+- **GS Register Write**: Only on X86_64 + Linux (auto-detected)
+- **Hardware boundary checks**: Optimized for x86 MMU
+
+#### **AARCH64 (ARM64)**
+✅ **Fully Supported Features:**
+- SIMD (NEON vector operations)
+- AOT compilation
+- JIT compilation (LLVM JIT)
+- Fast JIT
+- Memory64 (64-bit addressing)
+- Shared memory/threads
+- All WebAssembly proposals
+
+⚠️ **Platform-Specific:**
+- **SIMD**: Uses ARM NEON instruction set
+- **Memory alignment**: Stricter alignment requirements
+
+#### **ARM32 / THUMB**
+✅ **Supported Features:**
+- Basic interpreter
+- AOT compilation
+- SIMD (limited NEON support)
+- Standard memory (32-bit only)
+- Threading support
+
+❌ **Not Supported:**
+- Memory64 (32-bit architecture limitation)
+- Full SIMD on some variants
+
+⚠️ **Variants:**
+- **ARM_VFP**: With floating-point unit
+- **THUMB_VFP**: Thumb mode with FPU
+
+#### **RISC-V (64-bit & 32-bit)**
+✅ **Supported Features:**
+- Basic interpreter
+- AOT compilation
+- Fast JIT
+- Memory64 (RISCV64 only)
+- Threading support
+
+❌ **Limited Support:**
+- **SIMD**: Explicitly disabled on RISCV64 in config
+- **LLVM JIT**: Limited support
+
+⚠️ **Variants:**
+- **RISCV64_LP64D**: 64-bit with double-precision FP
+- **RISCV64_LP64**: 64-bit without FP
+- **RISCV32_ILP32D**: 32-bit with double-precision FP
+- **RISCV32_ILP32F**: 32-bit with single-precision FP
+- **RISCV32_ILP32**: 32-bit without FP
+
+#### **MIPS**
+✅ **Supported Features:**
+- Basic interpreter
+- AOT compilation
+- Standard memory operations
+
+❌ **Limited Support:**
+- SIMD support varies
+- JIT compilation limited
+
+#### **Xtensa (ESP32)**
+✅ **Supported Features:**
+- Basic interpreter
+- AOT compilation
+- ESP-IDF integration
+- Limited memory configurations
+
+❌ **Not Supported:**
+- Memory64
+- Full SIMD support
+- JIT compilation
+
+⚠️ **ESP-IDF Specific:**
+- Automatic target detection from IDF config
+- Memory constraints (typically <1MB)
+
+### Platform-Specific Feature Matrix
+
+#### **Linux**
+✅ **All Features Supported:**
+- Full SIMD support
+- All JIT variants (LLVM JIT, Fast JIT)
+- Memory64 on 64-bit architectures
+- Linux perf integration
+- SGX enclave support
+- Shared memory/threading
+- All debugging features
+
+🔧 **Linux-Specific Optimizations:**
+- GS register optimization (X86_64)
+- Hardware boundary checks
+- Memory mapping optimizations
+
+#### **Android**
+✅ **Supported Features:**
+- SIMD (architecture dependent)
+- AOT compilation
+- JIT compilation
+- Memory64 (on 64-bit devices)
+- Threading support
+
+⚠️ **Android-Specific:**
+- **ABI Variants**: x86, x86_64, armeabi-v7a, arm64-v8a, riscv64
+- **API Level**: Minimum Android 24
+- **NDK Integration**: Requires Android NDK
+
+#### **Windows**
+✅ **Supported Features:**
+- Full SIMD support (X86/X64)
+- AOT compilation
+- JIT compilation
+- Memory64 (64-bit Windows)
+- Threading support
+
+⚠️ **Windows-Specific:**
+- **MinGW vs MSVC**: Different compiler support
+- **Library linking**: Different from Unix systems
+
+#### **macOS/iOS**
+✅ **Supported Features:**
+- Full SIMD support
+- AOT compilation
+- JIT compilation (with restrictions on iOS)
+- Memory64 (64-bit devices)
+- Threading support
+
+⚠️ **Apple-Specific:**
+- **iOS JIT restrictions**: Limited by iOS security model
+- **Code signing**: Required for distribution
+
+#### **ESP-IDF (Embedded)**
+✅ **Supported Features:**
+- Basic interpreter
+- AOT compilation
+- Memory-constrained operations
+
+❌ **Not Supported:**
+- JIT compilation
+- Memory64
+- Full SIMD
+- Large memory allocations
+
+⚠️ **ESP-IDF Constraints:**
+- **Memory limits**: Typically 64KB-512KB
+- **Flash storage**: Code stored in flash memory
+- **RTOS integration**: FreeRTOS-based
+
+#### **Zephyr RTOS**
+✅ **Supported Features:**
+- Basic interpreter
+- AOT compilation
+- Real-time constraints
+- Multiple architecture support
+
+❌ **Limited:**
+- JIT compilation
+- Large memory operations
+- Full SIMD support
+
+### Feature Availability Summary Table
+
+| Feature | X86_64 | ARM64 | ARM32 | RISC-V | MIPS | Xtensa | Notes |
+|---------|--------|-------|-------|--------|------|--------|-------|
+| **SIMD** | ✅ | ✅ | ⚠️ | ❌ | ⚠️ | ❌ | Disabled on RISCV64 |
+| **Memory64** | ✅ | ✅ | ❌ | ✅* | ❌ | ❌ | *RISCV64 only |
+| **AOT** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | Universal support |
+| **LLVM JIT** | ✅ | ✅ | ⚠️ | ⚠️ | ⚠️ | ❌ | Requires LLVM |
+| **Fast JIT** | ✅ | ✅ | ✅ | ✅ | ⚠️ | ❌ | Lightweight JIT |
+| **Threads** | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ | Platform dependent |
+| **Shared Memory** | ✅ | ✅ | ✅ | ✅ | ⚠️ | ❌ | Requires threading |
+
+### Key Constraints & Recommendations for Test Generation
+
+#### **Memory64 Requirements**
+- **MUST** be 64-bit architecture (X86_64, ARM64, RISCV64)
+- **NOT AVAILABLE** on 32-bit platforms (ARM32, RISCV32, MIPS32)
+- **Test Generation**: Skip Memory64 tests on 32-bit architectures
+
+#### **SIMD Availability**
+- **X86_64**: Full SSE/AVX support - generate SIMD tests
+- **ARM64**: NEON vector instructions - generate NEON-specific tests
+- **ARM32**: Limited NEON (variant dependent) - check variant first
+- **RISC-V**: Explicitly disabled - NEVER generate SIMD tests
+- **MIPS/Xtensa**: No SIMD support - skip SIMD tests
+
+#### **JIT Compilation**
+- **LLVM JIT**: Requires LLVM libraries, check availability first
+- **Fast JIT**: Lightweight, broader platform support
+- **Embedded platforms**: Generally no JIT - skip JIT tests on ESP-IDF, Zephyr
+
+#### **Platform-Specific Test Adaptation Examples**
+```cpp
+// Example: Memory64 test adaptation
+TEST_F(Memory64Test, LargeAddressing) {
+    // Check architecture first
+    if (!PlatformTestContext::IsX86_64() && 
+        !PlatformTestContext::IsARM64() && 
+        !(PlatformTestContext::IsRISCV() && sizeof(void*) == 8)) {
+        return; // Skip on 32-bit architectures
+    }
+    
+    if (!PlatformTestContext::HasMemory64Support()) {
+        return; // Skip if Memory64 not enabled
+    }
+    
+    // Memory64-specific test logic
+    uint64_t large_address = 0x100000000ULL; // 4GB+
+    // ... test implementation
+}
+
+// Example: SIMD test adaptation
+TEST_F(SIMDTest, VectorOperations) {
+    // RISC-V explicitly disables SIMD
+    if (PlatformTestContext::IsRISCV()) {
+        return; // Skip on RISC-V
+    }
+    
+    if (!PlatformTestContext::HasSIMDSupport()) {
+        return; // Skip if SIMD not enabled
+    }
+    
+    // SIMD-specific test logic
+    // ... test implementation
+}
+
+// Example: Platform-specific memory limits
+TEST_F(MemoryTest, AllocationLimits) {
+    size_t max_allocation;
+    
+    // Platform-specific memory limits
+    if (WAMR_BUILD_PLATFORM == "esp-idf") {
+        max_allocation = 512 * 1024; // 512KB for ESP32
+    } else if (WAMR_BUILD_PLATFORM == "zephyr") {
+        max_allocation = 256 * 1024; // 256KB for Zephyr
+    } else if (PlatformTestContext::IsX86_64()) {
+        max_allocation = 8ULL * 1024 * 1024 * 1024; // 8GB
+    } else if (PlatformTestContext::IsARM64()) {
+        max_allocation = 4ULL * 1024 * 1024 * 1024; // 4GB
+    } else {
+        max_allocation = 1ULL * 1024 * 1024 * 1024; // 1GB default
+    }
+    
+    // Test with platform-appropriate limits
+    // ... test implementation
+}
+```
+
 ## Core Principles For High Quality Code(MUST FOLLOW)
 
 ### 1. Verify Actual Functionality, Not Just Execution
@@ -504,16 +1210,42 @@ For each feature test suite, maintain quality metrics in the input argument: **p
 
 ## Mandatory Requirement
 **YOU MUST:**
+- **ALWAYS** detect platform configuration BEFORE generating any test code using the Platform Detection Protocol
+- Include the **PlatformTestContext** utility class in EVERY test file generated
+- Apply **feature-conditional testing** for all platform-dependent functionality (SIMD, AOT, JIT, Memory64)
+- Update **CMakeLists.txt** with platform-aware compile definitions for every module
+- Generate **platform-specific WAT files** only when features are enabled in current build
 - Focus on comprehensive feature testing rather than just coverage metrics
 - Analyze existing tests and identify feature gaps
 - Ensure tests demonstrate real feature validation with meaningful assertions
-- Eliminate all GTEST_SKIP() calls and SUCCEED(), FAIL() placeholders
+- Eliminate all GTEST_SKIP() calls and SUCCEED(), FAIL() placeholders - use early return instead
 - Deeply understand the **Core WAT Generation Rules** and analyze if WAT file is needed to generate test code to satisfy the test requirement
 - Deeply understand **Core Principles For High Quality Code** when generating code
+- Deeply understand **Platform-Specific Compilation Flags Integration** and apply platform-aware testing
 - First refer the **Issue Resolution Protocol** to fix related problems
 - Build the module in ./tests/unit, not in the module directory
 
 **YOU MUST NOT:**
+- Generate tests without first checking platform compatibility and feature availability
+- Use GTEST_SKIP() calls - use conditional early return instead: `if (!condition) return;`
+- Create SIMD tests when WAMR_BUILD_SIMD=0
+- Create Memory64 tests when WAMR_BUILD_MEMORY64=0 or on 32-bit architectures
+- Create JIT tests when WAMR_BUILD_JIT=0
+- Generate WAT files with features not enabled in current build configuration
 - Change or modify any committed code files, except the CMakeLists.txt, If need, just created new files.
-- Use GTEST_SKIP() calls and SUCCEED(), FAIL placeholders in test code.
+- Use SUCCEED(), FAIL placeholders in test code.
 - Search any codes in the **Ignored Directories**
+
+## Platform Compatibility Validation Checklist (MANDATORY)
+Before generating ANY test code, verify:
+- [ ] **Build Configuration Exists**: If no build/CMakeCache.txt found, create initial build with `cmake .. -DCMAKE_BUILD_TYPE=Debug -DCOLLECT_CODE_COVERAGE=1`
+- [ ] **Platform Configuration Detected**: Successfully extracted from build/CMakeCache.txt
+- [ ] **Target Architecture Identified**: X86_64, AARCH64, ARM32, RISC-V, MIPS, Xtensa, etc.
+- [ ] **Feature Availability Confirmed**: SIMD, AOT, JIT, Fast-JIT, Memory64, Shared Memory, Pthread
+- [ ] **Architecture Compatibility Validated**: Memory64 only on 64-bit architectures, SIMD availability checked
+- [ ] **Test Logic Adapted**: Platform-specific memory limits, instruction sets, and capabilities
+- [ ] **WAT Files Generated Conditionally**: Only for enabled features (SIMD WAT only if SIMD=ON)
+- [ ] **CMakeLists.txt Platform Integration**: Includes platform-aware compile definitions
+- [ ] **PlatformTestContext Utility**: Included in every test file for runtime feature detection
+- [ ] **Conditional Test Execution**: Early return pattern instead of GTEST_SKIP for unsupported features
+- [ ] **Build Validation**: Critical requirements checked (JIT dependencies, Memory64 on 64-bit only)
