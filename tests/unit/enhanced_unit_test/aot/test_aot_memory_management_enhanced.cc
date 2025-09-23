@@ -63,13 +63,16 @@ protected:
 
     wasm_module_inst_t create_test_instance_with_memory(uint32_t initial_pages, uint32_t max_pages)
     {
+        char error_buf[128] = {0};
         // Use the dummy WASM buffer from test_helper.h
-        wasm_module_t module = wasm_runtime_load(dummy_wasm_buffer, sizeof(dummy_wasm_buffer), nullptr, 0);
+        wasm_module_t module = wasm_runtime_load(dummy_wasm_buffer, sizeof(dummy_wasm_buffer), 
+                                                 error_buf, sizeof(error_buf));
         if (!module) {
             return nullptr;
         }
 
-        wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 8192, 8192, nullptr, 0);
+        wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 8192, 8192, 
+                                                                  error_buf, sizeof(error_buf));
         wasm_runtime_unload(module);
         return module_inst;
     }
