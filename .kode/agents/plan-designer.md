@@ -171,7 +171,10 @@ Total: 3 steps, max 20 functions per step, 45 functions covered
 #### Plan Output Location (MANDATORY)
 **CRITICAL REQUIREMENT**: All feature test plans MUST be created in the enhanced test directory structure to maintain isolation from existing code.
 
-**Plan File Location**: `tests/unit/enhanced_coverage_report/[ModuleName]/[ModuleName]_coverage_improve_plan.md`
+**Versioned Plan File Location**: 
+- **Base Plan**: `tests/unit/enhanced_coverage_report/[ModuleName]/[ModuleName]_coverage_improve_plan.md`
+- **Versioned Plans**: `tests/unit/enhanced_coverage_report/[ModuleName]/[ModuleName]_add_[target]_plan.md`
+- **Progress Tracking**: `tests/unit/enhanced_coverage_report/[ModuleName]/[ModuleName]_add_[target]_progress.json`
 
 #### Enhanced Test Directory Structure
 To maintain code isolation and prevent pollution of existing unit tests, create an independent enhanced test directory structure:
@@ -180,12 +183,18 @@ To maintain code isolation and prevent pollution of existing unit tests, create 
 tests/unit/enhanced_coverage_report/[ModuleName]/
 ├── CMakeLists.txt # Must to inlcude in the unit build file   
 [ModuleName]
+  ├── [{PlandName}.md]
+  ├── [{Versioned_PlandName}.md]  #If has
   ├── CMakeLists.txt                    # Copied and modified from original
-  ├── coverage_enhanced_{step_number}.cc              # New enhanced test files
-  ├── [ModuleName]_coverage_improve_plan.md # code coverage improve plan document
+  ├── [ModuleName]_add_[target]_step_1.cc     # Versioned enhanced test files
+  ├── [ModuleName]_add_[target]_step_2.cc     # Step-specific test files
+  ├── [ModuleName]_coverage_improve_plan.md   # Base coverage improve plan document
+  ├── [ModuleName]_add_[target]_plan.md       # Versioned coverage plan (e.g., interpreter_add_20_plan.md)
+  ├── [ModuleName]_add_[target]_progress.json # Versioned progress tracking
   # Optional structure (only if needed)
   ├── wasm-apps/                        # Create if necessary
-  │   ├── [test_files].wat             # Enhanced WAT test files
+  │   ├── [ModuleName]_add_[target]_step_1_test.wat    # Versioned WAT test files
+  │   ├── [ModuleName]_add_[target]_step_2_test.wat    # Step-specific WAT files
   │   └── [test_files].wasm            # Compiled test modules
   └── [other_subdirs]/                  # Mirror any other subdirectories
 ```
@@ -197,25 +206,36 @@ cmake_minimum_required(VERSION 3.12)
 add_subdirectory({ModuleName})
 ```
 
-**Directory Creation Protocol**:
+**Versioned File Naming Protocol**:
 1. **Base Directory**: `tests/unit/enhanced_coverage_report/[ModuleName]/`
-4. **File Naming**: Use `*[ModuleName]_coverage_improve_{step_number}.cc` suffix for new test files
-5. **Isolation Principle**: No any modifications to existing cpmmited files except CMakeLists.txt
+2. **Plan Files**: `[ModuleName]_add_[target]_plan.md` (e.g., `interpreter_add_20_plan.md`)
+3. **Step Files**: `[ModuleName]_add_[target]_step_[N].cc` (e.g., `interpreter_add_20_step_1.cc`)
+4. **Progress Files**: `[ModuleName]_add_[target]_progress.json`
+5. **WAT Files**: `[ModuleName]_add_[target]_step_[N]_test.wat` (if needed)
+6. **Isolation Principle**: No modifications to existing committed files except CMakeLists.txt
 
-**Example for posix module**:
+**Target Coverage Parsing**:
+- Extract target from user input: `"interpreter +20%"` → target = `"20"`
+- Generate plan ID: `"interpreter_add_20_[timestamp]"`
+- Create versioned filenames using target coverage percentage
+
+**Example for interpreter module with +20% coverage target**:
 ```bash
-# Enhanced structure (new)
+# Enhanced structure (versioned)
 tests/unit/enhanced_coverage_report/
 ├── CMakeLists.txt
-├── posix
+├── interpreter/
     ├── CMakeLists.txt                           # Copied and modified
-    ├── posix_coverage_improve_step_1.cc          # Step 1: Core operations
-    ├── posix_coverage_improve_step_2.cc       # Step 2: Advanced operations  
-    ├── posix_coverage_improve_step_3.cc              # Step 3: Integration testing
-    ├── posix_coverage_improve_plan.md            # Feature test plan
+    ├── interpreter_add_20_step_1.cc             # Step 1: Arithmetic operations (+20% target)
+    ├── interpreter_add_20_step_2.cc             # Step 2: Sign extensions (+20% target)
+    ├── interpreter_add_20_step_3.cc             # Step 3: Float truncations (+20% target)
+    ├── interpreter_add_20_step_4.cc             # Step 4: JIT functions (+20% target)
+    ├── interpreter_coverage_improve_plan.md     # Base feature test plan
+    ├── interpreter_add_20_plan.md               # +20% coverage improvement plan
+    ├── interpreter_add_20_progress.json         # Progress tracking for +20% target
     └── wasm-apps/                               # Enhanced test modules
-        ├── posix_boundary_test.wat           # New boundary test WAT
-        ├── posix_stress_test.wat             # New stress test WAT
+        ├── interpreter_add_20_step_1_test.wat   # Arithmetic test WAT (+20% target)
+        ├── interpreter_add_20_step_2_test.wat   # Sign extension test WAT (+20% target)
         └── [compiled_wasm_files]                # Compiled enhanced modules
 ```
 
@@ -250,15 +270,24 @@ touch tests/unit/enhanced_coverage_report/posix/posix_feature_test_plan.md
 
 ## Test Plan Template Structure
 
-### Coverage Improve Plan Template
+### Versioned Coverage Improve Plan Template
 ```markdown
-# Code Coverage Improve Plan for [Module Name]
+# Code Coverage Improve Plan for [Module Name] (+[Target]% Coverage)
+
+## Plan Metadata
+- **Plan ID**: `[module]_add_[target]_[timestamp]`
+- **Module**: [Module Name]
+- **Target Coverage**: +[Target]% improvement
+- **Plan File**: `[module]_add_[target]_plan.md`
+- **Progress File**: `[module]_add_[target]_progress.json`
+- **Generated**: [Timestamp]
 
 ## Current Coverage Status
 - Line Coverage: X/Y (Z%)
 - Function Coverage: A/B (C%)
 - Branch Coverage: D/E (F%)
 - **Coverage Report**: `tests/unit/wamr-lcov/wamr-lcov/index.html`
+- **Target Coverage**: Z% + [Target]% = [New Target]%
 
 ## Uncovered Code Analysis
 
@@ -289,6 +318,9 @@ touch tests/unit/enhanced_coverage_report/posix/posix_feature_test_plan.md
 
 ### Step Template Structure
 #### Step N: [Segment Name] Functions (≤20 functions maximum)
+**Implementation File**: `[module]_add_[target]_step_[N].cc`
+**WAT Test File**: `[module]_add_[target]_step_[N]_test.wat` (if needed)
+
 **Target Functions with Line Coverage Goals**:
 
 ##### Function 1: `os_open()` [0 hits, 18 uncovered lines]
@@ -395,8 +427,35 @@ Each step must satisfy:
 - [ ] Step 4: Integration Tests - PENDING
 ```
 
+## Versioned Plan Generation Requirements
+
+**MANDATORY Versioning Protocol:**
+When creating coverage improvement plans, you MUST:
+
+1. **Parse Target Coverage** from user input:
+   ```
+   Input: "@run-agent-plan-designer interpreter +20%"
+   Extract: target = "20", module = "interpreter"
+   Generate: plan_id = "interpreter_add_20_[timestamp]"
+   ```
+
+2. **Generate Versioned Filenames**:
+   - Plan file: `[module]_add_[target]_plan.md`
+   - Progress file: `[module]_add_[target]_progress.json`
+   - Step files: `[module]_add_[target]_step_[N].cc`
+   - WAT files: `[module]_add_[target]_step_[N]_test.wat`
+
+3. **Create Unique Plan Identifiers**:
+   ```json
+   "plan_id": "[module]_add_[target]_YYYYMMDD_HHMMSS",
+   "plan_file": "[module]_add_[target]_plan.md",
+   "target_coverage_improvement": "+[target]%"
+   ```
+
 ## Mandatory Requirements
 **YOU MUST:**
+- **Parse target coverage**: Extract target percentage from user input (e.g., "+20%")
+- **Use versioned filenames**: All files must include target coverage in filename
 - **Create enhanced coverage structure**: Always ensure `tests/unit/enhanced_coverage_report/[ModuleName]/` exists before creating plans
 - **Use enhanced directory for all outputs**: All plans, test files, and related artifacts MUST be in enhanced directory
 - **Maintain isolation**: NEVER modify or create files in original `tests/unit/[ModuleName]/` directories
@@ -404,7 +463,6 @@ Each step must satisfy:
 - Focus on coverage metrics
 - Analyze existing code coverage and target coverage gaps
 - Create detailed, implementable test plans
-c
 **Directory Creation Workflow (MANDATORY)**:
 1. **Check Enhanced Directory**: Verify if `tests/unit/enhanced_coverage_report/[ModuleName]/` exists
 2. **Create If Missing**: Use `mkdir -p` to create enhanced directory structure
