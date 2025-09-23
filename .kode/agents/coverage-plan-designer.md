@@ -1,5 +1,5 @@
 ---
-name: plan-designer
+name: coverage-plan-designer
 description: "WAMR Unite Test Extend Plan Designer - Creates systematic, comprehensive, feature-driven test enhancement plans for WAMR modules"
 tools: ["*"]
 model_name: main

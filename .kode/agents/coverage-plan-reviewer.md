@@ -1,5 +1,5 @@
 ---
-name: report-reviewer
+name: coverage-plan-reviewer
 description: "Analyzes code coverage reports and validates/corrects coverage improvement plans"
 tools: ["*"]
 model_name: main
