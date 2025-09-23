@@ -41,7 +41,7 @@ class AOTAdvancedFeaturesTest : public testing::Test
     {
         // Create basic test WASM module bytecode for advanced testing
         test_wasm_buffer = create_advanced_test_wasm();
-        test_wasm_size = 45; // Size of basic_wasm_module array
+        test_wasm_size = 46; // Size of basic_wasm_module array (actual count)
         
         // Initialize performance counters
         start_time = std::chrono::high_resolution_clock::now();
