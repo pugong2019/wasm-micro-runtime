@@ -48,12 +48,12 @@
     i64.rotr)
 
   ;; Population Count (32-bit)
-  (func (export "test_popcount32") (param $value i32) (result i32)
+  (func (export "test_popcnt32") (param $value i32) (result i32)
     local.get $value
     i32.popcnt)
 
   ;; Population Count (64-bit)
-  (func (export "test_popcount64") (param $value i64) (result i64)
+  (func (export "test_popcnt64") (param $value i64) (result i64)
     local.get $value
     i64.popcnt)
 

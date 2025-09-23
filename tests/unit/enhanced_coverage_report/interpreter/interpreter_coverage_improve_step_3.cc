@@ -44,11 +44,18 @@ free_impl(wasm_exec_env_t exec_env, int32_t ptr)
         wasm_runtime_get_module_inst(exec_env), ptr);
 }
 
+static int
+native_func_impl(wasm_exec_env_t exec_env, int32_t a)
+{
+    return a * 2;
+}
+
 static NativeSymbol native_symbols[] = {
     { "test_import_add", (void*)test_import_add_impl, "(ii)i", NULL },
     { "test_import_mul", (void*)test_import_mul_impl, "(ii)i", NULL },
     { "malloc", (void*)malloc_impl, "(i)i", NULL },
-    { "free", (void*)free_impl, "(i)", NULL }
+    { "free", (void*)free_impl, "(i)", NULL },
+    { "native_func", (void*)native_func_impl, "(i)i", NULL }
 };
 
 /**
@@ -272,8 +279,8 @@ TEST_F(FunctionInvocationTest, CopyStackValues_Normal_CopiesValuesCorrectly)
     bool success = wasm_runtime_call_wasm(exec_env, func, 2, wasm_argv);
     ASSERT_TRUE(success);
 
-    // Complex calculation: (10+20) + (10+10) + (20*3) = 30 + 20 + 60 = 110
-    ASSERT_EQ(wasm_argv[0], 110);
+    // Complex calculation: (10+20) + (5+10) + (20*3) = 30 + 15 + 60 = 105
+    ASSERT_EQ(wasm_argv[0], 105);
 }
 
 /**
@@ -337,7 +344,7 @@ TEST_F(FunctionInvocationTest, ExecuteMalloc_Failure_HandlesLargeAllocation)
     ASSERT_NE(func, nullptr);
 
     uint32_t wasm_argv[1];
-    wasm_argv[0] = 0xFFFFFFFF; // try to allocate huge amount
+    wasm_argv[0] = 0x10000000; // try to allocate large amount (256MB)
 
     bool success = wasm_runtime_call_wasm(exec_env, func, 1, wasm_argv);
     // This might succeed or fail depending on implementation

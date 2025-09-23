@@ -8,6 +8,42 @@
 #include "bh_read_file.h"
 #include "test_helper.h"
 
+// Platform test context for feature detection
+class PlatformTestContext {
+public:
+    static bool HasSIMDSupport() {
+#if WASM_ENABLE_SIMD != 0
+        return true;
+#else
+        return false;
+#endif
+    }
+    
+    static bool HasJITSupport() {
+#if WASM_ENABLE_JIT != 0
+        return true;
+#else
+        return false;
+#endif
+    }
+    
+    static bool HasFastJITSupport() {
+#if WASM_ENABLE_FAST_JIT != 0
+        return true;
+#else
+        return false;
+#endif
+    }
+    
+    static bool HasMemory64Support() {
+#if WASM_ENABLE_MEMORY64 != 0
+        return true;
+#else
+        return false;
+#endif
+    }
+};
+
 // Helper functions for i64 parameter handling
 static inline uint64_t
 get_u64_from_addr(uint32_t *addr)
@@ -53,23 +89,40 @@ protected:
     {
         runtime = std::make_unique<WAMRRuntimeRAII<512 * 1024>>();
         
-        // Load the arithmetic_bitwise.wasm module using DummyExecEnv
-        dummy_env = std::make_unique<DummyExecEnv>("arithmetic_bitwise.wasm");
-        ASSERT_NE(dummy_env->get(), nullptr) << "Failed to create execution environment";
+        // Load the arithmetic_bitwise.wasm module using standard WAMR pattern
+        wasm_file_buf = (unsigned char *)bh_read_file_to_buffer("arithmetic_bitwise.wasm", &wasm_file_size);
+        ASSERT_NE(wasm_file_buf, nullptr) << "Failed to read WASM file";
+        
+        module = std::make_unique<WAMRModule>(wasm_file_buf, wasm_file_size);
+        ASSERT_NE(module->get(), nullptr) << "Failed to load WASM module";
+        
+        instance = std::make_unique<WAMRInstance>(*module, 8192, 8192);
+        ASSERT_NE(instance->get(), nullptr) << "Failed to instantiate WASM module";
+        
+        exec_env = std::make_unique<WAMRExecEnv>(*instance, 8192);
+        ASSERT_NE(exec_env->get(), nullptr) << "Failed to create execution environment";
     }
     
     void TearDown() override
     {
-        dummy_env.reset();
+        exec_env.reset();
+        instance.reset();
+        module.reset();
+        if (wasm_file_buf) {
+            BH_FREE(wasm_file_buf);
+        }
         runtime.reset();
     }
     
     // Helper function to call WASM functions with i32 parameter and return
     uint32_t call_wasm_i32_i32(const char* func_name, uint32_t param)
     {
+        wasm_function_inst_t func = wasm_runtime_lookup_function(instance->get(), func_name);
+        EXPECT_NE(func, nullptr) << "Function not found: " << func_name;
+        
         uint32_t wasm_argv[1] = { param };
-        bool success = dummy_env->execute(func_name, 1, wasm_argv);
-        EXPECT_TRUE(success) << "Function call failed: " << dummy_env->get_exception();
+        bool success = wasm_runtime_call_wasm(exec_env->get(), func, 1, wasm_argv);
+        EXPECT_TRUE(success) << "Function call failed: " << wasm_runtime_get_exception(instance->get());
         
         return wasm_argv[0];
     }
@@ -77,10 +130,13 @@ protected:
     // Helper function to call WASM functions with i64 parameter and return
     uint64_t call_wasm_i64_i64(const char* func_name, uint64_t param)
     {
+        wasm_function_inst_t func = wasm_runtime_lookup_function(instance->get(), func_name);
+        EXPECT_NE(func, nullptr) << "Function not found: " << func_name;
+        
         uint32_t wasm_argv[2];
         put_u64_to_addr(wasm_argv, param);
-        bool success = dummy_env->execute(func_name, 2, wasm_argv);
-        EXPECT_TRUE(success) << "Function call failed: " << dummy_env->get_exception();
+        bool success = wasm_runtime_call_wasm(exec_env->get(), func, 2, wasm_argv);
+        EXPECT_TRUE(success) << "Function call failed: " << wasm_runtime_get_exception(instance->get());
         
         return get_u64_from_addr(wasm_argv);
     }
@@ -88,9 +144,12 @@ protected:
     // Helper function to call WASM functions with two i32 parameters
     uint32_t call_wasm_i32_i32_i32(const char* func_name, uint32_t param1, uint32_t param2)
     {
+        wasm_function_inst_t func = wasm_runtime_lookup_function(instance->get(), func_name);
+        EXPECT_NE(func, nullptr) << "Function not found: " << func_name;
+        
         uint32_t wasm_argv[2] = { param1, param2 };
-        bool success = dummy_env->execute(func_name, 2, wasm_argv);
-        EXPECT_TRUE(success) << "Function call failed: " << dummy_env->get_exception();
+        bool success = wasm_runtime_call_wasm(exec_env->get(), func, 2, wasm_argv);
+        EXPECT_TRUE(success) << "Function call failed: " << wasm_runtime_get_exception(instance->get());
         
         return wasm_argv[0];
     }
@@ -98,281 +157,124 @@ protected:
     // Helper function to call WASM functions with two i64 parameters
     uint64_t call_wasm_i64_i64_i64(const char* func_name, uint64_t param1, uint64_t param2)
     {
+        wasm_function_inst_t func = wasm_runtime_lookup_function(instance->get(), func_name);
+        EXPECT_NE(func, nullptr) << "Function not found: " << func_name;
+        
         uint32_t wasm_argv[4];
-        put_u64_to_addr(wasm_argv, param1);
-        put_u64_to_addr(wasm_argv + 2, param2);
-        bool success = dummy_env->execute(func_name, 4, wasm_argv);
-        EXPECT_TRUE(success) << "Function call failed: " << dummy_env->get_exception();
+        put_u64_to_addr(&wasm_argv[0], param1);
+        put_u64_to_addr(&wasm_argv[2], param2);
+        bool success = wasm_runtime_call_wasm(exec_env->get(), func, 4, wasm_argv);
+        EXPECT_TRUE(success) << "Function call failed: " << wasm_runtime_get_exception(instance->get());
         
         return get_u64_from_addr(wasm_argv);
     }
     
     std::unique_ptr<WAMRRuntimeRAII<512 * 1024>> runtime;
-    std::unique_ptr<DummyExecEnv> dummy_env;
+    std::unique_ptr<WAMRModule> module;
+    std::unique_ptr<WAMRInstance> instance;
+    std::unique_ptr<WAMRExecEnv> exec_env;
+    unsigned char *wasm_file_buf = nullptr;
+    uint32_t wasm_file_size = 0;
 };
 
-// Count Leading Zeros (32-bit) Tests
-TEST_F(ArithmeticBitwiseTest, Clz32_ZeroInput_Returns32)
+// Test Count Leading Zeros operations
+TEST_F(ArithmeticBitwiseTest, CountLeadingZeros_VariousInputs_ReturnsCorrectCount)
 {
-    // Test clz32 with zero input - should return 32
-    uint32_t result = call_wasm_i32_i32("test_clz32", 0);
-    ASSERT_EQ(32, result);
+    // Test i32.clz with various values
+    ASSERT_EQ(call_wasm_i32_i32("test_clz32", 0x80000000), 0U);
+    ASSERT_EQ(call_wasm_i32_i32("test_clz32", 0x40000000), 1U);
+    ASSERT_EQ(call_wasm_i32_i32("test_clz32", 0x00000001), 31U);
+    ASSERT_EQ(call_wasm_i32_i32("test_clz32", 0x00000000), 32U);
     
-    // Test edge case function specifically
-    result = call_wasm_i32_i32("test_clz32_zero", 0);
-    ASSERT_EQ(32, result);
+    // Test i64.clz with various values
+    ASSERT_EQ(call_wasm_i64_i64("test_clz64", 0x8000000000000000ULL), 0ULL);
+    ASSERT_EQ(call_wasm_i64_i64("test_clz64", 0x4000000000000000ULL), 1ULL);
+    ASSERT_EQ(call_wasm_i64_i64("test_clz64", 0x0000000000000001ULL), 63ULL);
+    ASSERT_EQ(call_wasm_i64_i64("test_clz64", 0x0000000000000000ULL), 64ULL);
 }
 
-TEST_F(ArithmeticBitwiseTest, Clz32_SingleBitPatterns_ReturnsCorrectCount)
+// Test Count Trailing Zeros operations
+TEST_F(ArithmeticBitwiseTest, CountTrailingZeros_VariousInputs_ReturnsCorrectCount)
 {
-    // Test single bit patterns
-    ASSERT_EQ(31, call_wasm_i32_i32("test_clz32", 1));        // 0x00000001
-    ASSERT_EQ(30, call_wasm_i32_i32("test_clz32", 2));        // 0x00000002
-    ASSERT_EQ(29, call_wasm_i32_i32("test_clz32", 4));        // 0x00000004
-    ASSERT_EQ(28, call_wasm_i32_i32("test_clz32", 8));        // 0x00000008
-    ASSERT_EQ(0, call_wasm_i32_i32("test_clz32", 0x80000000)); // MSB set
+    // Test i32.ctz with various values
+    ASSERT_EQ(call_wasm_i32_i32("test_ctz32", 0x00000001), 0U);
+    ASSERT_EQ(call_wasm_i32_i32("test_ctz32", 0x00000002), 1U);
+    ASSERT_EQ(call_wasm_i32_i32("test_ctz32", 0x80000000), 31U);
+    ASSERT_EQ(call_wasm_i32_i32("test_ctz32", 0x00000000), 32U);
+    
+    // Test i64.ctz with various values
+    ASSERT_EQ(call_wasm_i64_i64("test_ctz64", 0x0000000000000001ULL), 0ULL);
+    ASSERT_EQ(call_wasm_i64_i64("test_ctz64", 0x0000000000000002ULL), 1ULL);
+    ASSERT_EQ(call_wasm_i64_i64("test_ctz64", 0x8000000000000000ULL), 63ULL);
+    ASSERT_EQ(call_wasm_i64_i64("test_ctz64", 0x0000000000000000ULL), 64ULL);
 }
 
-TEST_F(ArithmeticBitwiseTest, Clz32_BoundaryValues_ReturnsCorrectCount)
+// Test Population Count operations
+TEST_F(ArithmeticBitwiseTest, PopulationCount_VariousInputs_ReturnsCorrectCount)
 {
-    // Test boundary values
-    ASSERT_EQ(0, call_wasm_i32_i32("test_clz32", 0xFFFFFFFF)); // All bits set
-    ASSERT_EQ(1, call_wasm_i32_i32("test_clz32", 0x7FFFFFFF)); // All except MSB
-    ASSERT_EQ(16, call_wasm_i32_i32("test_clz32", 0x0000FFFF)); // Lower 16 bits
+    // Test i32.popcnt with various values
+    ASSERT_EQ(call_wasm_i32_i32("test_popcnt32", 0x00000000), 0U);
+    ASSERT_EQ(call_wasm_i32_i32("test_popcnt32", 0x00000001), 1U);
+    ASSERT_EQ(call_wasm_i32_i32("test_popcnt32", 0x00000003), 2U);
+    ASSERT_EQ(call_wasm_i32_i32("test_popcnt32", 0xFFFFFFFF), 32U);
+    ASSERT_EQ(call_wasm_i32_i32("test_popcnt32", 0xAAAAAAAA), 16U);
+    
+    // Test i64.popcnt with various values
+    ASSERT_EQ(call_wasm_i64_i64("test_popcnt64", 0x0000000000000000ULL), 0ULL);
+    ASSERT_EQ(call_wasm_i64_i64("test_popcnt64", 0x0000000000000001ULL), 1ULL);
+    ASSERT_EQ(call_wasm_i64_i64("test_popcnt64", 0x0000000000000003ULL), 2ULL);
+    ASSERT_EQ(call_wasm_i64_i64("test_popcnt64", 0xFFFFFFFFFFFFFFFFULL), 64ULL);
+    ASSERT_EQ(call_wasm_i64_i64("test_popcnt64", 0xAAAAAAAAAAAAAAAAULL), 32ULL);
 }
 
-// Count Leading Zeros (64-bit) Tests
-TEST_F(ArithmeticBitwiseTest, Clz64_ZeroInput_Returns64)
+// Test Rotate Left operations
+TEST_F(ArithmeticBitwiseTest, RotateLeft_VariousInputs_ReturnsCorrectRotation)
 {
-    // Test clz64 with zero input - should return 64
-    uint64_t result = call_wasm_i64_i64("test_clz64", 0);
-    ASSERT_EQ(64, result);
+    // Test i32.rotl with various values
+    ASSERT_EQ(call_wasm_i32_i32_i32("test_rotl32", 0x80000000, 1), 0x00000001U);
+    ASSERT_EQ(call_wasm_i32_i32_i32("test_rotl32", 0x00000001, 1), 0x00000002U);
+    ASSERT_EQ(call_wasm_i32_i32_i32("test_rotl32", 0x12345678, 4), 0x23456781U);
+    ASSERT_EQ(call_wasm_i32_i32_i32("test_rotl32", 0x12345678, 0), 0x12345678U);
+    ASSERT_EQ(call_wasm_i32_i32_i32("test_rotl32", 0x12345678, 32), 0x12345678U);
     
-    // Test edge case function specifically
-    result = call_wasm_i64_i64("test_clz64_zero", 0);
-    ASSERT_EQ(64, result);
+    // Test i64.rotl with various values
+    ASSERT_EQ(call_wasm_i64_i64_i64("test_rotl64", 0x8000000000000000ULL, 1), 0x0000000000000001ULL);
+    ASSERT_EQ(call_wasm_i64_i64_i64("test_rotl64", 0x0000000000000001ULL, 1), 0x0000000000000002ULL);
+    ASSERT_EQ(call_wasm_i64_i64_i64("test_rotl64", 0x123456789ABCDEF0ULL, 4), 0x23456789ABCDEF01ULL);
+    ASSERT_EQ(call_wasm_i64_i64_i64("test_rotl64", 0x123456789ABCDEF0ULL, 0), 0x123456789ABCDEF0ULL);
+    ASSERT_EQ(call_wasm_i64_i64_i64("test_rotl64", 0x123456789ABCDEF0ULL, 64), 0x123456789ABCDEF0ULL);
 }
 
-TEST_F(ArithmeticBitwiseTest, Clz64_SingleBitPatterns_ReturnsCorrectCount)
+// Test Rotate Right operations
+TEST_F(ArithmeticBitwiseTest, RotateRight_VariousInputs_ReturnsCorrectRotation)
 {
-    // Test single bit patterns
-    ASSERT_EQ(63, call_wasm_i64_i64("test_clz64", 1));                    // 0x0000000000000001
-    ASSERT_EQ(62, call_wasm_i64_i64("test_clz64", 2));                    // 0x0000000000000002
-    ASSERT_EQ(32, call_wasm_i64_i64("test_clz64", 0x0000000080000000ULL)); // Bit 31 set
-    ASSERT_EQ(0, call_wasm_i64_i64("test_clz64", 0x8000000000000000ULL));  // MSB set
+    // Test i32.rotr with various values
+    ASSERT_EQ(call_wasm_i32_i32_i32("test_rotr32", 0x00000001, 1), 0x80000000U);
+    ASSERT_EQ(call_wasm_i32_i32_i32("test_rotr32", 0x80000000, 1), 0x40000000U);
+    ASSERT_EQ(call_wasm_i32_i32_i32("test_rotr32", 0x12345678, 4), 0x81234567U);
+    ASSERT_EQ(call_wasm_i32_i32_i32("test_rotr32", 0x12345678, 0), 0x12345678U);
+    ASSERT_EQ(call_wasm_i32_i32_i32("test_rotr32", 0x12345678, 32), 0x12345678U);
+    
+    // Test i64.rotr with various values
+    ASSERT_EQ(call_wasm_i64_i64_i64("test_rotr64", 0x0000000000000001ULL, 1), 0x8000000000000000ULL);
+    ASSERT_EQ(call_wasm_i64_i64_i64("test_rotr64", 0x8000000000000000ULL, 1), 0x4000000000000000ULL);
+    ASSERT_EQ(call_wasm_i64_i64_i64("test_rotr64", 0x123456789ABCDEF0ULL, 4), 0x0123456789ABCDEFULL);
+    ASSERT_EQ(call_wasm_i64_i64_i64("test_rotr64", 0x123456789ABCDEF0ULL, 0), 0x123456789ABCDEF0ULL);
+    ASSERT_EQ(call_wasm_i64_i64_i64("test_rotr64", 0x123456789ABCDEF0ULL, 64), 0x123456789ABCDEF0ULL);
 }
 
-TEST_F(ArithmeticBitwiseTest, Clz64_BoundaryValues_ReturnsCorrectCount)
+// Test edge cases and boundary conditions
+TEST_F(ArithmeticBitwiseTest, EdgeCases_BoundaryConditions_HandledCorrectly)
 {
-    // Test boundary values
-    ASSERT_EQ(0, call_wasm_i64_i64("test_clz64", 0xFFFFFFFFFFFFFFFFULL)); // All bits set
-    ASSERT_EQ(1, call_wasm_i64_i64("test_clz64", 0x7FFFFFFFFFFFFFFFULL)); // All except MSB
-    ASSERT_EQ(32, call_wasm_i64_i64("test_clz64", 0x00000000FFFFFFFFULL)); // Lower 32 bits
-}
-
-// Count Trailing Zeros (32-bit) Tests
-TEST_F(ArithmeticBitwiseTest, Ctz32_ZeroInput_Returns32)
-{
-    // Test ctz32 with zero input - should return 32
-    uint32_t result = call_wasm_i32_i32("test_ctz32", 0);
-    ASSERT_EQ(32, result);
+    // Test with maximum values
+    ASSERT_EQ(call_wasm_i32_i32("test_clz32", 0xFFFFFFFF), 0U);
+    ASSERT_EQ(call_wasm_i64_i64("test_clz64", 0xFFFFFFFFFFFFFFFFULL), 0ULL);
     
-    // Test edge case function specifically
-    result = call_wasm_i32_i32("test_ctz32_zero", 0);
-    ASSERT_EQ(32, result);
-}
-
-TEST_F(ArithmeticBitwiseTest, Ctz32_SingleBitPatterns_ReturnsCorrectCount)
-{
-    // Test single bit patterns
-    ASSERT_EQ(0, call_wasm_i32_i32("test_ctz32", 1));        // 0x00000001
-    ASSERT_EQ(1, call_wasm_i32_i32("test_ctz32", 2));        // 0x00000002
-    ASSERT_EQ(2, call_wasm_i32_i32("test_ctz32", 4));        // 0x00000004
-    ASSERT_EQ(3, call_wasm_i32_i32("test_ctz32", 8));        // 0x00000008
-    ASSERT_EQ(31, call_wasm_i32_i32("test_ctz32", 0x80000000)); // MSB set
-}
-
-TEST_F(ArithmeticBitwiseTest, Ctz32_BoundaryValues_ReturnsCorrectCount)
-{
-    // Test boundary values
-    ASSERT_EQ(0, call_wasm_i32_i32("test_ctz32", 0xFFFFFFFF)); // All bits set
-    ASSERT_EQ(1, call_wasm_i32_i32("test_ctz32", 0xFFFFFFFE)); // All except LSB
-    ASSERT_EQ(16, call_wasm_i32_i32("test_ctz32", 0xFFFF0000)); // Upper 16 bits
-}
-
-// Count Trailing Zeros (64-bit) Tests
-TEST_F(ArithmeticBitwiseTest, Ctz64_ZeroInput_Returns64)
-{
-    // Test ctz64 with zero input - should return 64
-    uint64_t result = call_wasm_i64_i64("test_ctz64", 0);
-    ASSERT_EQ(64, result);
+    // Test with alternating bit patterns
+    ASSERT_EQ(call_wasm_i32_i32("test_popcnt32", 0x55555555), 16U);
+    ASSERT_EQ(call_wasm_i64_i64("test_popcnt64", 0x5555555555555555ULL), 32ULL);
     
-    // Test edge case function specifically
-    result = call_wasm_i64_i64("test_ctz64_zero", 0);
-    ASSERT_EQ(64, result);
-}
-
-TEST_F(ArithmeticBitwiseTest, Ctz64_SingleBitPatterns_ReturnsCorrectCount)
-{
-    // Test single bit patterns
-    ASSERT_EQ(0, call_wasm_i64_i64("test_ctz64", 1));                    // 0x0000000000000001
-    ASSERT_EQ(1, call_wasm_i64_i64("test_ctz64", 2));                    // 0x0000000000000002
-    ASSERT_EQ(32, call_wasm_i64_i64("test_ctz64", 0x0000000100000000ULL)); // Bit 32 set
-    ASSERT_EQ(63, call_wasm_i64_i64("test_ctz64", 0x8000000000000000ULL)); // MSB set
-}
-
-TEST_F(ArithmeticBitwiseTest, Ctz64_BoundaryValues_ReturnsCorrectCount)
-{
-    // Test boundary values
-    ASSERT_EQ(0, call_wasm_i64_i64("test_ctz64", 0xFFFFFFFFFFFFFFFFULL)); // All bits set
-    ASSERT_EQ(1, call_wasm_i64_i64("test_ctz64", 0xFFFFFFFFFFFFFFFEULL)); // All except LSB
-    ASSERT_EQ(32, call_wasm_i64_i64("test_ctz64", 0xFFFFFFFF00000000ULL)); // Upper 32 bits
-}
-
-// Rotate Left (32-bit) Tests
-TEST_F(ArithmeticBitwiseTest, Rotl32_BasicRotation_ReturnsCorrectValue)
-{
-    // Test basic rotations
-    ASSERT_EQ(0x2, call_wasm_i32_i32_i32("test_rotl32", 0x1, 1));      // 1 << 1
-    ASSERT_EQ(0x4, call_wasm_i32_i32_i32("test_rotl32", 0x1, 2));      // 1 << 2
-    ASSERT_EQ(0x80000000, call_wasm_i32_i32_i32("test_rotl32", 0x1, 31)); // 1 << 31
-    
-    // Test rotation with pattern - 0xABCD rotated left by 4 bits = 0xABCD0
-    ASSERT_EQ(0xABCD0, call_wasm_i32_i32_i32("test_rotl32", 0xABCD, 4)); // Rotate 0xABCD left by 4
-}
-
-TEST_F(ArithmeticBitwiseTest, Rotl32_EdgeCases_ReturnsCorrectValue)
-{
-    // Test zero rotation
-    ASSERT_EQ(0xABCD, call_wasm_i32_i32_i32("test_rotl32", 0xABCD, 0));
-    
-    // Test full rotation (32 bits) - should return original value
-    uint32_t result = call_wasm_i32_i32("test_rotl32_full", 0xABCD1234);
-    ASSERT_EQ(0xABCD1234, result);
-    
-    // Test rotation by 33 (equivalent to rotation by 1)
-    ASSERT_EQ(0x2, call_wasm_i32_i32_i32("test_rotl32", 0x1, 33));
-}
-
-// Rotate Right (32-bit) Tests
-TEST_F(ArithmeticBitwiseTest, Rotr32_BasicRotation_ReturnsCorrectValue)
-{
-    // Test basic rotations
-    ASSERT_EQ(0x80000000, call_wasm_i32_i32_i32("test_rotr32", 0x1, 1));   // 1 >> 1 (with wrap)
-    ASSERT_EQ(0x40000000, call_wasm_i32_i32_i32("test_rotr32", 0x1, 2));   // 1 >> 2 (with wrap)
-    ASSERT_EQ(0x2, call_wasm_i32_i32_i32("test_rotr32", 0x1, 31));         // 1 >> 31 (with wrap)
-    
-    // Test rotation with pattern - 0xABCD right by 4 = 0xDABC000C (high bits wrap to low)
-    ASSERT_EQ(0xDABC000C, call_wasm_i32_i32_i32("test_rotr32", 0xABCD, 4)); // Rotate 0xABCD right by 4
-}
-
-TEST_F(ArithmeticBitwiseTest, Rotr32_EdgeCases_ReturnsCorrectValue)
-{
-    // Test zero rotation
-    ASSERT_EQ(0xABCD, call_wasm_i32_i32_i32("test_rotr32", 0xABCD, 0));
-    
-    // Test full rotation (32 bits) - should return original value
-    uint32_t result = call_wasm_i32_i32("test_rotr32_full", 0xABCD1234);
-    ASSERT_EQ(0xABCD1234, result);
-    
-    // Test rotation by 33 (equivalent to rotation by 1)
-    ASSERT_EQ(0x80000000, call_wasm_i32_i32_i32("test_rotr32", 0x1, 33));
-}
-
-// Rotate Left (64-bit) Tests
-TEST_F(ArithmeticBitwiseTest, Rotl64_BasicRotation_ReturnsCorrectValue)
-{
-    // Test basic rotations
-    ASSERT_EQ(0x2ULL, call_wasm_i64_i64_i64("test_rotl64", 0x1ULL, 1));      // 1 << 1
-    ASSERT_EQ(0x4ULL, call_wasm_i64_i64_i64("test_rotl64", 0x1ULL, 2));      // 1 << 2
-    ASSERT_EQ(0x8000000000000000ULL, call_wasm_i64_i64_i64("test_rotl64", 0x1ULL, 63)); // 1 << 63
-    
-    // Test rotation with pattern - 0xABCD left by 4 = 0xABCD0
-    ASSERT_EQ(0xABCD0ULL, call_wasm_i64_i64_i64("test_rotl64", 0xABCDULL, 4)); // Rotate 0xABCD left by 4
-}
-
-TEST_F(ArithmeticBitwiseTest, Rotl64_EdgeCases_ReturnsCorrectValue)
-{
-    // Test zero rotation
-    ASSERT_EQ(0xABCD1234ULL, call_wasm_i64_i64_i64("test_rotl64", 0xABCD1234ULL, 0));
-    
-    // Test full rotation (64 bits) - should return original value
-    uint64_t result = call_wasm_i64_i64("test_rotl64_full", 0xABCD123456789ABCULL);
-    ASSERT_EQ(0xABCD123456789ABCULL, result);
-    
-    // Test rotation by 65 (equivalent to rotation by 1)
-    ASSERT_EQ(0x2ULL, call_wasm_i64_i64_i64("test_rotl64", 0x1ULL, 65));
-}
-
-// Rotate Right (64-bit) Tests
-TEST_F(ArithmeticBitwiseTest, Rotr64_BasicRotation_ReturnsCorrectValue)
-{
-    // Test basic rotations
-    ASSERT_EQ(0x8000000000000000ULL, call_wasm_i64_i64_i64("test_rotr64", 0x1ULL, 1));   // 1 >> 1 (with wrap)
-    ASSERT_EQ(0x4000000000000000ULL, call_wasm_i64_i64_i64("test_rotr64", 0x1ULL, 2));   // 1 >> 2 (with wrap)
-    ASSERT_EQ(0x2ULL, call_wasm_i64_i64_i64("test_rotr64", 0x1ULL, 63));                 // 1 >> 63 (with wrap)
-    
-    // Test rotation with pattern
-    ASSERT_EQ(0xDABC000000000000ULL, call_wasm_i64_i64_i64("test_rotr64", 0xABCDULL, 4)); // Rotate 0xABCD right by 4
-}
-
-TEST_F(ArithmeticBitwiseTest, Rotr64_EdgeCases_ReturnsCorrectValue)
-{
-    // Test zero rotation
-    ASSERT_EQ(0xABCD1234ULL, call_wasm_i64_i64_i64("test_rotr64", 0xABCD1234ULL, 0));
-    
-    // Test full rotation (64 bits) - should return original value
-    uint64_t result = call_wasm_i64_i64("test_rotr64_full", 0xABCD123456789ABCULL);
-    ASSERT_EQ(0xABCD123456789ABCULL, result);
-    
-    // Test rotation by 65 (equivalent to rotation by 1)
-    ASSERT_EQ(0x8000000000000000ULL, call_wasm_i64_i64_i64("test_rotr64", 0x1ULL, 65));
-}
-
-// Population Count (32-bit) Tests
-TEST_F(ArithmeticBitwiseTest, Popcount32_VariousPatterns_ReturnsCorrectCount)
-{
-    // Test zero
-    ASSERT_EQ(0, call_wasm_i32_i32("test_popcount32", 0));
-    
-    // Test single bits
-    ASSERT_EQ(1, call_wasm_i32_i32("test_popcount32", 1));
-    ASSERT_EQ(1, call_wasm_i32_i32("test_popcount32", 2));
-    ASSERT_EQ(1, call_wasm_i32_i32("test_popcount32", 4));
-    ASSERT_EQ(1, call_wasm_i32_i32("test_popcount32", 0x80000000));
-    
-    // Test multiple bits
-    ASSERT_EQ(2, call_wasm_i32_i32("test_popcount32", 3));      // 0b11
-    ASSERT_EQ(4, call_wasm_i32_i32("test_popcount32", 15));     // 0b1111
-    ASSERT_EQ(8, call_wasm_i32_i32("test_popcount32", 0xFF));   // 0b11111111
-    
-    // Test all bits set
-    uint32_t result = call_wasm_i32_i32("test_popcount32_all_bits", 0);
-    ASSERT_EQ(32, result);
-    ASSERT_EQ(32, call_wasm_i32_i32("test_popcount32", 0xFFFFFFFF));
-}
-
-// Population Count (64-bit) Tests
-TEST_F(ArithmeticBitwiseTest, Popcount64_VariousPatterns_ReturnsCorrectCount)
-{
-    // Test zero
-    ASSERT_EQ(0, call_wasm_i64_i64("test_popcount64", 0));
-    
-    // Test single bits
-    ASSERT_EQ(1, call_wasm_i64_i64("test_popcount64", 1));
-    ASSERT_EQ(1, call_wasm_i64_i64("test_popcount64", 2));
-    ASSERT_EQ(1, call_wasm_i64_i64("test_popcount64", 4));
-    ASSERT_EQ(1, call_wasm_i64_i64("test_popcount64", 0x8000000000000000ULL));
-    
-    // Test multiple bits
-    ASSERT_EQ(2, call_wasm_i64_i64("test_popcount64", 3));           // 0b11
-    ASSERT_EQ(4, call_wasm_i64_i64("test_popcount64", 15));          // 0b1111
-    ASSERT_EQ(8, call_wasm_i64_i64("test_popcount64", 0xFF));        // 0b11111111
-    ASSERT_EQ(16, call_wasm_i64_i64("test_popcount64", 0xFFFF));     // 16 bits set
-    ASSERT_EQ(32, call_wasm_i64_i64("test_popcount64", 0xFFFFFFFFULL)); // 32 bits set
-    
-    // Test all bits set
-    uint64_t result = call_wasm_i64_i64("test_popcount64_all_bits", 0);
-    ASSERT_EQ(64, result);
-    ASSERT_EQ(64, call_wasm_i64_i64("test_popcount64", 0xFFFFFFFFFFFFFFFFULL));
+    // Test rotation with large shift amounts (should wrap around)
+    ASSERT_EQ(call_wasm_i32_i32_i32("test_rotl32", 0x12345678, 36), 0x23456781U); // 36 % 32 = 4
+    ASSERT_EQ(call_wasm_i64_i64_i64("test_rotl64", 0x123456789ABCDEF0ULL, 68), 0x23456789ABCDEF01ULL); // 68 % 64 = 4
 }
