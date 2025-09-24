@@ -19,13 +19,26 @@ set(RUNTIME_TIMER_ENHANCED_SOURCE
     runtime_timer_enhanced_test.cc
 )
 
+# Memory utility functions test (Step 2)
+set(MEMORY_UTILITY_STEP2_SOURCE
+    shared_utils_add_30_step_2.cc
+)
+
 set(unit_test_sources
     ${RUNTIME_TIMER_ENHANCED_SOURCE}
     ${WAMR_RUNTIME_LIB_SOURCE}
 )
 
+set(memory_util_test_sources
+    ${MEMORY_UTILITY_STEP2_SOURCE}
+    ${WAMR_RUNTIME_LIB_SOURCE}
+)
+
 add_executable(runtime_timer_enhanced_test ${unit_test_sources})
+add_executable(shared_utils_add_30_step_2 ${memory_util_test_sources})
 
 target_link_libraries(runtime_timer_enhanced_test gtest_main)
+target_link_libraries(shared_utils_add_30_step_2 gtest_main)
 
 gtest_discover_tests(runtime_timer_enhanced_test)
+gtest_discover_tests(shared_utils_add_30_step_2)
