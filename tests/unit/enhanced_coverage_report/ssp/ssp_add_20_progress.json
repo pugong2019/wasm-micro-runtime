@@ -1,0 +1,26 @@
+{
+  "plan_metadata": {
+    "plan_id": "ssp_add_20_20250924_120000",
+    "module_name": "ssp",
+    "target_coverage": "36.6%",
+    "total_steps": 3,
+    "current_step": 1,
+    "plan_file": "tests/unit/enhanced_coverage_report/ssp/ssp_add_20_plan.md",
+    "metadata": {
+      "total_functions": 169,
+      "uncovered_functions": 119,
+      "complexity_level": "high",
+      "dependencies": ["wasmtime_ssp.h", "posix.h", "ssp_config.h"],
+      "platform_constraints": ["linux", "file_io_support", "socket_support"],
+      "estimated_duration": "4-6 hours"
+    }
+  },
+  "execution_history": [],
+  "overall_progress": {
+    "completed_steps": 0,
+    "total_steps": 3,
+    "current_coverage": "16.6%",
+    "target_coverage": "36.6%",
+    "estimated_completion": "2025-09-24T18:00:00Z"
+  }
+}
