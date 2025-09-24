@@ -40,3 +40,8 @@ samples/workload/include/**
 !samples/workload/include/.gitkeep
 
 # core/iwasm/libraries/wasi-threads
+# Coverage artifacts - should not be committed
+tests/unit/wamr-lcov/
+tests/unit/wamr-lcov.zip
+tests/unit/*/wasm-apps/*.aot
+tests/unit/*/wasm-apps/test_*.h
