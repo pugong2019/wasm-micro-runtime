@@ -1,0 +1,194 @@
+{
+  "plan_metadata": {
+    "plan_id": "ssp_add_15_20250924_143000",
+    "module_name": "ssp",
+    "target_coverage": "35%",
+    "total_steps": 3,
+    "current_step": 2,
+    "plan_file": "tests/unit/enhanced_coverage_report/ssp/ssp_add_15_plan.md",
+    "metadata": {
+      "total_functions": 169,
+      "uncovered_functions": 30,
+      "complexity_level": "high",
+      "dependencies": ["wasmtime_ssp.h", "posix.h", "bh_platform.h", "blocking_op.h"],
+      "platform_constraints": ["linux", "posix_compliance", "socket_support"],
+      "estimated_duration": "8-10 hours"
+    }
+  },
+  "execution_history": [
+    {
+      "step_number": 1,
+      "status": "completed",
+      "start_time": "2025-01-27T14:30:00Z",
+      "end_time": "2025-01-27T18:15:00Z",
+      "test_cases_generated": 20,
+      "test_cases_passed": 20,
+      "coverage_improvement": "+314 lines targeted",
+      "issues_encountered": [
+        "C++ atomic compatibility resolved",
+        "Missing function declarations fixed",
+        "Platform-aware testing implemented"
+      ],
+      "notes": "All SSP functions tested with platform-aware conditional logic"
+    },
+    {
+      "step_number": 2,
+      "status": "in_progress",
+      "start_time": "2025-09-24T10:00:00Z",
+      "end_time": null,
+      "test_cases_generated": 20,
+      "test_cases_passed": 0,
+      "coverage_improvement": "pending",
+      "issues_encountered": [
+        "Segmentation fault in blocking operations tests",
+        "Type mismatches with WASI structures",
+        "Function signature incompatibilities"
+      ],
+      "notes": "Step 2 builds but crashes at runtime - needs debugging"
+    },
+    {
+      "step_number": 3,
+      "status": "blocked",
+      "start_time": "2025-09-24T10:00:00Z",
+      "end_time": null,
+      "test_cases_generated": 16,
+      "test_cases_passed": 0,
+      "coverage_improvement": "pending",
+      "issues_encountered": [
+        "Multiple compilation errors",
+        "Missing function declarations",
+        "WASI constant definitions not found",
+        "Incomplete struct definitions"
+      ],
+      "notes": "Step 3 has extensive compilation issues requiring significant fixes"
+    }
+  ],
+  "overall_progress": {
+    "completed_steps": 1,
+    "total_steps": 3,
+    "current_coverage": "8.2%",
+    "target_coverage": "43.1%",
+    "estimated_completion": "2025-01-28T20:00:00Z"
+  },
+  "corrected_lcov_analysis": {
+    "functions_removed": [
+      {
+        "function": "fd_determine_type_rights",
+        "reason": "1476 hits (already covered)",
+        "status": "removed_from_plan"
+      },
+      {
+        "function": "fd_object_new",
+        "reason": "1476 hits (already covered)",
+        "status": "removed_from_plan"
+      },
+      {
+        "function": "fd_object_release",
+        "reason": "1476 hits (already covered)",
+        "status": "removed_from_plan"
+      },
+      {
+        "function": "fd_table_insert_existing",
+        "reason": "1476 hits (already covered)",
+        "status": "removed_from_plan"
+      },
+      {
+        "function": "fd_table_grow",
+        "reason": "1476 hits (already covered)",
+        "status": "removed_from_plan"
+      },
+      {
+        "function": "fd_table_attach",
+        "reason": "1404 hits (already covered)",
+        "status": "removed_from_plan"
+      },
+      {
+        "function": "fd_table_init",
+        "reason": "492 hits (already covered)",
+        "status": "removed_from_plan"
+      },
+      {
+        "function": "fd_prestats_init",
+        "reason": "492 hits (already covered)",
+        "status": "removed_from_plan"
+      }
+    ],
+    "functions_verified_uncovered": [
+      {
+        "function": "ns_lookup_list_search",
+        "lcov_hits": 0,
+        "uncovered_lines": 22,
+        "status": "confirmed_uncovered"
+      },
+      {
+        "function": "wasi_clockid_to_clockid",
+        "lcov_hits": 0,
+        "uncovered_lines": 20,
+        "status": "confirmed_uncovered"
+      },
+      {
+        "function": "wasi_addr_to_bh_sockaddr",
+        "lcov_hits": 0,
+        "uncovered_lines": 24,
+        "status": "confirmed_uncovered"
+      },
+      {
+        "function": "bh_sockaddr_to_wasi_addr",
+        "lcov_hits": 0,
+        "uncovered_lines": 27,
+        "status": "confirmed_uncovered"
+      },
+      {
+        "function": "wasi_addr_ip_to_bh_ip_addr_buffer",
+        "lcov_hits": 0,
+        "uncovered_lines": 21,
+        "status": "confirmed_uncovered"
+      },
+      {
+        "function": "fd_prestats_grow",
+        "lcov_hits": 0,
+        "uncovered_lines": 31,
+        "status": "confirmed_uncovered"
+      },
+      {
+        "function": "fd_prestats_insert_locked",
+        "lcov_hits": 0,
+        "uncovered_lines": 18,
+        "status": "confirmed_uncovered"
+      },
+      {
+        "function": "fd_prestats_insert",
+        "lcov_hits": 0,
+        "uncovered_lines": 11,
+        "status": "confirmed_uncovered"
+      },
+      {
+        "function": "fd_prestats_get_entry",
+        "lcov_hits": 0,
+        "uncovered_lines": 15,
+        "status": "confirmed_uncovered"
+      },
+      {
+        "function": "fd_prestats_remove_entry",
+        "lcov_hits": 0,
+        "uncovered_lines": 38,
+        "status": "confirmed_uncovered"
+      },
+      {
+        "function": "fd_table_get_entry",
+        "lcov_hits": 0,
+        "uncovered_lines": 21,
+        "status": "confirmed_uncovered"
+      },
+      {
+        "function": "fd_table_detach",
+        "lcov_hits": 0,
+        "uncovered_lines": 52,
+        "status": "confirmed_uncovered"
+      }
+    ],
+    "total_verified_uncovered_lines": 314,
+    "realistic_coverage_improvement": "19.2%",
+    "adjusted_target": "15%"
+  }
+}
