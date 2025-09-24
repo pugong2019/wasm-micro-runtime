@@ -163,5 +163,31 @@ else()
     add_test(NAME ssp_step_2_test COMMAND ssp_step_2_test)
 endif()
 
-message("-- SSP Enhanced tests: Created Step 1 and Step 2 test executables")
+# SSP Step 3 Test - Socket Operations & Network Functions
+add_executable(ssp_step_3_test ssp_step_3_test.cc ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE})
+
+# Apply same platform and feature configurations to Step 3 test
+if(WAMR_BUILD_TARGET MATCHES "X86_.*")
+    target_compile_definitions(ssp_step_3_test PRIVATE BUILD_TARGET_X86=1)
+elseif(WAMR_BUILD_TARGET MATCHES "AARCH64.*")
+    target_compile_definitions(ssp_step_3_test PRIVATE BUILD_TARGET_AARCH64=1)
+elseif(WAMR_BUILD_TARGET MATCHES "RISCV.*")
+    target_compile_definitions(ssp_step_3_test PRIVATE BUILD_TARGET_RISCV=1)
+endif()
+
+if(WAMR_BUILD_LIBC_WASI EQUAL 1)
+    target_compile_definitions(ssp_step_3_test PRIVATE WASM_ENABLE_LIBC_WASI=1)
+else()
+    target_compile_definitions(ssp_step_3_test PRIVATE WASM_ENABLE_LIBC_WASI=0)
+endif()
+
+target_link_libraries(ssp_step_3_test gtest_main)
+
+if(COMMAND gtest_discover_tests)
+    gtest_discover_tests(ssp_step_3_test)
+else()
+    add_test(NAME ssp_step_3_test COMMAND ssp_step_3_test)
+endif()
+
+message("-- SSP Enhanced tests: Created Step 1, Step 2, and Step 3 test executables")
 message("-- SSP Unified tests: Created single unified test executable")
