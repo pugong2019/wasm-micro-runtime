@@ -12,15 +12,30 @@ include(../../unit_common.cmake)
 set(WAMR_BUILD_THREAD_MGR 1)
 
 # Add thread-mgr enhanced coverage tests (revised naming)
-set(unit_test_sources
+set(unit_test_sources_step1
     thread_mgr_add_25_step_1.cc
     ${WAMR_RUNTIME_LIB_SOURCE}
     ${WAMR_ROOT_DIR}/core/iwasm/libraries/thread-mgr/thread_manager.c
 )
 
-add_executable(thread_mgr_add_25_step_1 ${unit_test_sources})
+set(unit_test_sources_step2
+    thread_mgr_add_25_step_2.cc
+    ${WAMR_RUNTIME_LIB_SOURCE}
+    ${WAMR_ROOT_DIR}/core/iwasm/libraries/thread-mgr/thread_manager.c
+    ${WAMR_ROOT_DIR}/core/iwasm/libraries/lib-pthread/lib_pthread_wrapper.c
+)
+
+add_executable(thread_mgr_add_25_step_1 ${unit_test_sources_step1})
+add_executable(thread_mgr_add_25_step_2 ${unit_test_sources_step2})
 
 target_link_libraries(thread_mgr_add_25_step_1 
+    gtest_main 
+    pthread
+    ${LLVM_AVAILABLE_LIBS}
+    ${UV_A_LIBS}
+)
+
+target_link_libraries(thread_mgr_add_25_step_2 
     gtest_main 
     pthread
     ${LLVM_AVAILABLE_LIBS}
@@ -32,11 +47,24 @@ target_include_directories(thread_mgr_add_25_step_1 PRIVATE
     ${WAMR_ROOT_DIR}/core/iwasm/libraries/thread-mgr
 )
 
+target_include_directories(thread_mgr_add_25_step_2 PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${WAMR_ROOT_DIR}/core/iwasm/libraries/thread-mgr
+)
+
 # Enable thread manager compilation flags
 target_compile_definitions(thread_mgr_add_25_step_1 PRIVATE
     WASM_ENABLE_THREAD_MGR=1
     WASM_ENABLE_INTERP=1
 )
 
-# Add test to CTest
+target_compile_definitions(thread_mgr_add_25_step_2 PRIVATE
+    WASM_ENABLE_THREAD_MGR=1
+    WASM_ENABLE_INTERP=1
+    WASM_ENABLE_LIB_PTHREAD=1
+    WASM_ENABLE_SHARED_MEMORY=1
+)
+
+# Add tests to CTest
 add_test(NAME thread_mgr_add_25_step_1 COMMAND thread_mgr_add_25_step_1)
+add_test(NAME thread_mgr_add_25_step_2 COMMAND thread_mgr_add_25_step_2)
