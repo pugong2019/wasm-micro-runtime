@@ -1,0 +1,19 @@
+## plan-executor_ds 的说明
+This agent ensures systematic, high-quality execution of coverage improvement plans with proper WAT file integration and comprehensive error handling.
+
+在kode中的使用示例：
+### Execute Full Plan:
+```
+@run-agent-plan_executor /path/to/plan.md
+```
+
+### Execute Specific Step:
+```
+@run-agent-plan_executor /path/to/plan.md Step_2
+```
+
+### Example Usage:
+```
+@run-agent-plan_executor tests/unit/aot/aot_coverage_improve_plan.md Step_1
+```
+
