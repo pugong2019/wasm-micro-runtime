@@ -18,6 +18,11 @@ set (WAMR_BUILD_APP_FRAMEWORK 0)
 set (WAMR_BUILD_THREAD_MGR 1)
 set (WAMR_BUILD_AOT 1)
 
+# Set GOOGLETEST_INCLUDED to prevent duplicate fetching when building as part of whole unit test suite
+if(NOT DEFINED GOOGLETEST_INCLUDED)
+    set(GOOGLETEST_INCLUDED 0)
+endif()
+
 include (../unit_common.cmake)
 
 set (LLVM_SRC_ROOT "${WAMR_ROOT_DIR}/core/deps/llvm")
@@ -33,9 +38,13 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 include (${IWASM_DIR}/compilation/iwasm_compl.cmake)
 
-include_directories (${CMAKE_CURRENT_SOURCE_DIR})
+include_directories (${CMAKE_CURRENT_SOURCE_DIR} ${WAMR_ROOT_DIR})
 
 file (GLOB_RECURSE source_all ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
+
+# Filter out all GoogleTest source files since they're already included via gtest-all.cc
+#list(FILTER source_all EXCLUDE REGEX ".*googletest/.*\\.cc$")
+#list(FILTER source_all EXCLUDE REGEX ".*googlemock/.*\\.cc$")
 
 set (UNIT_SOURCE ${source_all})
 
@@ -60,7 +69,7 @@ set (unit_test_sources
 # Now simply link against gtest or gtest_main as needed. Eg
 add_executable (compilation_test ${unit_test_sources})
 
-target_link_libraries (compilation_test ${LLVM_AVAILABLE_LIBS} gtest_main )
+target_link_libraries (compilation_test ${LLVM_AVAILABLE_LIBS} gtest_main)
 
 add_custom_command(TARGET compilation_test POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy
@@ -69,4 +78,23 @@ add_custom_command(TARGET compilation_test POST_BUILD
   COMMENT "Copy main.wasm to the directory: build/compilation."
 )
 
-gtest_discover_tests(compilation_test)
+add_custom_command(TARGET compilation_test POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy
+  ${CMAKE_CURRENT_LIST_DIR}/wasm-apps/simd_conversions_test.wasm
+  ${CMAKE_CURRENT_BINARY_DIR}
+  COMMENT "Copy simd_conversions_test.wasm to the directory: build/compilation."
+)
+
+add_custom_command(TARGET compilation_test POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy
+  ${CMAKE_CURRENT_LIST_DIR}/wasm-apps/simd_load_store_test.wasm
+  ${CMAKE_CURRENT_BINARY_DIR}
+  COMMENT "Copy simd_load_store_test.wasm to the directory: build/compilation."
+)
+
+add_custom_command(TARGET compilation_test POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy
+  ${CMAKE_CURRENT_LIST_DIR}/wasm-apps/*.wasm
+  ${CMAKE_CURRENT_BINARY_DIR}
+  COMMENT "Copy all test wasm files to build directory"
+)
