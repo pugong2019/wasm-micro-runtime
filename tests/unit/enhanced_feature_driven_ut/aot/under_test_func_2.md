@@ -1,0 +1,15 @@
+destroy_import_globals	core/iwasm/aot/aot_loader.c
+destroy_import_memories	core/iwasm/aot/aot_loader.c
+destroy_table_init_data_list	core/iwasm/aot/aot_loader.c
+do_data_relocation	core/iwasm/aot/aot_loader.c
+exchange_uint16	core/iwasm/aot/aot_loader.c
+exchange_uint32	core/iwasm/aot/aot_loader.c
+exchange_uint64	core/iwasm/aot/aot_loader.c
+get_native_symbol_by_name	core/iwasm/aot/aot_loader.c
+load_import_globals	core/iwasm/aot/aot_loader.c
+load_name_section	core/iwasm/aot/aot_loader.c
+load_native_symbol_section	core/iwasm/aot/aot_loader.c
+load_table_init_data_list	core/iwasm/aot/aot_loader.c
+set_error_buf_v	core/iwasm/aot/aot_loader.c
+str2uint32	core/iwasm/aot/aot_loader.c
+str2uint64	core/iwasm/aot/aot_loader.c

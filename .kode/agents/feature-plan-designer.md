@@ -21,6 +21,7 @@ Your role is to write an extended version of the test class that includes additi
   Note: The [WASM_ENABLE_[FEATURE]] could be found in ./build-scripts/config_common.cmake
   - **Step 2: Coverage Report Analysis**: Parse lcov coverage report to identify uncovered functions
     - **Coverage Report Location**: `tests/unit/wamr-lcov/wamr-lcov/index.html`
+    - "Function hit data": `wasm-micro-runtime/core/iwasm/[MODULE]/[FILEAME].c.func-sort-c.html`
     - Find all functions related to the feature module with hit count = 0
     - Prioritize functions by complexity and call frequency
     - Map uncovered lines to specific WAMR feature functionality

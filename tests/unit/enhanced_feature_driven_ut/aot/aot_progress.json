@@ -1,0 +1,78 @@
+{
+  "plan_metadata": {
+    "plan_id": "aot_20241021_function_based",
+    "module_name": "aot",
+    "target_coverage": "75%",
+    "total_steps": 3,
+    "current_step": 1,
+    "plan_file": "tests/unit/enhanced_feature_driven_ut/aot/aot_function_test_plan.md",
+    "metadata": {
+      "total_functions": 24,
+      "public_functions": 21,
+      "static_functions": 3,
+      "complexity_level": "high",
+      "dependencies": ["aot_runtime.h", "wasm_runtime_common.h", "test_helper.h"],
+      "platform_constraints": ["linux", "aot_compilation_enabled"],
+      "estimated_duration": "4-5 hours"
+    }
+  },
+  "execution_history": [],
+  "overall_progress": {
+    "completed_steps": 0,
+    "total_steps": 3,
+    "current_coverage": "TBD",
+    "target_coverage": "75%",
+    "estimated_completion": "TBD"
+  },
+  "function_classification": {
+    "step_1_functions": [
+      "aot_get_memory_with_idx",
+      "aot_enlarge_memory_with_idx", 
+      "aot_memory_init",
+      "aot_lookup_memory",
+      "aot_get_function_instance",
+      "aot_lookup_function_with_idx",
+      "aot_resolve_function",
+      "aot_resolve_function_ex",
+      "aot_resolve_symbols",
+      "cmp_export_func_map"
+    ],
+    "step_2_functions": [
+      "aot_call_indirect",
+      "aot_data_drop",
+      "aot_set_aux_stack",
+      "aot_get_aux_stack",
+      "aot_alloc_tiny_frame",
+      "aot_free_tiny_frame",
+      "aot_frame_update_profile_info",
+      "set_error_buf_v"
+    ],
+    "step_3_functions": [
+      "aot_get_module_inst_mem_consumption",
+      "aot_get_module_mem_consumption",
+      "execute_malloc_function",
+      "execute_free_function",
+      "const_string_node_size_cb",
+      "check_global_init_expr"
+    ]
+  },
+  "test_requirements": {
+    "mock_structures_needed": [
+      "AOTModule",
+      "AOTModuleInstance", 
+      "WASMExecEnv",
+      "AOTMemoryInstance",
+      "AOTFunctionInstance"
+    ],
+    "wasm_apps_needed": [
+      "basic_memory_operations.wat",
+      "function_table_test.wat",
+      "global_init_test.wat"
+    ],
+    "platform_features": [
+      "WASM_ENABLE_AOT",
+      "WASM_ENABLE_BULK_MEMORY",
+      "WASM_ENABLE_MULTI_MEMORY"
+    ]
+  }
+}
