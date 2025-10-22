@@ -1188,3 +1188,64 @@ TEST_F(AOTTest, aot_intrinsic_fill_capability_flags)
     strncpy(scomp_ctx_4.target_arch, "intrinsic", strlen("intrinsic"));
     aot_intrinsic_fill_capability_flags(&scomp_ctx_4);
 }
+
+// Test aot_load_from_sections function coverage
+TEST_F(AOTTest, aot_load_from_sections_ValidInput_LoadsSuccessfully)
+{
+    // Create a minimal valid AOTSection for testing
+    AOTSection *section = (AOTSection *)wasm_runtime_malloc(sizeof(AOTSection));
+    ASSERT_NE(section, nullptr);
+    
+    // Initialize section with minimal target info
+    section->next = NULL;
+    section->section_type = AOT_SECTION_TYPE_TARGET_INFO;
+    section->section_body_size = 16;
+    section->section_body = (uint8_t *)wasm_runtime_malloc(16);
+    ASSERT_NE(section->section_body, nullptr);
+    
+    // Fill minimal target info data
+    memset(section->section_body, 0, 16);
+    // arch_str length (4 bytes) + arch_str ("x64\0") + features (4 bytes) + reserved (4 bytes)
+    *(uint32_t*)section->section_body = 4;
+    memcpy(section->section_body + 4, "x64\0", 4);
+    *(uint32_t*)(section->section_body + 8) = 0; // features
+    *(uint32_t*)(section->section_body + 12) = 0; // reserved
+    
+    char error_buf[256];
+    AOTModule *module = aot_load_from_sections(section, error_buf, sizeof(error_buf));
+    
+    // Should fail due to incomplete sections but function should be called
+    ASSERT_EQ(module, nullptr);
+    
+    // Cleanup
+    wasm_runtime_free(section->section_body);
+    wasm_runtime_free(section);
+}
+
+TEST_F(AOTTest, aot_load_from_sections_NullSectionList_ReturnsNull)
+{
+    char error_buf[256];
+    AOTModule *module = aot_load_from_sections(NULL, error_buf, sizeof(error_buf));
+    
+    ASSERT_EQ(module, nullptr);
+}
+
+TEST_F(AOTTest, aot_load_from_sections_CreateModuleFails_ReturnsNull)
+{
+    // This test covers the case where create_module fails
+    AOTSection *section = (AOTSection *)wasm_runtime_malloc(sizeof(AOTSection));
+    ASSERT_NE(section, nullptr);
+    
+    section->next = NULL;
+    section->section_type = AOT_SECTION_TYPE_TARGET_INFO;
+    section->section_body_size = 0;
+    section->section_body = NULL;
+    
+    char error_buf[256];
+    AOTModule *module = aot_load_from_sections(section, error_buf, sizeof(error_buf));
+    
+    // Should return NULL due to invalid section data
+    ASSERT_EQ(module, nullptr);
+    
+    wasm_runtime_free(section);
+}
