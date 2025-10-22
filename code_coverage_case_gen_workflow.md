@@ -1,204 +1,190 @@
-# WAMR Unit Test Coverage Enhancement Workflow
+# WAMR Unit Test Coverage Enhancement Workflow - Tool
 
-## Comprehensive Workflow for Improving Code Line Coverage in WAMR Modules
+## Overview
+This tool automates the generation of unit test cases to improve code coverage for WAMR modules. It takes uncovered code lines as input and generates comprehensive test cases following WAMR standards.
 
-### Prerequisites
-- WAMR source code repository
-- CMake build system with coverage support
-- lcov/gcov for coverage analysis
-- GTest framework (automatically fetched)
+### Input Requirements
+- **Uncovered Code Lines**: User provides specific line numbers and functions that need coverage
+- **Target Module**: Specify which WAMR module (aot, interpreter, runtime-common, etc.)
+- **Coverage Goal**: Optional target coverage percentage
 
-### Overview
-This workflow systematically improves code coverage by targeting uncovered lines, including functions, branches, and edge cases. It includes iterative optimization to ensure meaningful coverage improvements.
+### Output Deliverables
+- Enhanced test file: `enhanced_gen_[module]_test.cc`
+- Updated CMakeLists.txt (if needed)
+- Coverage verification report
 
 ---
 
-## Step-by-Step Workflow
+## Tool Workflow Steps
 
-### 1. **Get Uncovered Code Lines (Input Analysis)**
-
-#### 1.1 Generate Initial Coverage Report
+### 1. **Input Processing**
 ```bash
-cd /path/to/wasm-micro-runtime/tests/unit
-
-# Build with coverage enabled
-cmake -S . -B build -DCOLLECT_CODE_COVERAGE=1
-cmake --build build
-
-# Run existing tests to establish baseline
-ctest --test-dir build
-
-# Generate comprehensive coverage report
-lcov --capture --directory build --output-file baseline_coverage.info
-lcov --remove baseline_coverage.info "*/test/*" "*/tests/*" --output-file filtered_coverage.info
-genhtml filtered_coverage.info --output-directory baseline_report
-```
-
-#### 1.2 Identify Uncovered Lines
-```bash
-# Extract uncovered lines for target module
-lcov --list filtered_coverage.info | grep "target_module.c"
-
-# Get detailed line coverage for specific file
-lcov --extract filtered_coverage.info "*/target_file.c" --output-file target_baseline.info
-
-# Analyze uncovered lines (DA:line,0 indicates uncovered)
-grep "DA:.*,0$" target_baseline.info > uncovered_lines.txt
-
-# Extract uncovered functions (FNDA:0 indicates uncovered function)
-grep "FNDA:0" target_baseline.info > uncovered_functions.txt
-```
-
-#### 1.3 Prioritize Coverage Targets
-```bash
-# Create prioritized list based on:
-# - Critical error handling paths
-# - Complex conditional branches  
-# - Edge case scenarios
-# - Functions with high cyclomatic complexity
-
-# Example output format:
-# File: core/iwasm/aot/aot_loader.c
+# Expected input format:
+# Module: aot
 # Uncovered Lines: 1234, 1245-1250, 1267, 1289-1295
 # Uncovered Functions: validate_sections, handle_relocation_error
-# Priority: HIGH (error handling), MEDIUM (edge cases), LOW (logging)
+# Priority: HIGH (error handling), MEDIUM (edge cases)
 ```
 
-### 2. **Code Analysis**
+### 2. **Enhanced Test File Generation**
 
-#### 2.1 Analyze Uncovered Code Paths
-```bash
-# Examine uncovered lines in context
-for line in $(cat uncovered_lines.txt | cut -d: -f2 | cut -d, -f1); do
-    echo "=== Line $line ==="
-    sed -n "$((line-2)),$((line+2))p" target_file.c
-done
-```
+#### 2.1 Copy Existing Test Structure
+For existing modules, copy the test fixture header into a new enhanced test file: below is an example for unit/aot
 
-#### 2.2 Identify Code Categories
 ```cpp
-// Categorize uncovered code:
-// 1. ERROR_PATHS: Error handling and validation
-// 2. EDGE_CASES: Boundary conditions and rare scenarios  
-// 3. BRANCHES: Conditional logic paths
-// 4. FUNCTIONS: Complete uncovered functions
-// 5. CLEANUP: Resource cleanup and teardown paths
+// File: tests/unit/[module]/enhanced_gen_[module]_test.cc
 
-// Example analysis:
-// Line 1234: if (sections == NULL) return NULL;     // ERROR_PATH
-// Line 1245: if (section_count > MAX_SECTIONS)      // EDGE_CASE  
-// Line 1267: cleanup_failed_module(module);         // CLEANUP
-// Line 1289: validate_section_integrity(section);   // FUNCTION
-```
+#include <limits.h>
+...
+#include "aot.h"
 
-#### 2.3 Understand Dependencies
-```bash
-# Map function dependencies and call chains
-grep -n "function_name\|variable_name" target_file.c
-grep -rn "struct_name\|typedef.*name" core/iwasm/include/
+#define G_INTRINSIC_COUNT (50u)
+#define CONS(num) ("f##num##.const")
 
-# Identify required test setup:
-# - Data structures needed
-# - Initialization requirements  
-# - Mock dependencies
-# - Resource cleanup needs
-```
+const char *llvm_intrinsic_tmp[G_INTRINSIC_COUNT] = {
+    "llvm.experimental.constrained.fadd.f32",
+   ...
+    "f64.const",
+};
 
-### 3. **Identify Test Module Structure**
+uint64 g_intrinsic_flag[G_INTRINSIC_COUNT] = {
+    AOT_INTRINSIC_FLAG_F32_FADD,     AOT_INTRINSIC_FLAG_F64_FADD,
+    ...
+    AOT_INTRINSIC_FLAG_F32_CONST,    AOT_INTRINSIC_FLAG_F64_CONST,
+};
 
-#### 3.1 Locate/Create Test Module
-```bash
-# Check existing test structure
-ls tests/unit/ | grep -E "(aot|interpreter|runtime|memory)" #or other modules
-
-# For new modules, create structure:
-mkdir -p tests/unit/[module-name]
-cat > tests/unit/[module-name]/CMakeLists.txt << 'EOF'
-# Standard WAMR test module CMakeLists.txt template
-include (${IWASM_DIR}/compilation/iwasm_compl.cmake)
-include (${SHARED_DIR}/utils/shared_utils.cmake)
-
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-parameter")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
-
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
-file (GLOB_RECURSE source_all ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
-
-set (UNIT_SOURCE ${source_all})
-
-add_executable (${module}_test ${UNIT_SOURCE})
-
-target_link_libraries (${module}_test ${LLVM_AVAILABLE_LIBS} ${UV_A_LIBS} vmlib -lm -ldl -lpthread ${lib_ubsan})
-gtest_discover_tests(${module}_test)
-EOF
-```
-# For existing modules, copy structure:
-copy the esisting test code's header test fixture into a new code file named
-enhanced_gen_[module]_test.cc (if not exist before)
-and generate the case into the new file.
-
-#### 3.2 Examine Existing Test Patterns
-```bash
-# Study successful test patterns in current or similar modules
-head -50 tests/unit/aot/aot_test.cc
-head -50 tests/unit/runtime-common/runtime_common_test.cc
-
-# Identify common test utilities and helpers
-grep -r "WAMRRuntimeRAII\|DummyExecEnv\|TestHelper" tests/unit/
-```
-
-### 4. **Create Unit Test Cases**
-
-#### 4.1 Test Case Design Strategy
-```cpp
-// Design tests to target specific uncovered lines:
-
-class ModuleTest : public testing::Test {
-protected:
-    void SetUp() override {
-        RuntimeInitArgs init_args;
+// Enhanced test fixture for coverage improvement
+class EnhancedAOTTest : public testing::Test
+{
+  protected:
+    virtual void SetUp()
+    {
         memset(&init_args, 0, sizeof(RuntimeInitArgs));
-        init_args.mem_alloc_type = Alloc_With_System_Allocator;
-        
-        ASSERT_TRUE(wasm_runtime_full_init(&init_args));
-        setup_test_data();
+
+        init_args.mem_alloc_type = Alloc_With_Pool;
+        init_args.mem_alloc_option.pool.heap_buf = global_heap_buf;
+        init_args.mem_alloc_option.pool.heap_size = sizeof(global_heap_buf);
+
+        ASSERT_EQ(wasm_runtime_full_init(&init_args), true);
     }
-    
-    void TearDown() override {
-        cleanup_test_data();
-        wasm_runtime_destroy();
-    }
-    
-private:
-    void setup_test_data() {
-        // Initialize test data structures
-        // Create mock dependencies
-        // Prepare edge case scenarios
-    }
-    
-    void cleanup_test_data() {
-        // Clean up allocated resources
-        // Reset global state
-    }
-    
-    // Test data members
+
+    virtual void TearDown() { wasm_runtime_destroy(); }
+
+  public:
     char global_heap_buf[512 * 1024];
-    TestDataStructure test_data;
+    RuntimeInitArgs init_args;
+};
+
+// Generated test cases targeting specific uncovered lines...
+```
+
+#### 2.2 Test Target Selection Strategy
+
+##### 2.2.1 **Direct Function Testing for Public APIs**
+For uncovered code lines in public functions, create direct test cases targeting those functions:
+
+```cpp
+// Target: Uncovered lines in public function validate_aot_sections()
+// Lines: 1234-1237 (error handling path)
+TEST_F(EnhancedAOTTest, validate_aot_sections_InvalidSectionType_ReturnsError) {
+    AOTSection invalid_section;
+    invalid_section.section_type = UNKNOWN_SECTION_TYPE;  // Target line 1234
+    
+    bool result = validate_aot_sections(&invalid_section, 1);  // Target line 1235
+    ASSERT_FALSE(result);  // Target line 1236-1237
+}
+```
+
+##### 2.2.2 **Static Function Coverage via Public Callers**
+For uncovered code in static functions, analyze the call chain to find public entry points:
+
+**Step 1: Identify Call Chain**
+```bash
+# Find static function callers using grep
+grep -rn "static_function_name" core/iwasm/aot/*.c
+# Example output:
+# aot_loader.c:1456: static bool validate_target_info(AOTTargetInfo *target_info)
+# aot_loader.c:1623:     if (!validate_target_info(&sections->target_info))
+# aot_loader.c:1620: bool aot_load_from_sections(AOTSection *section_list)
+```
+
+**Step 2: Create Tests via Public Callers**
+```cpp
+// Target: Uncovered lines in static function validate_target_info() 
+// Call chain: aot_load_from_sections() -> validate_target_info()
+TEST_F(EnhancedAOTTest, aot_load_from_sections_InvalidTargetInfo_ReturnsNull) {
+    AOTSection sections;
+    sections.target_info.arch = INVALID_ARCH;        // Forces static function path
+    sections.target_info.abi = INVALID_ABI;          // Target uncovered lines
+    
+    AOTModule *module = aot_load_from_sections(&sections);
+    ASSERT_EQ(nullptr, module);  // Validates error path through static function
+}
+```
+
+**Step 3: Complex Call Chain Analysis**
+```cpp
+// For deeply nested static functions:
+// Call chain: public_api() -> helper1() -> static_function() -> target_lines
+TEST_F(EnhancedAOTTest, public_api_EdgeCase_TriggersDeeplyNestedPath) {
+    // Set up conditions to force execution through call chain
+    setup_edge_case_conditions();
+    
+    // Call public API that eventually reaches static function
+    result_t result = public_api_function(crafted_input);
+    
+    // Verify the deep path was executed
+    ASSERT_EQ(EXPECTED_ERROR_CODE, result);
+    ASSERT_TRUE(verify_static_function_side_effects());
+}
+```
+
+##### 2.2.3 **Module-Specific Templates**
+
+* AOT Module Template
+```cpp
+// Enhanced AOT test cases targeting specific functionality
+class EnhancedAOTTest : public testing::Test {
+    // Copy existing AOT fixture structure
+    // Add enhanced test methods for uncovered lines
 };
 ```
 
-#### 4.2 Target-Specific Test Cases
+* Interpreter Module Template  
 ```cpp
+// Enhanced Interpreter test cases
+class EnhancedInterpreterTest : public testing::Test {
+    // Copy existing interpreter fixture structure
+    // Add enhanced test methods for uncovered lines
+};
+```
+
+* Runtime Common Template
+```cpp
+// Enhanced Runtime Common test cases
+class EnhancedRuntimeCommonTest : public testing::Test {
+    // Copy existing runtime-common fixture structure  
+    // Add enhanced test methods for uncovered lines
+};
+```
+* Other Modules
+same plattern for other modules
+
+
+#### 2.3 Generate Test Cases Based on Code Analysis
+
+```cpp
+// Target uncovered lines with specific test patterns:
+
 // ERROR_PATH coverage: Test NULL/invalid inputs
-TEST_F(ModuleTest, Function_NullInput_ReturnsError) {
+TEST_F(EnhancedAOTTest, Function_NullInput_ReturnsError) {
     // Target: if (input == NULL) return ERROR;
     result_t result = target_function(NULL, valid_param);
     ASSERT_EQ(WASM_RUNTIME_ERROR_NULL_POINTER, result);
 }
 
 // EDGE_CASE coverage: Test boundary conditions  
-TEST_F(ModuleTest, Function_MaxBoundary_HandlesCorrectly) {
+TEST_F(EnhancedAOTTest, Function_MaxBoundary_HandlesCorrectly) {
     // Target: if (count > MAX_COUNT) return ERROR;
     uint32_t max_count = UINT32_MAX;
     result_t result = target_function(valid_input, max_count);
@@ -206,22 +192,15 @@ TEST_F(ModuleTest, Function_MaxBoundary_HandlesCorrectly) {
 }
 
 // BRANCH coverage: Test conditional paths
-TEST_F(ModuleTest, Function_ConditionTrue_ExecutesTruePath) {
+TEST_F(EnhancedAOTTest, Function_ConditionTrue_ExecutesTruePath) {
     // Target: if (condition) { true_path_code; }
     setup_condition_true();
     result_t result = target_function(test_input);
     ASSERT_TRUE(verify_true_path_executed());
 }
 
-TEST_F(ModuleTest, Function_ConditionFalse_ExecutesFalsePath) {
-    // Target: if (condition) { } else { false_path_code; }
-    setup_condition_false();
-    result_t result = target_function(test_input);
-    ASSERT_TRUE(verify_false_path_executed());
-}
-
 // CLEANUP coverage: Test resource cleanup paths
-TEST_F(ModuleTest, Function_FailureScenario_CleansUpResources) {
+TEST_F(EnhancedAOTTest, Function_FailureScenario_CleansUpResources) {
     // Target: cleanup_resources(); return ERROR;
     force_internal_failure();
     result_t result = target_function(test_input);
@@ -230,340 +209,133 @@ TEST_F(ModuleTest, Function_FailureScenario_CleansUpResources) {
 }
 ```
 
-### 5. **Build Configuration (Module-Specific)**
+### 3. **CMake Integration**
 
-#### 5.1 Incremental Build
+#### 3.1 Update CMakeLists.txt (if needed)
+```cmake
+# Add to tests/unit/[module]/CMakeLists.txt if enhanced file could not be included 
+file (GLOB_RECURSE source_all ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
+
+# Ensure enhanced_gen_[module]_test.cc is included
+set (UNIT_SOURCE ${source_all})
+
+add_executable (${module}_test ${UNIT_SOURCE})
+target_link_libraries (${module}_test ${LLVM_AVAILABLE_LIBS} ${UV_A_LIBS} vmlib -lm -ldl -lpthread ${lib_ubsan})
+gtest_discover_tests(${module}_test)
+```
+
+### 4. **Build and Test Execution**
+
+#### 4.1 Incremental Build Process
 ```bash
 cd tests/unit
 
-# Build only the target module to save time
+# Build only the target module
 cmake --build build --target [module]_test
 
-# Verify build success
-echo $? # Should be 0 for success
+# Run enhanced tests only
+./build/[module]/[module]_test --gtest_filter="Enhanced*"
+
+# Verify all tests pass
+echo "Build status: $?"
 ```
 
-#### 5.2 Build Verification
-```bash
-# Check executable exists and links properly
-ls -la build/[module]/[module]_test
-ldd build/[module]/[module]_test # Check dependencies
-
-# Quick smoke test
-./build/[module]/[module]_test --gtest_list_tests
-```
-
-### 6. **Fix Build Errors**
-
-#### 6.1 Common Build Issues
-```bash
-# Missing includes
-grep -n "#include" tests/unit/[module]/[module]_test.cc
-# Add missing: #include "wasm_runtime.h", #include "aot_loader.h"
-
-# Undefined symbols  
-nm build/[module]/[module]_test | grep " U "
-# Check CMakeLists.txt for missing libraries
-
-# Compilation errors
-cmake --build build --target [module]_test 2>&1 | tee build_errors.log
-# Fix syntax, type mismatches, missing declarations
-```
-
-#### 6.2 Build Error Resolution
-```bash
-# Iterative fix approach:
-while ! cmake --build build --target [module]_test; do
-    echo "Build failed, analyzing errors..."
-    # Fix one error at a time
-    # Re-run build
-    # Continue until success
-done
-```
-
-### 7. **Execute Tests (New Cases Only)**
-
-#### 7.1 Targeted Test Execution
-```bash
-# Run only newly added test cases
-./build/[module]/[module]_test --gtest_filter="*TargetFunction*" --gtest_brief=1
-
-# Verify test discovery
-./build/[module]/[module]_test --gtest_list_tests | grep -i target
-```
-
-#### 7.2 Test Execution Verification
-```bash
-# Expected output format:
-# [==========] Running X tests from 1 test suite.
-# [----------] X tests from ModuleTest  
-# [ RUN      ] ModuleTest.Function_Scenario_ExpectedOutcome
-# [       OK ] ModuleTest.Function_Scenario_ExpectedOutcome
-# [==========] X tests from 1 test suite ran.
-# [  PASSED  ] X tests.
-```
-
-### 8. **Fix Runtime Issues**
-
-#### 8.1 Handle Crashes and Segfaults
-```bash
-# Run with debugging
-gdb --args ./build/[module]/[module]_test --gtest_filter="*failing_test*"
-# (gdb) run
-# (gdb) bt  # Get backtrace on crash
-
-# Common crash causes:
-# - Uninitialized pointers: Check SetUp() initialization
-# - Memory corruption: Verify buffer sizes and bounds
-# - Double free: Check TearDown() cleanup logic
-# - Stack overflow: Reduce recursive calls or increase stack
-```
-
-#### 8.2 Fix Failed Test Cases
-```bash
-# Analyze test failures
-./build/[module]/[module]_test --gtest_filter="*failing_test*" 2>&1 | tee test_failures.log
-
-# Common failure patterns:
-# ASSERT_EQ failures: Check expected vs actual values
-# ASSERT_TRUE failures: Verify condition logic
-# Timeout failures: Reduce test complexity or increase timeout
-```
-
-#### 8.3 Iterative Issue Resolution
-```cpp
-// Debug approach for each failing test:
-TEST_F(ModuleTest, Function_Scenario_ExpectedOutcome) {
-    // Add debug output
-    printf("Debug: Input value = %d\n", test_input);
-    
-    // Verify preconditions
-    ASSERT_NE(nullptr, test_input);
-    ASSERT_GT(buffer_size, 0);
-    
-    // Execute with error checking
-    result_t result = target_function(test_input);
-    
-    // Debug actual result
-    printf("Debug: Actual result = %d, Expected = %d\n", result, expected);
-    
-    ASSERT_EQ(expected_result, result);
-}
-```
-
-### 9. **Generate Coverage Report**
-
-#### 9.1 Fresh Coverage Collection
+#### 4.2 Coverage Verification
 ```bash
 # Clear previous coverage data
 find build/[module] -name "*.gcda" -delete
 
-# Run tests to generate fresh coverage
-./build/[module]/[module]_test --gtest_filter="*TargetFunction*"
+# Run enhanced tests to generate coverage
+./build/[module]/[module]_test --gtest_filter="Enhanced*"
 
-# Capture coverage for target module only
-lcov --capture --directory build/[module] --output-file new_coverage.info
-```
+# Generate coverage report
+lcov --capture --directory build/[module] --output-file enhanced_coverage.info
+lcov --extract enhanced_coverage.info "*/target_file.c" --output-file target_coverage.info
 
-#### 9.2 Coverage Analysis
-```bash
-# Extract target file coverage
-lcov --extract new_coverage.info "*/target_file.c" --output-file target_new_coverage.info
-
-# Generate detailed HTML report
-genhtml target_new_coverage.info --output-directory new_coverage_report --show-details
-
-# Compare with baseline
-lcov --diff baseline_coverage.info target_new_coverage.info --output-file coverage_diff.info
-```
-
-### 10. **Verify Coverage Improvement**
-
-#### 10.1 Quantitative Verification
-```bash
-# Check line coverage improvement
-lcov --summary target_new_coverage.info > new_summary.txt
-lcov --summary target_baseline.info > baseline_summary.txt
-
-# Calculate improvement
-echo "Baseline coverage:"
-cat baseline_summary.txt
-echo "New coverage:"  
-cat new_summary.txt
-
-# Verify specific lines are now covered
-grep "DA:.*,[1-9]" target_new_coverage.info | wc -l  # Covered lines
-grep "DA:.*,0$" target_new_coverage.info | wc -l     # Still uncovered
-```
-
-#### 10.2 Qualitative Verification
-```bash
 # Verify target lines are covered
-for line in $(cat uncovered_lines.txt | cut -d: -f2 | cut -d, -f1); do
-    coverage=$(grep "DA:$line," target_new_coverage.info | cut -d, -f2)
-    if [ "$coverage" -gt 0 ]; then
-        echo "✅ Line $line now covered ($coverage executions)"
+for line in $(echo "$uncovered_lines" | tr ',' ' '); do
+    coverage=$(grep "DA:$line," target_coverage.info | cut -d, -f2)
+    if [ "$coverage" -gt 0 ] 2>/dev/null; then
+        echo "✅ Line $line: covered ($coverage executions)"
     else
-        echo "❌ Line $line still uncovered"
+        echo "❌ Line $line: still uncovered"
     fi
 done
 ```
+### 5. **Iterative Optimization & Coverage Enhancement**
 
-### 11. **Iterative Optimization (Max 3 Iterations)**
+#### 5.1 Coverage Analysis & Gap Identification
 
-#### 11.1 Root Cause Analysis for Insufficient Coverage
-```bash
-# If coverage didn't improve, analyze why:
+#### 5.2 Root Cause Analysis for Coverage Gaps
+**Common Coverage Gap Patterns:**
 
-# Check if tests actually execute target code paths
-echo "=== Test Execution Analysis ==="
-gdb --batch --ex run --ex bt --args ./build/[module]/[module]_test --gtest_filter="*target*"
+1. **Error Handling Paths (Priority: HIGH)**
+   ```cpp
+   // Target: if (param == NULL) return ERROR;
+   // Solution: Add NULL parameter test cases
+   TEST_F(EnhancedModuleTest, Function_NullParameter_ReturnsError) {
+       result_t result = target_function(NULL, valid_param2);
+       ASSERT_EQ(WASM_RUNTIME_ERROR_NULL_POINTER, result);
+   }
+   ```
 
-# Verify test data reaches target conditions
-grep -n "if\|switch\|for\|while" target_file.c | head -10
-# Ensure test cases trigger these conditions
-```
+2. **Edge Case Boundaries (Priority: HIGH)**
+   ```cpp
+   // Target: if (size > MAX_SIZE) return ERROR;
+   // Solution: Add boundary condition tests
+   TEST_F(EnhancedModuleTest, Function_ExceedsMaxSize_ReturnsError) {
+       uint32_t oversized = MAX_WASM_MODULE_SIZE + 1;
+       result_t result = target_function(valid_input, oversized);
+       ASSERT_EQ(WASM_RUNTIME_ERROR_OUT_OF_BOUNDS, result);
+   }
+   ```
 
-#### 11.2 Test Optimization Strategies
+3. **Platform-Specific Code Paths (Priority: MEDIUM)**
+   ```cpp
+   // Target: #ifdef PLATFORM_SPECIFIC conditional blocks
+   // Solution: Add conditional compilation tests
+   #if defined(BUILD_TARGET_X86_64) || defined(BUILD_TARGET_AMD_64)
+   TEST_F(EnhancedModuleTest, Function_X86Platform_ExecutesCorrectly) {
+       // Test x86-specific code paths
+   }
+   #endif
+   ```
 
-**Iteration 1: Enhance Test Data**
-```cpp
-// Add more comprehensive test scenarios
-TEST_F(ModuleTest, Function_ComplexScenario_CoversMorePaths) {
-    // Use more realistic test data
-    // Trigger multiple code paths in single test
-    // Add boundary value testing
-}
-```
+4. **Resource Cleanup & Failure Recovery (Priority: HIGH)**
+   ```cpp
+   // Target: cleanup_resources(); goto fail;
+   // Solution: Add failure injection tests
+   TEST_F(EnhancedModuleTest, Function_MemoryAllocationFails_CleansUpCorrectly) {
+       force_memory_allocation_failure();
+       result_t result = target_function(test_input);
+       ASSERT_EQ(WASM_RUNTIME_ERROR_OUT_OF_MEMORY, result);
+       ASSERT_TRUE(verify_no_memory_leaks());
+   }
+   ```
 
-**Iteration 2: Add Missing Edge Cases**  
-```cpp
-// Target specific uncovered branches
-TEST_F(ModuleTest, Function_RareCondition_ExecutesSpecialPath) {
-    // Force rare conditions that normal tests miss
-    // Use mock objects to simulate failure scenarios
-    // Test error recovery paths
-}
-```
+#### 5.3 Iterative Enhancement Process (Max 3 Iterations)
+Iterate to optimize or generate new cases
 
-**Iteration 3: Integration-Style Testing**
-```cpp
-// Use broader integration approach if unit tests insufficient
-TEST_F(ModuleTest, Function_IntegrationScenario_CoversComplexFlow) {
-    // Test with real WASM modules
-    // Use complete execution contexts
-    // Test full workflows that exercise target code
-}
-```
+**Stop Criteria:**
+- Target coverage percentage achieved (≥60% for standard modules)
+- All HIGH priority coverage gaps addressed
+- Diminishing returns (< 2% improvement per iteration)
+- Technical limitations documented for remaining gaps
 
-#### 11.3 Iteration Tracking
-```bash
-# Track progress across iterations
-echo "Iteration 1 - Baseline: $(grep 'lines......:' baseline_summary.txt)"
-echo "Iteration 1 - Result:   $(grep 'lines......:' iteration1_summary.txt)"
-echo "Iteration 2 - Result:   $(grep 'lines......:' iteration2_summary.txt)"  
-echo "Iteration 3 - Result:   $(grep 'lines......:' iteration3_summary.txt)"
 
-# Stop after 3 iterations or when target coverage achieved
-if [ $iteration -eq 3 ] || [ $coverage_improvement -gt $target_threshold ]; then
-    echo "Optimization complete: $coverage_improvement% improvement achieved"
-    exit 0
-fi
-```
+## Quality Standards
 
----
-
-## Success Criteria
-
-### Quantitative Metrics
-- ✅ **Line Coverage**: Target lines show `DA:line,>0` in coverage report
-- ✅ **Function Coverage**: Functions show `FNDA:>0,function_name`  
-- ✅ **Branch Coverage**: Conditional branches covered in both directions
-- ✅ **Improvement**: Measurable increase in coverage percentage
-
-### Qualitative Metrics
-- ✅ **All Tests Pass**: No failing test cases
-- ✅ **No Crashes**: Tests execute without segfaults or core dumps
-- ✅ **Real Functionality**: Tests validate actual WAMR behavior
-- ✅ **Maintainable**: Tests follow WAMR coding standards
-
----
-
-## Key Standards & Best Practices
-
-### Testing Standards
+### Test Case Requirements
 - **Use ASSERT_* not EXPECT_***: For definitive pass/fail validation
 - **Never use GTEST_SKIP()**: Handle unsupported features with early return
-- **Follow naming**: `TEST_F(ModuleTest, Function_Scenario_ExpectedOutcome)`
+- **Follow naming**: `TEST_F(EnhancedModuleTest, Function_Scenario_ExpectedOutcome)`
 - **Resource management**: Proper SetUp/TearDown with RAII patterns
-- **Platform awareness**: Handle platform differences gracefully
+- **Real functionality**: Tests must validate actual WAMR behavior
+- **Meaningful Assertons**: Per generated test case must have meaningful assertions, not allow code like **Assert(true)**
 
 ### Coverage Standards
 - **Target meaningful coverage**: Focus on error paths and edge cases
 - **Avoid coverage gaming**: Don't create tests just to execute code
-- **Iterative improvement**: Use 3-iteration optimization cycle
-- **Document rationale**: Explain why certain lines remain uncovered
-
+- **Document rationale**: Explain why certain lines remain uncovered if applicable
 ---
-
-## Reusable Commands & Scripts
-
-### Quick Coverage Check Script
-```bash
-#!/bin/bash
-# check_line_coverage.sh - Check coverage for specific lines
-function check_line_coverage() {
-    local target_file=$1
-    local module=$2
-    local lines=$3  # Comma-separated list: "123,456,789"
-    
-    cd /path/to/wasm-micro-runtime/tests/unit
-    
-    # Run tests
-    ./build/${module}/${module}_test
-    
-    # Generate coverage
-    lcov --capture --directory build/${module} --output-file temp_coverage.info
-    lcov --extract temp_coverage.info "*/${target_file}" --output-file filtered_coverage.info
-    
-    # Check each line
-    IFS=',' read -ra LINE_ARRAY <<< "$lines"
-    for line in "${LINE_ARRAY[@]}"; do
-        coverage=$(grep "DA:$line," filtered_coverage.info | cut -d, -f2)
-        if [ "$coverage" -gt 0 ] 2>/dev/null; then
-            echo "✅ Line $line: covered ($coverage executions)"
-        else
-            echo "❌ Line $line: not covered"
-        fi
-    done
-}
-
-# Usage: check_line_coverage "aot_loader.c" "aot" "1234,1245,1267"
-```
-
-
-## Module-Specific Considerations
-
-### AOT Module (`core/iwasm/aot/`)
-- **Focus Areas**: Section validation, relocation handling, module loading
-- **Common Uncovered**: Error cleanup paths, edge case validations
-- **Test Strategy**: Use malformed AOT sections, trigger allocation failures
-
-### Interpreter Module (`core/iwasm/interpreter/`)  
-- **Focus Areas**: Instruction execution, stack operations, memory access
-- **Common Uncovered**: Exception handling, stack overflow recovery
-- **Test Strategy**: Use edge case WASM bytecode, trigger runtime errors
-
-### Runtime Common (`core/iwasm/common/`)
-- **Focus Areas**: Module lifecycle, execution environment management  
-- **Common Uncovered**: Resource cleanup, multi-threading edge cases
-- **Test Strategy**: Test concurrent access, resource exhaustion scenarios
-
-### Memory Management (`core/iwasm/common/wasm_memory.c`)
-- **Focus Areas**: Linear memory operations, heap management, bounds checking
-- **Common Uncovered**: Memory growth edge cases, allocation failure paths
-- **Test Strategy**: Test memory limits, fragmentation scenarios, OOM conditions
-
----
-
-This comprehensive workflow ensures systematic improvement of code coverage by targeting specific uncovered lines rather than just functions, with built-in iteration and optimization to achieve meaningful coverage improvements.
+This tool workflow ensures systematic and automated generation of enhanced unit test coverage for any WAMR module, following established patterns and quality standards.
