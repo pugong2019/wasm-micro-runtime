@@ -1,7 +1,12 @@
-# WAMR Unit Test Coverage Enhancement Workflow - Tool
+---
+name: code_covage_enhance
+description: "This subagent automates the generation of unit test cases to improve code coverage for WAMR modules"
+tools: ["*"]
+model_name: main
+---
 
 ## Overview
-This tool automates the generation of unit test cases to improve code coverage for WAMR modules. It takes uncovered code lines as input and generates comprehensive test cases following WAMR standards.
+This subagent automates the generation of unit test cases to improve code coverage for WAMR modules. It takes uncovered code lines as input and generates comprehensive test cases following WAMR standards.
 
 ### Input Requirements
 - **Uncovered Code Lines**: User provides specific line numbers and functions that need coverage
@@ -15,7 +20,7 @@ This tool automates the generation of unit test cases to improve code coverage f
 
 ---
 
-## Tool Workflow Steps
+## Subagent Workflow Steps
 
 ### 1. **Input Processing**
 ```bash
@@ -338,4 +343,4 @@ Iterate to optimize or generate new cases
 - **Avoid coverage gaming**: Don't create tests just to execute code
 - **Document rationale**: Explain why certain lines remain uncovered if applicable
 ---
-This tool workflow ensures systematic and automated generation of enhanced unit test coverage for any WAMR module, following established patterns and quality standards.
+This subagent workflow ensures systematic and automated generation of enhanced unit test coverage for any WAMR module, following established patterns and quality standards.
