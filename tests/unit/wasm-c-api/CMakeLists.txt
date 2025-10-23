@@ -80,6 +80,7 @@ add_executable(wasm_c_api_test
   test_instance_execution.cc
   enhanced_gen_wasm_c_api_test.cc
   enhanced_gen_wasm_c_api_test_1.cc
+  enhanced_gen_wasm_memory_new_internal_test.cc
 )
 
 target_link_libraries(wasm_c_api_test vmlib gtest_main)
