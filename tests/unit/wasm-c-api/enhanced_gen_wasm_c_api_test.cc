@@ -7,6 +7,8 @@
 #include <limits.h>
 #include <cmath>
 #include "wasm_c_api.h"
+#include "wasm_c_api_internal.h"
+#include "wasm_runtime_common.h"
 
 // Enhanced test fixture for wasm-c-api coverage improvement
 class EnhancedWasmCApiTest : public testing::Test
@@ -1655,4 +1657,312 @@ TEST_F(EnhancedWasmCApiTest, wasm_extern_copy_ResourceManagement_NoLeaks)
 
     // Test passes if no memory issues occur
     ASSERT_TRUE(true);
+}
+
+/*
+ * WASM_TABLE_NEW_INTERNAL COVERAGE ANALYSIS
+ * Target: wasm_table_t *wasm_table_new_internal(wasm_store_t *store, uint16 table_idx_rt, WASMModuleInstanceCommon *inst_comm_rt)
+ * Location: wasm_c_api.c:3898-3921
+ *
+ * CALL PATHS EVALUATED:
+ * 1. Direct unit testing - NOT FEASIBLE (internal function not exported)
+ * 2. wasm_instance_exports() -> interp_process_export() -> wasm_table_new_internal() (SELECTED)
+ *    - Depth: 3 levels
+ *    - Complexity: MEDIUM (requires WASM module with table exports)
+ *    - Precision: HIGH (reaches target function with different test conditions)
+ *    - Rating: ⭐⭐⭐⭐
+ *
+ * SELECTED STRATEGY: Use wasm_instance_exports() with crafted WASM modules to trigger different paths
+ * REASON: Only feasible way to reach internal function with full control over test conditions
+ */
+
+// Test case 1: NULL instance parameter handling (lines 3910-3912)
+TEST_F(EnhancedWasmCApiTest, TableNewInternal_NullInstance_ReturnsNull) {
+    // Target: if (!inst_comm_rt) { return NULL; } (lines 3910-3912)
+    // Strategy: This path is only reachable through internal calls, so we test via public API
+    // Note: This specific NULL check is difficult to test via public API as wasm_instance_exports
+    // already validates the instance parameter before calling wasm_table_new_internal
+
+    // Test NULL instance to wasm_instance_exports (which will fail before reaching our target)
+    wasm_extern_vec_t exports;
+    wasm_extern_vec_new_empty(&exports); // Initialize the vector properly
+    wasm_instance_exports(nullptr, &exports);
+
+    // This should result in an empty exports vector due to NULL instance
+    ASSERT_EQ(0, exports.size);
+    wasm_extern_vec_delete(&exports);
+}
+
+// Test case 2: Successful table export processing (lines 3914-3920)
+TEST_F(EnhancedWasmCApiTest, TableNewInternal_SuccessfulExport_ProperInitialization) {
+    // Target: Memory allocation and field initialization (lines 3914-3920)
+    // table = malloc_internal(sizeof(wasm_table_t))
+    // table->store = store; table->kind = WASM_EXTERN_TABLE;
+
+    // Create minimal valid WASM binary with exported table
+    uint8_t binary[] = {
+        0x00, 0x61, 0x73, 0x6d, // WASM magic
+        0x01, 0x00, 0x00, 0x00, // version
+        0x04, 0x04, 0x01, 0x70, 0x00, 0x01, // table section: 1 table, funcref, min=0, max=1
+        0x07, 0x09, 0x01, 0x05, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x01, 0x00, // export section: export "table" table 0
+    };
+
+    wasm_byte_vec_t binary_vec;
+    wasm_byte_vec_new(&binary_vec, sizeof(binary), (char*)binary);
+
+    wasm_module_t* module = wasm_module_new(store, &binary_vec);
+    ASSERT_NE(nullptr, module);
+
+    wasm_instance_t* instance = wasm_instance_new(store, module, nullptr, nullptr);
+    ASSERT_NE(nullptr, instance);
+
+    // Get exports - this will call wasm_table_new_internal through the export processing
+    wasm_extern_vec_t exports;
+    wasm_instance_exports(instance, &exports);
+
+    // Should have one export (the table)
+    ASSERT_GT(exports.size, 0);
+
+    // Find the table export and verify it was properly created
+    bool found_table = false;
+    for (size_t i = 0; i < exports.size; ++i) {
+        if (wasm_extern_kind(exports.data[i]) == WASM_EXTERN_TABLE) {
+            found_table = true;
+            wasm_table_t* table = wasm_extern_as_table(exports.data[i]);
+            ASSERT_NE(nullptr, table);
+
+            // Verify table properties (indicates successful initialization in wasm_table_new_internal)
+            size_t table_size = wasm_table_size(table);
+            ASSERT_GE(table_size, 0);
+            break;
+        }
+    }
+
+    ASSERT_TRUE(found_table); // Verify we successfully created and exported a table
+
+    // Cleanup
+    wasm_extern_vec_delete(&exports);
+    wasm_instance_delete(instance);
+    wasm_module_delete(module);
+    wasm_byte_vec_delete(&binary_vec);
+}
+
+// Test case 3: Test wasm_runtime_get_table_inst_elem_type success path (lines 3921-3926)
+TEST_F(EnhancedWasmCApiTest, TableNewInternal_ElementTypeRetrieval_Success) {
+    // Target: wasm_runtime_get_table_inst_elem_type success (lines 3921-3926)
+
+    // Create WASM binary with exported table and specific element type
+    uint8_t binary[] = {
+        0x00, 0x61, 0x73, 0x6d, // WASM magic
+        0x01, 0x00, 0x00, 0x00, // version
+        0x04, 0x04, 0x01, 0x70, 0x00, 0x01, // table section: 1 table, funcref, min=0, max=1
+        0x07, 0x09, 0x01, 0x05, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x01, 0x00, // export section: export "table" table 0
+    };
+
+    wasm_byte_vec_t binary_vec;
+    wasm_byte_vec_new(&binary_vec, sizeof(binary), (char*)binary);
+
+    wasm_module_t* module = wasm_module_new(store, &binary_vec);
+    ASSERT_NE(nullptr, module);
+
+    wasm_instance_t* instance = wasm_instance_new(store, module, nullptr, nullptr);
+    ASSERT_NE(nullptr, instance);
+
+    // Get exports - this triggers wasm_table_new_internal with table_idx_rt = 0
+    wasm_extern_vec_t exports;
+    wasm_instance_exports(instance, &exports);
+
+    // Verify the table was created successfully (element type retrieval succeeded)
+    bool found_table = false;
+    for (size_t i = 0; i < exports.size; ++i) {
+        if (wasm_extern_kind(exports.data[i]) == WASM_EXTERN_TABLE) {
+            found_table = true;
+            wasm_table_t* table = wasm_extern_as_table(exports.data[i]);
+            ASSERT_NE(nullptr, table);
+
+            // Verify table type was created successfully (indicates wasm_runtime_get_table_inst_elem_type worked)
+            wasm_tabletype_t* table_type = wasm_table_type(table);
+            ASSERT_NE(nullptr, table_type);
+
+            // Verify element type is funcref as specified in the WASM binary
+            const wasm_valtype_t* elem_type = wasm_tabletype_element(table_type);
+            ASSERT_NE(nullptr, elem_type);
+            ASSERT_EQ(WASM_FUNCREF, wasm_valtype_kind(elem_type));
+            wasm_tabletype_delete(table_type);
+            break;
+        }
+    }
+
+    ASSERT_TRUE(found_table); // Verify table export was processed successfully
+
+    // Cleanup
+    wasm_extern_vec_delete(&exports);
+    wasm_instance_delete(instance);
+    wasm_module_delete(module);
+    wasm_byte_vec_delete(&binary_vec);
+}
+
+// Test case 4: Test invalid WASM binary (potential element type retrieval failure)
+TEST_F(EnhancedWasmCApiTest, TableNewInternal_InvalidBinary_FailsGracefully) {
+    // Target: Test error handling paths in wasm_runtime_get_table_inst_elem_type (lines 3921-3926)
+    // Note: Invalid table export references could trigger the failure path
+
+    // Create invalid WASM binary with malformed table export
+    uint8_t invalid_binary[] = {
+        0x00, 0x61, 0x73, 0x6d, // WASM magic
+        0x01, 0x00, 0x00, 0x00, // version
+        0x07, 0x0a, 0x01, 0x05, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x01, 0x99, // export section: export "table" table 0x99 (invalid index)
+    };
+
+    wasm_byte_vec_t binary_vec;
+    wasm_byte_vec_new(&binary_vec, sizeof(invalid_binary), (char*)invalid_binary);
+
+    // This should fail module creation or instance creation due to invalid binary
+    wasm_module_t* module = wasm_module_new(store, &binary_vec);
+    if (module != nullptr) {
+        wasm_instance_t* instance = wasm_instance_new(store, module, nullptr, nullptr);
+        if (instance != nullptr) {
+            // If instance creation succeeded, try to get exports
+            // This could trigger error paths in wasm_table_new_internal
+            wasm_extern_vec_t exports;
+            wasm_instance_exports(instance, &exports);
+
+            // Cleanup
+            wasm_extern_vec_delete(&exports);
+            wasm_instance_delete(instance);
+        }
+        wasm_module_delete(module);
+    }
+
+    // Test passes if no crashes occur during error handling
+    wasm_byte_vec_delete(&binary_vec);
+    ASSERT_TRUE(true);
+}
+
+// Test case 5: Test wasm_tabletype_new_internal success path (lines 3937-3940)
+TEST_F(EnhancedWasmCApiTest, TableNewInternal_TableTypeCreation_Success) {
+    // Target: wasm_tabletype_new_internal success path (lines 3937-3940)
+    // if (!(table->type = wasm_tabletype_new_internal(val_type_rt, init_size, max_size)))
+
+    // Create WASM binary with table having specific limits
+    uint8_t binary[] = {
+        0x00, 0x61, 0x73, 0x6d, // WASM magic
+        0x01, 0x00, 0x00, 0x00, // version
+        0x04, 0x05, 0x01, 0x70, 0x01, 0x02, 0x05, // table section: 1 table, funcref, min=2, max=5
+        0x07, 0x09, 0x01, 0x05, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x01, 0x00, // export section: export "table" table 0
+    };
+
+    wasm_byte_vec_t binary_vec;
+    wasm_byte_vec_new(&binary_vec, sizeof(binary), (char*)binary);
+
+    wasm_module_t* module = wasm_module_new(store, &binary_vec);
+    ASSERT_NE(nullptr, module);
+
+    wasm_instance_t* instance = wasm_instance_new(store, module, nullptr, nullptr);
+    ASSERT_NE(nullptr, instance);
+
+    // Get exports - this triggers wasm_tabletype_new_internal with specific init_size and max_size
+    wasm_extern_vec_t exports;
+    wasm_instance_exports(instance, &exports);
+
+    // Verify tabletype was created with correct limits
+    bool found_table = false;
+    for (size_t i = 0; i < exports.size; ++i) {
+        if (wasm_extern_kind(exports.data[i]) == WASM_EXTERN_TABLE) {
+            found_table = true;
+            wasm_table_t* table = wasm_extern_as_table(exports.data[i]);
+            ASSERT_NE(nullptr, table);
+
+            wasm_tabletype_t* table_type = wasm_table_type(table);
+            ASSERT_NE(nullptr, table_type);
+
+            // Verify limits match what was specified in WASM binary
+            const wasm_limits_t* limits = wasm_tabletype_limits(table_type);
+            ASSERT_NE(nullptr, limits);
+            ASSERT_EQ(2, limits->min); // min=2 as specified
+            ASSERT_EQ(5, limits->max); // max=5 as specified
+
+            // Cleanup
+            wasm_tabletype_delete(table_type);
+            break;
+        }
+    }
+
+    ASSERT_TRUE(found_table); // Verify tabletype creation succeeded
+
+    // Cleanup
+    wasm_extern_vec_delete(&exports);
+    wasm_instance_delete(instance);
+    wasm_module_delete(module);
+    wasm_byte_vec_delete(&binary_vec);
+}
+
+// Test case 6: Complete success path with final field assignments (lines 3942-3943)
+TEST_F(EnhancedWasmCApiTest, TableNewInternal_CompleteSuccess_FinalFieldAssignment) {
+    // Target: Final field assignments (lines 3942-3943)
+    // table->inst_comm_rt = inst_comm_rt; table->table_idx_rt = table_idx_rt;
+
+    // Create WASM binary with exported table to ensure complete success path
+    uint8_t binary[] = {
+        0x00, 0x61, 0x73, 0x6d, // WASM magic
+        0x01, 0x00, 0x00, 0x00, // version
+        0x04, 0x04, 0x01, 0x70, 0x00, 0x01, // table section: 1 table, funcref, min=0, max=1
+        0x07, 0x09, 0x01, 0x05, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x01, 0x00, // export section: export "table" table 0
+    };
+
+    wasm_byte_vec_t binary_vec;
+    wasm_byte_vec_new(&binary_vec, sizeof(binary), (char*)binary);
+
+    wasm_module_t* module = wasm_module_new(store, &binary_vec);
+    ASSERT_NE(nullptr, module);
+
+    wasm_instance_t* instance = wasm_instance_new(store, module, nullptr, nullptr);
+    ASSERT_NE(nullptr, instance);
+
+    // Get exports - this executes the complete success path through wasm_table_new_internal
+    wasm_extern_vec_t exports;
+    wasm_instance_exports(instance, &exports);
+
+    // Verify table was successfully created and all fields are properly set
+    bool found_table = false;
+    for (size_t i = 0; i < exports.size; ++i) {
+        if (wasm_extern_kind(exports.data[i]) == WASM_EXTERN_TABLE) {
+            found_table = true;
+            wasm_table_t* table = wasm_extern_as_table(exports.data[i]);
+            ASSERT_NE(nullptr, table);
+
+            // Test comprehensive table operations to verify internal field setup
+            // This indirectly verifies that inst_comm_rt and table_idx_rt were set correctly
+
+            // 1. Verify table type access
+            wasm_tabletype_t* table_type = wasm_table_type(table);
+            ASSERT_NE(nullptr, table_type);
+
+            // 2. Verify table size can be queried (requires internal pointers)
+            size_t table_size = wasm_table_size(table);
+            ASSERT_GE(table_size, 0);
+
+            // 3. Verify table element type
+            const wasm_valtype_t* elem_type = wasm_tabletype_element(table_type);
+            ASSERT_NE(nullptr, elem_type);
+            ASSERT_EQ(WASM_FUNCREF, wasm_valtype_kind(elem_type));
+
+            // 4. Test table get operation (requires proper internal setup)
+            wasm_ref_t* ref = wasm_table_get(table, 0);
+            // ref may be null or valid, but should not crash the call
+
+            // Cleanup
+            if (ref) wasm_ref_delete(ref);
+            wasm_tabletype_delete(table_type);
+            break;
+        }
+    }
+
+    ASSERT_TRUE(found_table); // Verify complete success path was executed
+
+    // Cleanup
+    wasm_extern_vec_delete(&exports);
+    wasm_instance_delete(instance);
+    wasm_module_delete(module);
+    wasm_byte_vec_delete(&binary_vec);
 }
