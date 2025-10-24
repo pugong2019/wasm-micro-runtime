@@ -1966,3 +1966,112 @@ TEST_F(EnhancedWasmCApiTest, TableNewInternal_CompleteSuccess_FinalFieldAssignme
     wasm_module_delete(module);
     wasm_byte_vec_delete(&binary_vec);
 }
+
+// Test cases for wasm_extern_new_empty function (lines 5360-5369)
+// Target: wasm_extern_t *wasm_extern_new_empty(wasm_store_t *store, wasm_externkind_t extern_kind)
+
+/*
+ * COVERAGE TARGET ANALYSIS
+ * Target Function: wasm_extern_new_empty (lines 5360-5369)
+ * Location: core/iwasm/common/wasm_c_api.c:5360-5369
+ *
+ * FUNCTION STRUCTURE:
+ * 5360: Function entry
+ * 5362: if (extern_kind == WASM_EXTERN_FUNC) condition check
+ * 5363: return wasm_func_as_extern(wasm_func_new_empty(store)); - FUNC path
+ * 5365: if (extern_kind == WASM_EXTERN_GLOBAL) condition check
+ * 5366: return wasm_global_as_extern(wasm_global_new_empty(store)); - GLOBAL path
+ * 5368: LOG_ERROR("Don't support linking table and memory for now"); - Error logging
+ * 5369: return NULL; - Error return
+ *
+ * COVERAGE STRATEGY: Direct public API testing with all extern kind values
+ */
+
+TEST_F(EnhancedWasmCApiTest, ExternNewEmpty_FuncKind_ReturnsValidFuncExtern) {
+    // Target: Lines 5360, 5362, 5363 - WASM_EXTERN_FUNC path
+    wasm_extern_t* func_extern = wasm_extern_new_empty(store, WASM_EXTERN_FUNC);
+
+    // Verify function extern was created successfully
+    ASSERT_NE(nullptr, func_extern);
+
+    // Verify it's actually a function extern
+    ASSERT_EQ(WASM_EXTERN_FUNC, wasm_extern_kind(func_extern));
+
+    // Verify we can convert it back to function
+    wasm_func_t* func = wasm_extern_as_func(func_extern);
+    ASSERT_NE(nullptr, func);
+
+    // Cleanup
+    wasm_extern_delete(func_extern);
+}
+
+TEST_F(EnhancedWasmCApiTest, ExternNewEmpty_GlobalKind_ReturnsValidGlobalExtern) {
+    // Target: Lines 5360, 5365, 5366 - WASM_EXTERN_GLOBAL path
+    wasm_extern_t* global_extern = wasm_extern_new_empty(store, WASM_EXTERN_GLOBAL);
+
+    // Verify global extern was created successfully
+    ASSERT_NE(nullptr, global_extern);
+
+    // Verify it's actually a global extern
+    ASSERT_EQ(WASM_EXTERN_GLOBAL, wasm_extern_kind(global_extern));
+
+    // Verify we can convert it back to global
+    wasm_global_t* global = wasm_extern_as_global(global_extern);
+    ASSERT_NE(nullptr, global);
+
+    // Cleanup
+    wasm_extern_delete(global_extern);
+}
+
+TEST_F(EnhancedWasmCApiTest, ExternNewEmpty_TableKind_ReturnsNullWithError) {
+    // Target: Lines 5360, 5368, 5369 - WASM_EXTERN_TABLE unsupported path
+    wasm_extern_t* table_extern = wasm_extern_new_empty(store, WASM_EXTERN_TABLE);
+
+    // Verify table creation fails as expected (not supported)
+    ASSERT_EQ(nullptr, table_extern);
+
+    // No cleanup needed for NULL pointer
+}
+
+TEST_F(EnhancedWasmCApiTest, ExternNewEmpty_MemoryKind_ReturnsNullWithError) {
+    // Target: Lines 5360, 5368, 5369 - WASM_EXTERN_MEMORY unsupported path
+    wasm_extern_t* memory_extern = wasm_extern_new_empty(store, WASM_EXTERN_MEMORY);
+
+    // Verify memory creation fails as expected (not supported)
+    ASSERT_EQ(nullptr, memory_extern);
+
+    // No cleanup needed for NULL pointer
+}
+
+TEST_F(EnhancedWasmCApiTest, ExternNewEmpty_InvalidKind_ReturnsNullWithError) {
+    // Target: Lines 5360, 5368, 5369 - Invalid extern kind value
+    // Test with out-of-range enum value
+    wasm_externkind_t invalid_kind = static_cast<wasm_externkind_t>(999);
+    wasm_extern_t* invalid_extern = wasm_extern_new_empty(store, invalid_kind);
+
+    // Verify invalid kind creation fails as expected
+    ASSERT_EQ(nullptr, invalid_extern);
+
+    // No cleanup needed for NULL pointer
+}
+
+TEST_F(EnhancedWasmCApiTest, ExternNewEmpty_NullStore_HandledGracefully) {
+    // Test boundary condition: NULL store parameter
+    // This tests the robustness of the underlying wasm_func_new_empty/wasm_global_new_empty functions
+
+    // Test with WASM_EXTERN_FUNC and NULL store
+    wasm_extern_t* func_extern = wasm_extern_new_empty(nullptr, WASM_EXTERN_FUNC);
+    // The behavior depends on implementation - may return NULL or handle gracefully
+    // We verify the call doesn't crash
+    if (func_extern) {
+        wasm_extern_delete(func_extern);
+    }
+
+    // Test with WASM_EXTERN_GLOBAL and NULL store
+    wasm_extern_t* global_extern = wasm_extern_new_empty(nullptr, WASM_EXTERN_GLOBAL);
+    // The behavior depends on implementation - may return NULL or handle gracefully
+    // We verify the call doesn't crash
+    if (global_extern) {
+        wasm_extern_delete(global_extern);
+    }
+}
