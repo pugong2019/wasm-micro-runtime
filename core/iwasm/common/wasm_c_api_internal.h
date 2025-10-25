@@ -243,4 +243,16 @@ wasm_table_new_internal(wasm_store_t *store, uint16 table_idx_rt,
 
 void
 wasm_frame_vec_clone_internal(Vector *src, Vector *out);
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+bool
+rt_val_to_wasm_val(const uint8 *data, uint8 val_type_rt, wasm_val_t *out);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* _WASM_C_API_INTERNAL_H */

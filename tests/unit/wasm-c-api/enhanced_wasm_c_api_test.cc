@@ -361,3 +361,196 @@ TEST_F(EnhancedWasmCApiTestAotExport, aot_process_export_EmptyExportList_Returns
     wasm_module_delete(module);
     wasm_byte_vec_delete(&wasm_bytes);
 }
+
+// =============================================================================
+// NEW TESTS: rt_val_to_wasm_val Coverage (Lines 1633-1672)
+// =============================================================================
+
+// Enhanced test fixture for rt_val_to_wasm_val function coverage
+class EnhancedWasmCApiTestRtValToWasmVal : public testing::Test
+{
+protected:
+    void SetUp() override
+    {
+        // Initialize runtime
+        bool init_result = wasm_runtime_init();
+        ASSERT_TRUE(init_result);
+        runtime_initialized = true;
+    }
+
+    void TearDown() override
+    {
+        if (runtime_initialized) {
+            wasm_runtime_destroy();
+        }
+    }
+
+    bool runtime_initialized = false;
+};
+
+/******
+ * Test Case: rt_val_to_wasm_val_I32Type_ConvertsCorrectly
+ * Source: core/iwasm/common/wasm_c_api.c:1637-1640
+ * Target Lines: 1637-1640 (VALUE_TYPE_I32 case)
+ * Functional Purpose: Validates that rt_val_to_wasm_val correctly converts
+ *                     int32 data to wasm_val_t with WASM_I32 kind and proper value.
+ * Call Path: rt_val_to_wasm_val() <- interp_global_get() / aot_global_get()
+ * Coverage Goal: Exercise VALUE_TYPE_I32 conversion path
+ ******/
+TEST_F(EnhancedWasmCApiTestRtValToWasmVal, rt_val_to_wasm_val_I32Type_ConvertsCorrectly)
+{
+    // Test I32 type conversion - lines 1637-1640
+    int32_t test_value = 0x12345678;
+    uint8_t* data = (uint8_t*)&test_value;
+    wasm_val_t output;
+
+    bool result = rt_val_to_wasm_val(data, VALUE_TYPE_I32, &output);
+
+    ASSERT_TRUE(result);
+    ASSERT_EQ(WASM_I32, output.kind);
+    ASSERT_EQ(test_value, output.of.i32);
+}
+
+/******
+ * Test Case: rt_val_to_wasm_val_F32Type_ConvertsCorrectly
+ * Source: core/iwasm/common/wasm_c_api.c:1641-1644
+ * Target Lines: 1641-1644 (VALUE_TYPE_F32 case)
+ * Functional Purpose: Validates that rt_val_to_wasm_val correctly converts
+ *                     float32 data to wasm_val_t with WASM_F32 kind and proper value.
+ * Call Path: rt_val_to_wasm_val() <- interp_global_get() / aot_global_get()
+ * Coverage Goal: Exercise VALUE_TYPE_F32 conversion path
+ ******/
+TEST_F(EnhancedWasmCApiTestRtValToWasmVal, rt_val_to_wasm_val_F32Type_ConvertsCorrectly)
+{
+    // Test F32 type conversion - lines 1641-1644
+    float test_value = 3.14159f;
+    uint8_t* data = (uint8_t*)&test_value;
+    wasm_val_t output;
+
+    bool result = rt_val_to_wasm_val(data, VALUE_TYPE_F32, &output);
+
+    ASSERT_TRUE(result);
+    ASSERT_EQ(WASM_F32, output.kind);
+    ASSERT_FLOAT_EQ(test_value, output.of.f32);
+}
+
+/******
+ * Test Case: rt_val_to_wasm_val_I64Type_ConvertsCorrectly
+ * Source: core/iwasm/common/wasm_c_api.c:1645-1648
+ * Target Lines: 1645-1648 (VALUE_TYPE_I64 case)
+ * Functional Purpose: Validates that rt_val_to_wasm_val correctly converts
+ *                     int64 data to wasm_val_t with WASM_I64 kind and proper value.
+ * Call Path: rt_val_to_wasm_val() <- interp_global_get() / aot_global_get()
+ * Coverage Goal: Exercise VALUE_TYPE_I64 conversion path
+ ******/
+TEST_F(EnhancedWasmCApiTestRtValToWasmVal, rt_val_to_wasm_val_I64Type_ConvertsCorrectly)
+{
+    // Test I64 type conversion - lines 1645-1648
+    int64_t test_value = 0x123456789ABCDEF0LL;
+    uint8_t* data = (uint8_t*)&test_value;
+    wasm_val_t output;
+
+    bool result = rt_val_to_wasm_val(data, VALUE_TYPE_I64, &output);
+
+    ASSERT_TRUE(result);
+    ASSERT_EQ(WASM_I64, output.kind);
+    ASSERT_EQ(test_value, output.of.i64);
+}
+
+/******
+ * Test Case: rt_val_to_wasm_val_F64Type_ConvertsCorrectly
+ * Source: core/iwasm/common/wasm_c_api.c:1649-1652
+ * Target Lines: 1649-1652 (VALUE_TYPE_F64 case)
+ * Functional Purpose: Validates that rt_val_to_wasm_val correctly converts
+ *                     float64 data to wasm_val_t with WASM_F64 kind and proper value.
+ * Call Path: rt_val_to_wasm_val() <- interp_global_get() / aot_global_get()
+ * Coverage Goal: Exercise VALUE_TYPE_F64 conversion path
+ ******/
+TEST_F(EnhancedWasmCApiTestRtValToWasmVal, rt_val_to_wasm_val_F64Type_ConvertsCorrectly)
+{
+    // Test F64 type conversion - lines 1649-1652
+    double test_value = 2.718281828459045;
+    uint8_t* data = (uint8_t*)&test_value;
+    wasm_val_t output;
+
+    bool result = rt_val_to_wasm_val(data, VALUE_TYPE_F64, &output);
+
+    ASSERT_TRUE(result);
+    ASSERT_EQ(WASM_F64, output.kind);
+    ASSERT_DOUBLE_EQ(test_value, output.of.f64);
+}
+
+#if WASM_ENABLE_GC == 0 && WASM_ENABLE_REF_TYPES != 0
+/******
+ * Test Case: rt_val_to_wasm_val_ExternrefNullRef_SetsNullPtr
+ * Source: core/iwasm/common/wasm_c_api.c:1657-1661
+ * Target Lines: 1657-1661 (VALUE_TYPE_EXTERNREF with NULL_REF)
+ * Functional Purpose: Validates that rt_val_to_wasm_val correctly handles
+ *                     externref data with NULL_REF value by setting out->of.ref to NULL.
+ * Call Path: rt_val_to_wasm_val() <- interp_global_get() / aot_global_get()
+ * Coverage Goal: Exercise VALUE_TYPE_EXTERNREF NULL_REF path
+ ******/
+TEST_F(EnhancedWasmCApiTestRtValToWasmVal, rt_val_to_wasm_val_ExternrefNullRef_SetsNullPtr)
+{
+    // Test EXTERNREF with NULL_REF - lines 1657-1661
+    uint32_t null_ref = NULL_REF;
+    uint8_t* data = (uint8_t*)&null_ref;
+    wasm_val_t output;
+
+    bool result = rt_val_to_wasm_val(data, VALUE_TYPE_EXTERNREF, &output);
+
+    ASSERT_TRUE(result);
+    ASSERT_EQ(WASM_EXTERNREF, output.kind);
+    ASSERT_EQ(nullptr, output.of.ref);
+}
+
+/******
+ * Test Case: rt_val_to_wasm_val_ExternrefValidRef_CallsRef2obj
+ * Source: core/iwasm/common/wasm_c_api.c:1662-1665
+ * Target Lines: 1662-1665 (VALUE_TYPE_EXTERNREF with valid ref)
+ * Functional Purpose: Validates that rt_val_to_wasm_val correctly handles
+ *                     externref data with non-NULL_REF by calling wasm_externref_ref2obj.
+ *                     Note: This test exercises the call but expects failure since no
+ *                     externref setup is done.
+ * Call Path: rt_val_to_wasm_val() <- interp_global_get() / aot_global_get()
+ * Coverage Goal: Exercise VALUE_TYPE_EXTERNREF wasm_externref_ref2obj call path
+ ******/
+TEST_F(EnhancedWasmCApiTestRtValToWasmVal, rt_val_to_wasm_val_ExternrefValidRef_CallsRef2obj)
+{
+    // Test EXTERNREF with valid ref - lines 1662-1665
+    uint32_t valid_ref = 0x12345678; // Non-NULL_REF value
+    uint8_t* data = (uint8_t*)&valid_ref;
+    wasm_val_t output;
+
+    // This should call wasm_externref_ref2obj but likely fail since no externref setup
+    bool result = rt_val_to_wasm_val(data, VALUE_TYPE_EXTERNREF, &output);
+
+    // The function should handle the failure gracefully and return false
+    ASSERT_FALSE(result);
+    ASSERT_EQ(WASM_EXTERNREF, output.kind);
+}
+#endif
+
+/******
+ * Test Case: rt_val_to_wasm_val_UnknownType_LogsWarningAndReturnsFalse
+ * Source: core/iwasm/common/wasm_c_api.c:1668-1671
+ * Target Lines: 1668-1671 (default case with LOG_WARNING and ret = false)
+ * Functional Purpose: Validates that rt_val_to_wasm_val correctly handles
+ *                     unexpected value types by logging a warning and returning false.
+ * Call Path: rt_val_to_wasm_val() <- interp_global_get() / aot_global_get()
+ * Coverage Goal: Exercise default case error handling path
+ ******/
+TEST_F(EnhancedWasmCApiTestRtValToWasmVal, rt_val_to_wasm_val_UnknownType_LogsWarningAndReturnsFalse)
+{
+    // Test unknown/invalid type - lines 1668-1671
+    uint32_t test_value = 0x12345678;
+    uint8_t* data = (uint8_t*)&test_value;
+    wasm_val_t output;
+    uint8_t invalid_type = 0xFF; // Invalid VALUE_TYPE
+
+    bool result = rt_val_to_wasm_val(data, invalid_type, &output);
+
+    // Should return false due to unknown type (line 1670)
+    ASSERT_FALSE(result);
+    // Note: LOG_WARNING is called at line 1669, but we can't easily test log output
+}
