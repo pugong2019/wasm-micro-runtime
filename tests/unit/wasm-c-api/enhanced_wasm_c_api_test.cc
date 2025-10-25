@@ -1089,3 +1089,90 @@ TEST_F(EnhancedWasmCApiRefTest, wasm_ref_delete_ForeignRef_CleansForeignObject)
 
     wasm_store_delete(store);
 }
+
+// New enhanced fixture for wasm_frame_copy testing
+class EnhancedWasmCApiFrameCopyTest : public testing::Test
+{
+protected:
+    void SetUp() override
+    {
+        // Initialize runtime for frame operations
+        bool init_result = wasm_runtime_init();
+        ASSERT_TRUE(init_result);
+        runtime_initialized = true;
+    }
+
+    void TearDown() override
+    {
+        if (runtime_initialized) {
+            wasm_runtime_destroy();
+        }
+    }
+
+    bool runtime_initialized = false;
+};
+
+/******
+ * Test Case: wasm_frame_copy_NullSource_ReturnsNull
+ * Source: core/iwasm/common/wasm_c_api.c:1892-1899
+ * Target Lines: 1894-1896 (null source validation and return)
+ * Functional Purpose: Validates that wasm_frame_copy correctly handles NULL source
+ *                     parameter by returning NULL without attempting any operations.
+ * Call Path: wasm_frame_copy() <- direct API call
+ * Coverage Goal: Exercise NULL parameter validation path
+ ******/
+TEST_F(EnhancedWasmCApiFrameCopyTest, wasm_frame_copy_NullSource_ReturnsNull)
+{
+    // Test NULL source parameter - should return NULL (line 1895)
+    wasm_frame_t* result = wasm_frame_copy(NULL);
+
+    // Validate that NULL source returns NULL result
+    ASSERT_EQ(nullptr, result);
+}
+
+/******
+ * Test Case: wasm_frame_copy_ValidSource_CreatesDeepCopy
+ * Source: core/iwasm/common/wasm_c_api.c:1892-1899
+ * Target Lines: 1898-1899 (wasm_frame_new call with source fields)
+ * Functional Purpose: Validates that wasm_frame_copy correctly creates a deep copy
+ *                     of a valid source frame by calling wasm_frame_new with all
+ *                     source frame fields (instance, module_offset, func_index, func_offset).
+ * Call Path: wasm_frame_copy() -> wasm_frame_new()
+ * Coverage Goal: Exercise successful frame copying path
+ ******/
+TEST_F(EnhancedWasmCApiFrameCopyTest, wasm_frame_copy_ValidSource_CreatesDeepCopy)
+{
+    // Create a mock wasm_instance_t for testing
+    wasm_instance_t* mock_instance = (wasm_instance_t*)wasm_runtime_malloc(sizeof(wasm_instance_t));
+    ASSERT_NE(nullptr, mock_instance);
+
+    // Create source frame with specific test values
+    wasm_frame_t source_frame;
+    source_frame.instance = mock_instance;
+    source_frame.module_offset = 12345;
+    source_frame.func_index = 42;
+    source_frame.func_offset = 6789;
+    source_frame.func_name_wp = nullptr;  // Initialize unused fields for safety
+    source_frame.sp = nullptr;
+    source_frame.frame_ref = nullptr;
+    source_frame.lp = nullptr;
+
+    // Call wasm_frame_copy with valid source (should execute lines 1898-1899)
+    wasm_frame_t* copied_frame = wasm_frame_copy(&source_frame);
+
+    // Validate that copy was created successfully
+    ASSERT_NE(nullptr, copied_frame);
+
+    // Validate that all fields were copied correctly
+    ASSERT_EQ(source_frame.instance, copied_frame->instance);
+    ASSERT_EQ(source_frame.module_offset, copied_frame->module_offset);
+    ASSERT_EQ(source_frame.func_index, copied_frame->func_index);
+    ASSERT_EQ(source_frame.func_offset, copied_frame->func_offset);
+
+    // Validate that copied frame is a different object (deep copy)
+    ASSERT_NE(&source_frame, copied_frame);
+
+    // Clean up
+    wasm_frame_delete(copied_frame);
+    wasm_runtime_free(mock_instance);
+}
