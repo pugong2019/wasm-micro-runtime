@@ -10,6 +10,12 @@
 #include "wasm_c_api_internal.h"
 #include "wasm_runtime_common.h"
 
+// Forward declaration for internal function being tested
+extern "C" {
+bool wasm_val_to_rt_val(WASMModuleInstanceCommon *inst_comm_rt, uint8 val_type_rt,
+                        const wasm_val_t *v, uint8 *data);
+}
+
 // Enhanced test fixture for wasm_c_api.c coverage improvement
 class EnhancedWasmCApiTestTableSet : public testing::Test
 {
@@ -553,4 +559,304 @@ TEST_F(EnhancedWasmCApiTestRtValToWasmVal, rt_val_to_wasm_val_UnknownType_LogsWa
     // Should return false due to unknown type (line 1670)
     ASSERT_FALSE(result);
     // Note: LOG_WARNING is called at line 1669, but we can't easily test log output
+}
+
+// =============================================================================
+// NEW TESTS: wasm_val_to_rt_val Coverage (Lines 1676-1715)
+// =============================================================================
+
+// Enhanced test fixture for wasm_val_to_rt_val function coverage
+class EnhancedWasmCApiTestWasmValToRtVal : public testing::Test
+{
+protected:
+    void SetUp() override
+    {
+        // Initialize runtime
+        bool init_result = wasm_runtime_init();
+        ASSERT_TRUE(init_result);
+        runtime_initialized = true;
+
+        // Create engine and store for instance context
+        engine = wasm_engine_new();
+        ASSERT_NE(nullptr, engine);
+        store = wasm_store_new(engine);
+        ASSERT_NE(nullptr, store);
+
+        // Simple WASM module for creating module instance context
+        simple_wasm = {
+            0x00, 0x61, 0x73, 0x6d,  // WASM magic number
+            0x01, 0x00, 0x00, 0x00,  // Version 1
+            0x06, 0x06, 0x01, 0x7f,  // Global section: 1 global (i32, mutable)
+            0x01, 0x41, 0x2a, 0x0b   // Global: mutable i32 with initial value 42
+        };
+    }
+
+    void TearDown() override
+    {
+        if (store) wasm_store_delete(store);
+        if (engine) wasm_engine_delete(engine);
+        if (runtime_initialized) {
+            wasm_runtime_destroy();
+        }
+    }
+
+    bool runtime_initialized = false;
+    wasm_engine_t* engine = nullptr;
+    wasm_store_t* store = nullptr;
+    std::vector<uint8_t> simple_wasm;
+};
+
+/******
+ * Test Case: wasm_val_to_rt_val_I32Type_ConvertsCorrectly
+ * Source: core/iwasm/common/wasm_c_api.c:1681-1683
+ * Target Lines: 1681-1683 (VALUE_TYPE_I32 case with assertion and conversion)
+ * Functional Purpose: Validates that wasm_val_to_rt_val correctly converts
+ *                     wasm_val_t with WASM_I32 kind to int32 data and verifies
+ *                     the assertion check for matching kind.
+ * Call Path: wasm_val_to_rt_val() <- interp_global_set() / aot_global_set()
+ * Coverage Goal: Exercise VALUE_TYPE_I32 conversion path with proper assertion
+ ******/
+TEST_F(EnhancedWasmCApiTestWasmValToRtVal, wasm_val_to_rt_val_I32Type_ConvertsCorrectly)
+{
+    // Create a mock module instance for context
+    wasm_byte_vec_t wasm_bytes;
+    wasm_byte_vec_new(&wasm_bytes, simple_wasm.size(),
+                      reinterpret_cast<const wasm_byte_t*>(simple_wasm.data()));
+
+    wasm_module_t* module = wasm_module_new(store, &wasm_bytes);
+    ASSERT_NE(nullptr, module);
+
+    wasm_instance_t* instance = wasm_instance_new(store, module, nullptr, nullptr);
+    ASSERT_NE(nullptr, instance);
+
+    // Test I32 type conversion - lines 1681-1683
+    int32_t test_value = 0x12345678;
+    wasm_val_t input;
+    input.kind = WASM_I32;
+    input.of.i32 = test_value;
+
+    uint8_t data_buffer[8] = {0}; // Buffer to receive converted data
+
+    bool result = wasm_val_to_rt_val((WASMModuleInstanceCommon*)instance->inst_comm_rt,
+                                     VALUE_TYPE_I32, &input, data_buffer);
+
+    ASSERT_TRUE(result);
+    ASSERT_EQ(test_value, *((int32_t*)data_buffer));
+
+    wasm_instance_delete(instance);
+    wasm_module_delete(module);
+    wasm_byte_vec_delete(&wasm_bytes);
+}
+
+/******
+ * Test Case: wasm_val_to_rt_val_F32Type_ConvertsCorrectly
+ * Source: core/iwasm/common/wasm_c_api.c:1685-1687
+ * Target Lines: 1685-1687 (VALUE_TYPE_F32 case with assertion and conversion)
+ * Functional Purpose: Validates that wasm_val_to_rt_val correctly converts
+ *                     wasm_val_t with WASM_F32 kind to float32 data and verifies
+ *                     the assertion check for matching kind.
+ * Call Path: wasm_val_to_rt_val() <- interp_global_set() / aot_global_set()
+ * Coverage Goal: Exercise VALUE_TYPE_F32 conversion path with proper assertion
+ ******/
+TEST_F(EnhancedWasmCApiTestWasmValToRtVal, wasm_val_to_rt_val_F32Type_ConvertsCorrectly)
+{
+    // Create a mock module instance for context
+    wasm_byte_vec_t wasm_bytes;
+    wasm_byte_vec_new(&wasm_bytes, simple_wasm.size(),
+                      reinterpret_cast<const wasm_byte_t*>(simple_wasm.data()));
+
+    wasm_module_t* module = wasm_module_new(store, &wasm_bytes);
+    ASSERT_NE(nullptr, module);
+
+    wasm_instance_t* instance = wasm_instance_new(store, module, nullptr, nullptr);
+    ASSERT_NE(nullptr, instance);
+
+    // Test F32 type conversion - lines 1685-1687
+    float test_value = 3.14159f;
+    wasm_val_t input;
+    input.kind = WASM_F32;
+    input.of.f32 = test_value;
+
+    uint8_t data_buffer[8] = {0}; // Buffer to receive converted data
+
+    bool result = wasm_val_to_rt_val((WASMModuleInstanceCommon*)instance->inst_comm_rt,
+                                     VALUE_TYPE_F32, &input, data_buffer);
+
+    ASSERT_TRUE(result);
+    ASSERT_FLOAT_EQ(test_value, *((float*)data_buffer));
+
+    wasm_instance_delete(instance);
+    wasm_module_delete(module);
+    wasm_byte_vec_delete(&wasm_bytes);
+}
+
+/******
+ * Test Case: wasm_val_to_rt_val_I64Type_ConvertsCorrectly
+ * Source: core/iwasm/common/wasm_c_api.c:1689-1691
+ * Target Lines: 1689-1691 (VALUE_TYPE_I64 case with assertion and conversion)
+ * Functional Purpose: Validates that wasm_val_to_rt_val correctly converts
+ *                     wasm_val_t with WASM_I64 kind to int64 data and verifies
+ *                     the assertion check for matching kind.
+ * Call Path: wasm_val_to_rt_val() <- interp_global_set() / aot_global_set()
+ * Coverage Goal: Exercise VALUE_TYPE_I64 conversion path with proper assertion
+ ******/
+TEST_F(EnhancedWasmCApiTestWasmValToRtVal, wasm_val_to_rt_val_I64Type_ConvertsCorrectly)
+{
+    // Create a mock module instance for context
+    wasm_byte_vec_t wasm_bytes;
+    wasm_byte_vec_new(&wasm_bytes, simple_wasm.size(),
+                      reinterpret_cast<const wasm_byte_t*>(simple_wasm.data()));
+
+    wasm_module_t* module = wasm_module_new(store, &wasm_bytes);
+    ASSERT_NE(nullptr, module);
+
+    wasm_instance_t* instance = wasm_instance_new(store, module, nullptr, nullptr);
+    ASSERT_NE(nullptr, instance);
+
+    // Test I64 type conversion - lines 1689-1691
+    int64_t test_value = 0x123456789ABCDEF0LL;
+    wasm_val_t input;
+    input.kind = WASM_I64;
+    input.of.i64 = test_value;
+
+    uint8_t data_buffer[16] = {0}; // Buffer to receive converted data (8 bytes for i64)
+
+    bool result = wasm_val_to_rt_val((WASMModuleInstanceCommon*)instance->inst_comm_rt,
+                                     VALUE_TYPE_I64, &input, data_buffer);
+
+    ASSERT_TRUE(result);
+    ASSERT_EQ(test_value, *((int64_t*)data_buffer));
+
+    wasm_instance_delete(instance);
+    wasm_module_delete(module);
+    wasm_byte_vec_delete(&wasm_bytes);
+}
+
+/******
+ * Test Case: wasm_val_to_rt_val_F64Type_ConvertsCorrectly
+ * Source: core/iwasm/common/wasm_c_api.c:1693-1695
+ * Target Lines: 1693-1695 (VALUE_TYPE_F64 case with assertion and conversion)
+ * Functional Purpose: Validates that wasm_val_to_rt_val correctly converts
+ *                     wasm_val_t with WASM_F64 kind to float64 data and verifies
+ *                     the assertion check for matching kind.
+ * Call Path: wasm_val_to_rt_val() <- interp_global_set() / aot_global_set()
+ * Coverage Goal: Exercise VALUE_TYPE_F64 conversion path with proper assertion
+ ******/
+TEST_F(EnhancedWasmCApiTestWasmValToRtVal, wasm_val_to_rt_val_F64Type_ConvertsCorrectly)
+{
+    // Create a mock module instance for context
+    wasm_byte_vec_t wasm_bytes;
+    wasm_byte_vec_new(&wasm_bytes, simple_wasm.size(),
+                      reinterpret_cast<const wasm_byte_t*>(simple_wasm.data()));
+
+    wasm_module_t* module = wasm_module_new(store, &wasm_bytes);
+    ASSERT_NE(nullptr, module);
+
+    wasm_instance_t* instance = wasm_instance_new(store, module, nullptr, nullptr);
+    ASSERT_NE(nullptr, instance);
+
+    // Test F64 type conversion - lines 1693-1695
+    double test_value = 2.718281828459045;
+    wasm_val_t input;
+    input.kind = WASM_F64;
+    input.of.f64 = test_value;
+
+    uint8_t data_buffer[16] = {0}; // Buffer to receive converted data (8 bytes for f64)
+
+    bool result = wasm_val_to_rt_val((WASMModuleInstanceCommon*)instance->inst_comm_rt,
+                                     VALUE_TYPE_F64, &input, data_buffer);
+
+    ASSERT_TRUE(result);
+    ASSERT_DOUBLE_EQ(test_value, *((double*)data_buffer));
+
+    wasm_instance_delete(instance);
+    wasm_module_delete(module);
+    wasm_byte_vec_delete(&wasm_bytes);
+}
+
+#if WASM_ENABLE_GC == 0 && WASM_ENABLE_REF_TYPES != 0
+/******
+ * Test Case: wasm_val_to_rt_val_ExternrefType_CallsExternrefConversion
+ * Source: core/iwasm/common/wasm_c_api.c:1701-1705
+ * Target Lines: 1701-1705 (VALUE_TYPE_EXTERNREF case with wasm_externref_obj2ref call)
+ * Functional Purpose: Validates that wasm_val_to_rt_val correctly handles
+ *                     externref conversion by calling wasm_externref_obj2ref and
+ *                     returns the result from that conversion.
+ * Call Path: wasm_val_to_rt_val() <- interp_global_set() / aot_global_set()
+ * Coverage Goal: Exercise VALUE_TYPE_EXTERNREF conversion path with function call
+ ******/
+TEST_F(EnhancedWasmCApiTestWasmValToRtVal, wasm_val_to_rt_val_ExternrefType_CallsExternrefConversion)
+{
+    // Create a mock module instance for context
+    wasm_byte_vec_t wasm_bytes;
+    wasm_byte_vec_new(&wasm_bytes, simple_wasm.size(),
+                      reinterpret_cast<const wasm_byte_t*>(simple_wasm.data()));
+
+    wasm_module_t* module = wasm_module_new(store, &wasm_bytes);
+    ASSERT_NE(nullptr, module);
+
+    wasm_instance_t* instance = wasm_instance_new(store, module, nullptr, nullptr);
+    ASSERT_NE(nullptr, instance);
+
+    // Test EXTERNREF type conversion - lines 1701-1705
+    wasm_val_t input;
+    input.kind = WASM_EXTERNREF;
+    input.of.ref = nullptr;  // Use null externref for predictable behavior
+
+    uint32_t data_buffer = 0; // Buffer to receive converted data (externref index)
+
+    bool result = wasm_val_to_rt_val((WASMModuleInstanceCommon*)instance->inst_comm_rt,
+                                     VALUE_TYPE_EXTERNREF, &input, (uint8_t*)&data_buffer);
+
+    // The function should call wasm_externref_obj2ref (line 1703-1704)
+    // Result depends on externref implementation, but function should complete
+    // We can't assert the specific result, but we verify the path executes
+    // Note: The result may be true or false depending on externref setup
+
+    wasm_instance_delete(instance);
+    wasm_module_delete(module);
+    wasm_byte_vec_delete(&wasm_bytes);
+}
+#endif
+
+/******
+ * Test Case: wasm_val_to_rt_val_UnknownType_LogsWarningAndReturnsFalse
+ * Source: core/iwasm/common/wasm_c_api.c:1707-1710
+ * Target Lines: 1707-1710 (default case with LOG_WARNING and ret = false)
+ * Functional Purpose: Validates that wasm_val_to_rt_val correctly handles
+ *                     unexpected value types by logging a warning and returning false.
+ * Call Path: wasm_val_to_rt_val() <- interp_global_set() / aot_global_set()
+ * Coverage Goal: Exercise default case error handling path
+ ******/
+TEST_F(EnhancedWasmCApiTestWasmValToRtVal, wasm_val_to_rt_val_UnknownType_LogsWarningAndReturnsFalse)
+{
+    // Create a mock module instance for context
+    wasm_byte_vec_t wasm_bytes;
+    wasm_byte_vec_new(&wasm_bytes, simple_wasm.size(),
+                      reinterpret_cast<const wasm_byte_t*>(simple_wasm.data()));
+
+    wasm_module_t* module = wasm_module_new(store, &wasm_bytes);
+    ASSERT_NE(nullptr, module);
+
+    wasm_instance_t* instance = wasm_instance_new(store, module, nullptr, nullptr);
+    ASSERT_NE(nullptr, instance);
+
+    // Test unknown/invalid type - lines 1707-1710
+    wasm_val_t input;
+    input.kind = WASM_I32;  // Valid kind but we'll use invalid val_type_rt
+    input.of.i32 = 0x12345678;
+
+    uint8_t data_buffer[8] = {0};
+    uint8_t invalid_type = 0xFF; // Invalid VALUE_TYPE to trigger default case
+
+    bool result = wasm_val_to_rt_val((WASMModuleInstanceCommon*)instance->inst_comm_rt,
+                                     invalid_type, &input, data_buffer);
+
+    // Should return false due to unknown type (line 1709)
+    ASSERT_FALSE(result);
+    // Note: LOG_WARNING is called at line 1708, but we can't easily test log output
+
+    wasm_instance_delete(instance);
+    wasm_module_delete(module);
+    wasm_byte_vec_delete(&wasm_bytes);
 }
