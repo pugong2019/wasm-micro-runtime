@@ -11,6 +11,10 @@ set(WAMR_BUILD_LIBC_WASI 0)
 set(WAMR_BUILD_APP_FRAMEWORK 0)
 set(WAMR_BUILD_REF_TYPES 1)
 
+# Enable memory profiling for test coverage
+add_definitions(-DWASM_ENABLE_MEMORY_PROFILING=1)
+add_definitions(-DWASM_ENABLE_MEMORY_TRACING=1)
+
 include(../unit_common.cmake)
 
 set(LLVM_SRC_ROOT "${WAMR_ROOT_DIR}/core/deps/llvm")
