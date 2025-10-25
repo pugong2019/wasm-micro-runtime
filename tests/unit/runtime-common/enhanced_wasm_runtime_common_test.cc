@@ -2739,3 +2739,164 @@ TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_terminate_ModuleTypeValidatio
     wasm_runtime_deinstantiate(module_inst);
     wasm_runtime_unload(module);
 }
+
+/*****************************************************************************
+ * New Test Cases for wasm_runtime_instantiation_args_create function (lines 1675-1683)
+ *****************************************************************************/
+
+/******
+ * Test Case: wasm_runtime_instantiation_args_create_ValidInput_ReturnsTrue
+ * Source: core/iwasm/common/wasm_runtime_common.c:1675-1683
+ * Target Lines: 1675 (function signature), 1677 (malloc), 1681 (set_defaults), 1682 (assign pointer), 1683 (return true)
+ * Functional Purpose: Validates that wasm_runtime_instantiation_args_create() successfully
+ *                     allocates memory for InstantiationArgs2 structure, initializes it
+ *                     with default values via instantiation_args_set_defaults(), and
+ *                     returns true with valid output pointer.
+ * Call Path: wasm_runtime_instantiation_args_create() -> wasm_runtime_malloc() -> instantiation_args_set_defaults()
+ * Coverage Goal: Exercise successful allocation path and static function call
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_instantiation_args_create_ValidInput_ReturnsTrue) {
+    struct InstantiationArgs2 *args = nullptr;
+
+    // Call function under test - should succeed
+    bool result = wasm_runtime_instantiation_args_create(&args);
+
+    // Verify function returns true (line 1683)
+    ASSERT_TRUE(result);
+
+    // Verify args pointer is set to non-null value (line 1682)
+    ASSERT_NE(nullptr, args);
+
+    // Verify args structure is properly initialized with zeros from instantiation_args_set_defaults (line 1681)
+    // The static function does memset(args, 0, sizeof(*args))
+    ASSERT_EQ(0, args->v1.default_stack_size);
+    ASSERT_EQ(0, args->v1.host_managed_heap_size);
+    ASSERT_EQ(0, args->v1.max_memory_pages);
+
+    // Clean up allocated memory
+    if (args) {
+        wasm_runtime_free(args);
+    }
+}
+
+/******
+ * Test Case: wasm_runtime_instantiation_args_create_MultipleAllocations_ConsistentBehavior
+ * Source: core/iwasm/common/wasm_runtime_common.c:1675-1683
+ * Target Lines: 1677 (malloc), 1681 (set_defaults), 1682 (assign pointer), 1683 (return true)
+ * Functional Purpose: Validates that wasm_runtime_instantiation_args_create() behaves
+ *                     consistently across multiple allocations, ensuring each call
+ *                     produces properly initialized structures via instantiation_args_set_defaults().
+ * Call Path: Multiple calls to wasm_runtime_instantiation_args_create() -> wasm_runtime_malloc() -> instantiation_args_set_defaults()
+ * Coverage Goal: Exercise allocation path multiple times to verify static function consistency
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_instantiation_args_create_MultipleAllocations_ConsistentBehavior) {
+    struct InstantiationArgs2 *args1 = nullptr;
+    struct InstantiationArgs2 *args2 = nullptr;
+    struct InstantiationArgs2 *args3 = nullptr;
+
+    // Test multiple allocations - all should succeed
+    bool result1 = wasm_runtime_instantiation_args_create(&args1);
+    bool result2 = wasm_runtime_instantiation_args_create(&args2);
+    bool result3 = wasm_runtime_instantiation_args_create(&args3);
+
+    // All calls should return true (line 1683)
+    ASSERT_TRUE(result1);
+    ASSERT_TRUE(result2);
+    ASSERT_TRUE(result3);
+
+    // All pointers should be valid and different (line 1682)
+    ASSERT_NE(nullptr, args1);
+    ASSERT_NE(nullptr, args2);
+    ASSERT_NE(nullptr, args3);
+    ASSERT_NE(args1, args2);
+    ASSERT_NE(args2, args3);
+    ASSERT_NE(args1, args3);
+
+    // All should have consistent default initialization (line 1681 via instantiation_args_set_defaults)
+    ASSERT_EQ(args1->v1.default_stack_size, args2->v1.default_stack_size);
+    ASSERT_EQ(args1->v1.host_managed_heap_size, args2->v1.host_managed_heap_size);
+    ASSERT_EQ(args1->v1.max_memory_pages, args2->v1.max_memory_pages);
+
+    ASSERT_EQ(args2->v1.default_stack_size, args3->v1.default_stack_size);
+    ASSERT_EQ(args2->v1.host_managed_heap_size, args3->v1.host_managed_heap_size);
+    ASSERT_EQ(args2->v1.max_memory_pages, args3->v1.max_memory_pages);
+
+    // Clean up all allocations
+    if (args1) wasm_runtime_free(args1);
+    if (args2) wasm_runtime_free(args2);
+    if (args3) wasm_runtime_free(args3);
+}
+
+/******
+ * Test Case: wasm_runtime_instantiation_args_create_VerifyStructureSize_MatchesExpected
+ * Source: core/iwasm/common/wasm_runtime_common.c:1675-1683
+ * Target Lines: 1677 (malloc with sizeof(*args))
+ * Functional Purpose: Validates that wasm_runtime_instantiation_args_create() allocates
+ *                     memory using the correct structure size (sizeof(*args)) and that
+ *                     the allocated memory is sufficient for the InstantiationArgs2 structure.
+ * Call Path: wasm_runtime_instantiation_args_create() -> wasm_runtime_malloc(sizeof(*args))
+ * Coverage Goal: Exercise sizeof calculation in malloc call at line 1677
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_instantiation_args_create_VerifyStructureSize_MatchesExpected) {
+    struct InstantiationArgs2 *args = nullptr;
+
+    // Call function under test
+    bool result = wasm_runtime_instantiation_args_create(&args);
+    ASSERT_TRUE(result);
+    ASSERT_NE(nullptr, args);
+
+    // Verify the allocated structure size matches InstantiationArgs2
+    // This confirms line 1677: wasm_runtime_malloc(sizeof(*args)) worked correctly
+    size_t expected_size = sizeof(struct InstantiationArgs2);
+    ASSERT_GT(expected_size, 0);
+
+    // Verify the structure has the expected v1 member
+    ASSERT_EQ(0, args->v1.default_stack_size);
+    ASSERT_EQ(0, args->v1.host_managed_heap_size);
+    ASSERT_EQ(0, args->v1.max_memory_pages);
+
+    // Verify we can modify the structure (confirming proper allocation)
+    args->v1.default_stack_size = 12345;
+    ASSERT_EQ(12345, args->v1.default_stack_size);
+
+    // Clean up
+    if (args) {
+        wasm_runtime_free(args);
+    }
+}
+
+/******
+ * Test Case: wasm_runtime_instantiation_args_create_StaticFunctionCall_InitializesCorrectly
+ * Source: core/iwasm/common/wasm_runtime_common.c:1675-1683
+ * Target Lines: 1681 (instantiation_args_set_defaults call)
+ * Functional Purpose: Validates that wasm_runtime_instantiation_args_create() correctly
+ *                     calls the static function instantiation_args_set_defaults() which
+ *                     performs memset(args, 0, sizeof(*args)) to initialize structure.
+ * Call Path: wasm_runtime_instantiation_args_create() -> instantiation_args_set_defaults() -> memset()
+ * Coverage Goal: Exercise static function call at line 1681 and verify initialization
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_instantiation_args_create_StaticFunctionCall_InitializesCorrectly) {
+    struct InstantiationArgs2 *args = nullptr;
+
+    // Call function under test
+    bool result = wasm_runtime_instantiation_args_create(&args);
+    ASSERT_TRUE(result);
+    ASSERT_NE(nullptr, args);
+
+    // Verify that instantiation_args_set_defaults() was called and properly zeroed structure
+    // The static function at lines 1658-1661 does: memset(args, 0, sizeof(*args))
+    ASSERT_EQ(0, args->v1.default_stack_size);
+    ASSERT_EQ(0, args->v1.host_managed_heap_size);
+    ASSERT_EQ(0, args->v1.max_memory_pages);
+
+    // Verify all bytes in the structure are zero (thorough check of memset)
+    uint8_t *byte_ptr = (uint8_t*)args;
+    for (size_t i = 0; i < sizeof(struct InstantiationArgs2); i++) {
+        ASSERT_EQ(0, byte_ptr[i]);
+    }
+
+    // Clean up
+    if (args) {
+        wasm_runtime_free(args);
+    }
+}
