@@ -49,10 +49,10 @@ Upon receiving any coverage enhancement request, the subagent MUST instantiate t
 
 ### Phase 4: Git Repository Integration
 - [ ] 4.1 Add proper files to repository (no temporary or documentation files)
-- [ ] 4.2 Create standardized commit message following template
+- [ ] 4.2 Create standardized commit message using EXACT template format (no additional content)
 
 ### Phase 5: Final Documentation and Summary
-- [ ] 5.1 Generate comprehensive coverage enhancement report
+- [ ] 5.1 Generate minimal coverage enhancement report using EXACT template format (no additional content)
 ```
 
 ### TODO Update Protocol (Mandatory Compliance)
@@ -76,6 +76,9 @@ After EVERY task completion, the subagent MUST:
 9. **Naming Convention Compliance**: MUST follow `TEST_F(Enhanced[SourceFileName]Test, Function_Scenario_ExpectedOutcome)` pattern
 10. **Resource Management**: MUST implement proper SetUp/TearDown with RAII patterns
 11. **Documentation Standards**: MUST include function comments with source location and target line numbers for every test case
+12. **Report Template Compliance**: MUST use EXACT report template without additional sections or content
+13. **Commit Message Compliance**: MUST use EXACT commit message template without additional content or modifications
+14. **Operation Status Validation**: MUST use ASSERT statements to check status of operations (e.g., ASSERT_NE(nullptr, module) after wasm_runtime_load)
 
 ### ABSOLUTE PROHIBITIONS (Zero Tolerance)
 1. **Workflow Violations**: Starting work without creating TODO list
@@ -84,6 +87,9 @@ After EVERY task completion, the subagent MUST:
 4. **Invalid Test Constructs**: Using GTEST_SKIP(), placeholder assertions, or non-substantive validations
 5. **Location Violations**: Building tests outside tests/unit/ directory
 6. **Process Shortcuts**: Skipping iterative coverage improvement cycles
+7. **Report Template Violations**: Adding content beyond the specified template format
+8. **Commit Message Violations**: Adding content beyond the specified commit message template
+9. **Unchecked Operation Status**: Using if conditions without ASSERT validation for operation results
 
 ## Input Requirements & Processing
 
@@ -250,7 +256,8 @@ public:
 Modify the module's CMakeLists.txt ONLY if enhanced file is not automatically included.
 
 #### Task 2.2: Test Case Code Generation
-**Code Generation Policy**:  
+
+**Code Generation Policy**:
 MUST add function block comments with source code location, target lines, and functional purpose.
 ```cpp
 /******
@@ -264,6 +271,32 @@ MUST add function block comments with source code location, target lines, and fu
  * Coverage Goal: Exercise error handling path for unsupported architecture types
  ******/
 ```
+
+**CRITICAL REQUIREMENT: Operation Status Validation**
+For all WAMR operations that return status or objects, MUST use ASSERT statements to validate results before using in if conditions:
+
+**REQUIRED Pattern:**
+```cpp
+// CORRECT: Always ASSERT the operation result first
+wasm_module_t module = wasm_runtime_load(simple_wasm, sizeof(simple_wasm), error_buf, sizeof(error_buf));
+ASSERT_NE(nullptr, module);  // MANDATORY ASSERTION
+
+// CORRECT: For boolean operations
+bool result = wasm_runtime_init();
+ASSERT_TRUE(result);  // MANDATORY ASSERTION - no if check needed afterwards
+
+// Continue with test logic directly since ASSERT guarantees result is true
+```
+
+**PROHIBITED Pattern:**
+```cpp
+// WRONG: Direct if check without ASSERT
+wasm_module_t module = wasm_runtime_load(simple_wasm, sizeof(simple_wasm), error_buf, sizeof(error_buf));
+if (module) {  // VIOLATION - Missing ASSERT validation
+    // This violates the operation status validation rule
+}
+```
+
 
 #### Task 2.3: Build Validation Protocol
 
@@ -318,6 +351,16 @@ git add tests/unit/[module]/enhanced_[source_file_name]_test.cc
 ```
 
 **Step 2: Standardized Commit Message Template**
+
+**CRITICAL REQUIREMENT: EXACT COMMIT MESSAGE FORMAT**
+
+**MANDATORY COMPLIANCE RULES:**
+1. **EXACT TEMPLATE MATCH**: Use the template below EXACTLY as specified - no additions, modifications, or extra lines
+2. **PROHIBITED CONTENT**: Do NOT add any additional details, explanations, or descriptive content
+3. **CONTENT RESTRICTION**: Only include the specified template format - nothing more
+4. **FORMATTING REQUIREMENT**: Follow the exact structure and spacing shown below
+
+**COMMIT MESSAGE TEMPLATE (USE EXACTLY AS SHOWN):**
 ```bash
 [module] Enhanced unit tests - XX% coverage
 
@@ -333,19 +376,38 @@ Coverage Enhancement Details:
 - Build Status: ✅ All tests pass
 - Quality: ✅ Follows WAMR testing standards
 ```
+
+**ENFORCEMENT POLICY:**
+- Commit messages that include content beyond this template are STRICTLY PROHIBITED
+- Any additional explanatory or descriptive content is STRICTLY PROHIBITED
+- Focus on the exact template format only - no extra content allowed
 ### Phase 5: Final Documentation and Summary
+
+**CRITICAL REQUIREMENT: STRICT TEMPLATE ADHERENCE**
+
 Output summary to an `enhanced_[source_file_name]_test_report.md` file. If the file does not exist, generate it in the same directory as the generated test code. If it exists, append the new report to the existing file.
 
-Final Report Summary Template:
+**MANDATORY COMPLIANCE RULES:**
+1. **EXACT TEMPLATE MATCH**: Use the template below EXACTLY as specified - no additions, modifications, or extra sections
+2. **PROHIBITED CONTENT**: Do NOT add any of the following sections:
+   - "Test Strategy Implemented"
+   - "Technical Implementation Details"
+   - "Function Coverage Analysis"
+   - "Code Quality Assurance"
+   - "Recommendations for Future Enhancement"
+   - Any other descriptive or explanatory sections
+3. **CONTENT RESTRICTION**: Only include the specified template sections - nothing more
+4. **FORMATTING REQUIREMENT**: Follow the exact markdown structure and spacing shown below
+
+**FINAL REPORT TEMPLATE (USE EXACTLY AS SHOWN):**
 ```markdown
 # WAMR Coverage Enhancement Report
 
-## Module: [module_name]
-## File Name [source_file_name]
-## Function Name [functinon_tested]
-## Date: [completion_date]
-
-### Coverage Metrics
+### Coverage Metrics For [module_name]-source_file_name
+- **Module**: [module_name]
+- **File Name**: [source_file_name]
+- **Function Name**: [function_tested]
+- **Lines Location**: xxx to xxx
 - **Baseline Coverage**: X% (Y lines covered / Z total lines)
 - **Final Coverage**: A% (B lines covered / Z total lines)
 - **Total Enhanced Tests**: N test cases
@@ -361,6 +423,12 @@ Final Report Summary Template:
 - **Categorization**: Platform-specific / Critical errors / Integration-dependent
 ```
 
+**ENFORCEMENT POLICY:**
+- Reports that include content beyond this template are STRICTLY PROHIBITED
+- Any descriptive, implementation, or strategy sections are STRICTLY PROHIBITED
+- Focus on metrics and facts only - no explanatory content allowed
+
+
 ## SUCCESS CRITERIA & QUALITY ASSURANCE
 
 ### Completion Requirements: All 5 Phases Must Be Successfully Executed
@@ -370,12 +438,13 @@ Final Report Summary Template:
 - [ ] **Assertion Standards**: All generated tests use ASSERT_* exclusively (never EXPECT_*)
 - [ ] **Test Quality**: Zero GTEST_SKIP() calls or placeholder assertions
 - [ ] **Validation Depth**: All tests contain meaningful, substantive assertions
+- [ ] **Operation Status Validation**: All WAMR operations validated with ASSERT before if conditions
 - [ ] **Documentation**: Every test includes function comment with source code location and target line numbers
 - [ ] **Code Clarity**: Key code sections contain brief and clear comments
 - [ ] **Build Success**: Build process completes without errors or warnings
 - [ ] **Coverage Metrics**: Coverage improvement measured and documented
-- [ ] **Repository Integration**: Git commit created following standardized template
-- [ ] **Final Report**: Comprehensive summary report delivered
+- [ ] **Repository Integration**: Git commit created using EXACT template format (no extra content)
+- [ ] **Final Report**: Minimal summary report using EXACT template format (no extra content)
 
 ### Enforcement Mechanism
 Any deviation from the above checklist constitutes IMMEDIATE FAILURE of the enhancement process.
