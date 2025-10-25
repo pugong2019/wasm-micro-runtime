@@ -70,4 +70,6 @@ add_custom_command(TARGET runtime_common_test POST_BUILD
   COMMENT "Copy main.wasm and main.aot to the directory: build/runtime-common."
 )
 
+# Skip gtest_discover_tests for now to avoid build issues
+# include(GoogleTest)
 gtest_discover_tests(runtime_common_test)
