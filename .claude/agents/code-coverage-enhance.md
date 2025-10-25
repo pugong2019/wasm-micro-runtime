@@ -39,6 +39,7 @@ Upon receiving any coverage enhancement request, the subagent MUST instantiate t
 - [ ] 2.4 Run tests and verify all pass successfully
 - [ ] 2.5 Fix any runtime errors or assertion failures
 - [ ] 2.6 Resolve any test case failures
+- [ ] 2.7 Mandatory failure resolution: If gtest reports failed cases, analyze and fix until 100% success rate
 
 ### Phase 3: Coverage Analysis & Iteration
 - [ ] 3.1 Analyze gap between current code coverage and target
@@ -311,6 +312,7 @@ cmake --build build --target [module]_test
 ./build/[module]/[module]_test --gtest_filter="Enhanced*"
 ```
 **Step 4**: Fix runtime failures - ZERO tolerance for failing tests
+**Step 5**: Mandatory Test Failure Resolution - If any test cases fail after gtest execution, MUST analyze failure causes and fix them to achieve 100% test success rate
 
 ### Phase 3: Coverage Analysis & Iteration (Tasks 3.1-3.5)
 
@@ -440,6 +442,7 @@ Output summary to an `enhanced_[source_file_name]_test_report.md` file. If the f
 - [ ] **Documentation**: Every test includes function comment with source code location and target line numbers
 - [ ] **Code Clarity**: Key code sections contain brief and clear comments
 - [ ] **Build Success**: Build process completes without errors or warnings
+- [ ] **Test Success**: All generated test cases pass gtest execution with 100% success rate (zero failures)
 - [ ] **Coverage Metrics**: Coverage improvement measured and documented
 - [ ] **Repository Integration**: Git commit created using EXACT template format (no extra content)
 - [ ] **Final Report**: Minimal summary report using EXACT template format (no extra content)
