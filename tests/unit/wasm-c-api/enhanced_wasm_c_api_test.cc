@@ -7,13 +7,17 @@
 #include <limits.h>
 #include <cmath>
 #include "wasm_c_api.h"
-#include "wasm_c_api_internal.h"
 #include "wasm_runtime_common.h"
+
+#define wasm_frame_vec_clone_internal wasm_frame_vec_clone_internal_mangled
+#include "wasm_c_api_internal.h"
+#undef wasm_frame_vec_clone_internal
 
 // Forward declaration for internal function being tested
 extern "C" {
 bool wasm_val_to_rt_val(WASMModuleInstanceCommon *inst_comm_rt, uint8 val_type_rt,
                         const wasm_val_t *v, uint8 *data);
+void wasm_frame_vec_clone_internal(Vector *src, Vector *out);
 }
 
 // Enhanced test fixture for wasm_c_api.c coverage improvement
@@ -1175,4 +1179,187 @@ TEST_F(EnhancedWasmCApiFrameCopyTest, wasm_frame_copy_ValidSource_CreatesDeepCop
     // Clean up
     wasm_frame_delete(copied_frame);
     wasm_runtime_free(mock_instance);
+}
+
+/******
+ * Test Case: wasm_frame_vec_clone_internal_EmptySource_CleansDestination
+ * Source: core/iwasm/common/wasm_c_api.c:1937-1940
+ * Target Lines: 1937 (empty check), 1938 (bh_vector_destroy), 1939 (return)
+ * Functional Purpose: Validates that wasm_frame_vec_clone_internal correctly handles
+ *                     empty source vectors by cleaning up the destination vector
+ *                     and returning early without attempting further operations.
+ * Call Path: Direct call to wasm_frame_vec_clone_internal()
+ * Coverage Goal: Exercise empty vector handling path (lines 1937-1940)
+ ******/
+TEST_F(EnhancedWasmCApiFrameCopyTest, wasm_frame_vec_clone_internal_EmptySource_CleansDestination)
+{
+    Vector src_vector = {0};
+    Vector out_vector = {0};
+
+    // Initialize source vector as empty (num_elems = 0)
+    bool init_result = bh_vector_init(&src_vector, 0, sizeof(WASMCApiFrame), false);
+    ASSERT_TRUE(init_result);
+
+    // Initialize destination vector with some data to verify cleanup
+    init_result = bh_vector_init(&out_vector, 2, sizeof(WASMCApiFrame), false);
+    ASSERT_TRUE(init_result);
+
+    // Verify destination has initial elements
+    ASSERT_EQ(2, out_vector.max_elems);
+    ASSERT_NE(nullptr, out_vector.data);
+
+    // Call wasm_frame_vec_clone_internal with empty source
+    wasm_frame_vec_clone_internal(&src_vector, &out_vector);
+
+    // Verify destination vector was cleaned up (destroyed)
+    // Note: bh_vector_destroy sets data to NULL and max_elems/num_elems to 0
+    ASSERT_EQ(0, out_vector.num_elems);
+    ASSERT_EQ(0, out_vector.max_elems);
+    ASSERT_EQ(nullptr, out_vector.data);
+
+    // Clean up source vector
+    bh_vector_destroy(&src_vector);
+}
+
+/******
+ * Test Case: wasm_frame_vec_clone_internal_ValidSource_SuccessfulClone
+ * Source: core/iwasm/common/wasm_c_api.c:1942-1949
+ * Target Lines: 1942-1943 (destroy/init), 1947-1949 (memcpy and assignment)
+ * Functional Purpose: Validates that wasm_frame_vec_clone_internal correctly clones
+ *                     a non-empty source vector to destination, including proper
+ *                     memory allocation, data copying, and element count assignment.
+ * Call Path: Direct call to wasm_frame_vec_clone_internal()
+ * Coverage Goal: Exercise successful cloning path (lines 1942-1949)
+ ******/
+TEST_F(EnhancedWasmCApiFrameCopyTest, wasm_frame_vec_clone_internal_ValidSource_SuccessfulClone)
+{
+    Vector src_vector = {0};
+    Vector out_vector = {0};
+
+    // Initialize source vector with test data
+    bool init_result = bh_vector_init(&src_vector, 2, sizeof(WASMCApiFrame), false);
+    ASSERT_TRUE(init_result);
+
+    // Create test frame data
+    WASMCApiFrame test_frames[2];
+    test_frames[0].func_index = 100;
+    test_frames[0].func_offset = 200;
+    test_frames[0].module_offset = 300;
+    test_frames[0].instance = (void*)0x1000;
+    test_frames[0].func_name_wp = "test_function_1";
+    test_frames[0].sp = nullptr;
+    test_frames[0].frame_ref = nullptr;
+    test_frames[0].lp = nullptr;
+
+    test_frames[1].func_index = 400;
+    test_frames[1].func_offset = 500;
+    test_frames[1].module_offset = 600;
+    test_frames[1].instance = (void*)0x2000;
+    test_frames[1].func_name_wp = "test_function_2";
+    test_frames[1].sp = nullptr;
+    test_frames[1].frame_ref = nullptr;
+    test_frames[1].lp = nullptr;
+
+    // Copy test data into source vector
+    memcpy(src_vector.data, test_frames, 2 * sizeof(WASMCApiFrame));
+    src_vector.num_elems = 2;
+
+    // Initialize destination vector (should be destroyed and recreated)
+    init_result = bh_vector_init(&out_vector, 1, sizeof(WASMCApiFrame), false);
+    ASSERT_TRUE(init_result);
+
+    // Call wasm_frame_vec_clone_internal
+    wasm_frame_vec_clone_internal(&src_vector, &out_vector);
+
+    // Verify cloning was successful
+    ASSERT_EQ(2, out_vector.num_elems);
+    ASSERT_EQ(2, out_vector.max_elems);
+    ASSERT_NE(nullptr, out_vector.data);
+
+    // Verify data was copied correctly
+    WASMCApiFrame* cloned_frames = (WASMCApiFrame*)out_vector.data;
+
+    // Check first frame
+    ASSERT_EQ(100, cloned_frames[0].func_index);
+    ASSERT_EQ(200, cloned_frames[0].func_offset);
+    ASSERT_EQ(300, cloned_frames[0].module_offset);
+    ASSERT_EQ((void*)0x1000, cloned_frames[0].instance);
+    ASSERT_STREQ("test_function_1", cloned_frames[0].func_name_wp);
+
+    // Check second frame
+    ASSERT_EQ(400, cloned_frames[1].func_index);
+    ASSERT_EQ(500, cloned_frames[1].func_offset);
+    ASSERT_EQ(600, cloned_frames[1].module_offset);
+    ASSERT_EQ((void*)0x2000, cloned_frames[1].instance);
+    ASSERT_STREQ("test_function_2", cloned_frames[1].func_name_wp);
+
+    // Verify data is actually copied (different memory locations)
+    ASSERT_NE(src_vector.data, out_vector.data);
+
+    // Clean up both vectors
+    bh_vector_destroy(&src_vector);
+    bh_vector_destroy(&out_vector);
+}
+
+/******
+ * Test Case: wasm_frame_vec_clone_internal_SingleElement_CorrectClone
+ * Source: core/iwasm/common/wasm_c_api.c:1942-1949
+ * Target Lines: 1942-1943 (destroy/init), 1947-1949 (memcpy and assignment)
+ * Functional Purpose: Validates that wasm_frame_vec_clone_internal correctly handles
+ *                     single-element vectors, ensuring proper memory calculation
+ *                     and data copying for edge case of minimal non-empty vector.
+ * Call Path: Direct call to wasm_frame_vec_clone_internal()
+ * Coverage Goal: Exercise single element cloning path (lines 1942-1949)
+ ******/
+TEST_F(EnhancedWasmCApiFrameCopyTest, wasm_frame_vec_clone_internal_SingleElement_CorrectClone)
+{
+    Vector src_vector = {0};
+    Vector out_vector = {0};
+
+    // Initialize source vector with single element
+    bool init_result = bh_vector_init(&src_vector, 1, sizeof(WASMCApiFrame), false);
+    ASSERT_TRUE(init_result);
+
+    // Create single test frame
+    WASMCApiFrame test_frame;
+    test_frame.func_index = 42;
+    test_frame.func_offset = 84;
+    test_frame.module_offset = 126;
+    test_frame.instance = (void*)0xDEADBEEF;
+    test_frame.func_name_wp = "single_test_function";
+    test_frame.sp = nullptr;
+    test_frame.frame_ref = nullptr;
+    test_frame.lp = nullptr;
+
+    // Copy test data into source vector
+    memcpy(src_vector.data, &test_frame, sizeof(WASMCApiFrame));
+    src_vector.num_elems = 1;
+
+    // Initialize empty destination vector
+    init_result = bh_vector_init(&out_vector, 0, sizeof(WASMCApiFrame), false);
+    ASSERT_TRUE(init_result);
+
+    // Call wasm_frame_vec_clone_internal
+    wasm_frame_vec_clone_internal(&src_vector, &out_vector);
+
+    // Verify cloning was successful
+    ASSERT_EQ(1, out_vector.num_elems);
+    ASSERT_EQ(1, out_vector.max_elems);
+    ASSERT_NE(nullptr, out_vector.data);
+
+    // Verify data was copied correctly
+    WASMCApiFrame* cloned_frame = (WASMCApiFrame*)out_vector.data;
+
+    ASSERT_EQ(42, cloned_frame->func_index);
+    ASSERT_EQ(84, cloned_frame->func_offset);
+    ASSERT_EQ(126, cloned_frame->module_offset);
+    ASSERT_EQ((void*)0xDEADBEEF, cloned_frame->instance);
+    ASSERT_STREQ("single_test_function", cloned_frame->func_name_wp);
+
+    // Verify data is actually copied (different memory locations)
+    ASSERT_NE(src_vector.data, out_vector.data);
+
+    // Clean up both vectors
+    bh_vector_destroy(&src_vector);
+    bh_vector_destroy(&out_vector);
 }

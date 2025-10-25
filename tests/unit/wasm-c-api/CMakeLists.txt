@@ -22,6 +22,7 @@ set(WAMR_BUILD_JIT 0)
 set(WAMR_BUILD_LIBC_BUILTIN 1)
 set(WAMR_BUILD_LIBC_WASI 0)
 set(WAMR_BUILD_FAST_INTERP 0)
+set(WAMR_BUILD_DUMP_CALL_STACK 1)
 
 # compiling and linking flags
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gc-sections -pie -fPIE")
