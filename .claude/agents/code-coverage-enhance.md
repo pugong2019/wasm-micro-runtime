@@ -375,14 +375,14 @@ Coverage Enhancement Details:
 - Module: [module_name]
 - Target Lines: [line_numbers]
 - Enhanced Tests: N test cases
-- Build Status: ✅ All tests pass
-- Quality: ✅ Follows WAMR testing standards
 ```
 
 **ENFORCEMENT POLICY:**
 - Commit messages that include content beyond this template are STRICTLY PROHIBITED
 - Any additional explanatory or descriptive content is STRICTLY PROHIBITED
 - Focus on the exact template format only - no extra content allowed
+- **LOW COVERAGE FAILURE RULE**: When coverage rate is low (0 lines coverage), do NOT commit the message, drop any code modifications and mark the task as FAIL
+
 ### Phase 5: Final Documentation and Summary
 
 **CRITICAL REQUIREMENT: STRICT TEMPLATE ADHERENCE**
