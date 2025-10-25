@@ -10,6 +10,7 @@ add_definitions(-DRUN_ON_LINUX)
 set(WAMR_BUILD_LIBC_WASI 0)
 set(WAMR_BUILD_APP_FRAMEWORK 0)
 set(WAMR_BUILD_REF_TYPES 1)
+set(WAMR_BUILD_THREAD_MGR 1)
 
 # Enable memory profiling for test coverage
 add_definitions(-DWASM_ENABLE_MEMORY_PROFILING=1)
