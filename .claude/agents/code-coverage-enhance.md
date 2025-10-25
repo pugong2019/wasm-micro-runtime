@@ -362,9 +362,9 @@ git add tests/unit/[module]/enhanced_[source_file_name]_test.cc
 
 **COMMIT MESSAGE TEMPLATE (USE EXACTLY AS SHOWN):**
 ```bash
-[module] Enhanced unit tests - XX% coverage
+[module] Enhanced unit tests - Cover X lines of [target_lines] in [function_name]/source_code_filename
 
-- Generated N new test cases targeting uncovered lines
+- Generated N new test cases targeting uncovered lines in [source_code_filename]
 - Improved coverage from baseline to XX%
 - All X target lines now covered
 - Zero test failures, all assertions meaningful
@@ -401,9 +401,7 @@ Output summary to an `enhanced_[source_file_name]_test_report.md` file. If the f
 
 **FINAL REPORT TEMPLATE (USE EXACTLY AS SHOWN):**
 ```markdown
-# WAMR Coverage Enhancement Report
-
-### Coverage Metrics For [module_name]-source_file_name
+### Coverage Metrics For in [source_file_name] - [Year-Month-Day-Minutes]
 - **Module**: [module_name]
 - **File Name**: [source_file_name]
 - **Function Name**: [function_tested]
