@@ -1495,3 +1495,60 @@ TEST_F(EnhancedWasmCApiEngineArgsTest, wasm_engine_new_with_args_ValidSystemConf
     // Clean up
     wasm_engine_delete(engine);
 }
+
+/******
+ * Test Case: wasm_ref_copy_NullSrc_ReturnsNull
+ * Source: core/iwasm/common/wasm_c_api.c:1754-1762
+ * Target Lines: 1756-1757 (null source validation and return)
+ * Functional Purpose: Validates that wasm_ref_copy correctly handles NULL src
+ *                     parameter by returning NULL without any operations.
+ * Call Path: Direct API call - wasm_ref_copy(NULL)
+ * Coverage Goal: Exercise null src parameter validation path (lines 1756-1757)
+ ******/
+TEST_F(EnhancedWasmCApiRefTest, wasm_ref_copy_NullSrc_ReturnsNull)
+{
+    // Test the null source validation path
+    wasm_ref_t *copied_ref = wasm_ref_copy(nullptr);
+
+    // Validate that null is returned for null input
+    ASSERT_EQ(nullptr, copied_ref);
+}
+
+/******
+ * Test Case: wasm_ref_copy_ValidForeignRef_ReturnsValidCopy
+ * Source: core/iwasm/common/wasm_c_api.c:1754-1762
+ * Target Lines: 1760-1761 (successful copy via wasm_ref_new_internal call)
+ * Functional Purpose: Validates that wasm_ref_copy successfully creates a copy
+ *                     of a valid foreign reference by calling wasm_ref_new_internal
+ *                     with the source reference's store, kind, ref_idx_rt, and inst_comm_rt.
+ * Call Path: wasm_ref_copy() -> wasm_ref_new_internal()
+ * Coverage Goal: Exercise successful copy path for foreign reference (lines 1760-1761)
+ ******/
+TEST_F(EnhancedWasmCApiRefTest, wasm_ref_copy_ValidForeignRef_ReturnsValidCopy)
+{
+    // Create a store for testing
+    wasm_store_t *store = create_test_store();
+    ASSERT_NE(nullptr, store);
+
+    // Create a foreign object to work with
+    wasm_foreign_t *foreign = wasm_foreign_new(store);
+    ASSERT_NE(nullptr, foreign);
+
+    // Convert foreign to ref to test copy functionality
+    wasm_ref_t *original_ref = wasm_foreign_as_ref(foreign);
+    ASSERT_NE(nullptr, original_ref);
+
+    // Test the successful copy path
+    wasm_ref_t *copied_ref = wasm_ref_copy(original_ref);
+
+    // Validate that a new ref was created (not null)
+    ASSERT_NE(nullptr, copied_ref);
+
+    // Validate that it's a different object (different pointer)
+    ASSERT_NE(original_ref, copied_ref);
+
+    // Clean up
+    wasm_ref_delete(copied_ref);
+    wasm_foreign_delete(foreign);
+    wasm_store_delete(store);
+}
