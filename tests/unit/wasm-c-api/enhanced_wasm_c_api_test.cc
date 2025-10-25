@@ -1552,3 +1552,101 @@ TEST_F(EnhancedWasmCApiRefTest, wasm_ref_copy_ValidForeignRef_ReturnsValidCopy)
     wasm_foreign_delete(foreign);
     wasm_store_delete(store);
 }
+
+// ========================================================================
+// New test cases for wasm_module_exports function (lines 2767-2837)
+// ========================================================================
+
+// Enhanced test fixture for wasm_module_exports coverage
+class EnhancedWasmCApiTest : public testing::Test
+{
+protected:
+    void SetUp() override
+    {
+        // Initialize runtime
+        bool init_result = wasm_runtime_init();
+        ASSERT_TRUE(init_result);
+        runtime_initialized = true;
+
+        // Create engine and store
+        engine = wasm_engine_new();
+        ASSERT_NE(nullptr, engine);
+        store = wasm_store_new(engine);
+        ASSERT_NE(nullptr, store);
+
+        // Simple working WASM module with global export (from existing successful tests)
+        wasm_simple_global = {
+            0x00, 0x61, 0x73, 0x6d,  // WASM magic number
+            0x01, 0x00, 0x00, 0x00,  // Version 1
+            0x06, 0x06, 0x01, 0x7f,  // Global section: 1 global (i32, mutable)
+            0x01, 0x41, 0x2a, 0x0b,  // Global: mutable i32 with initial value 42
+            0x07, 0x0a, 0x01, 0x06,  // Export section: 1 export, 10 bytes
+            0x67, 0x6c, 0x6f, 0x62,  // Export name "glob"
+            0x61, 0x6c, 0x03, 0x00   // Export type: global, index 0
+        };
+    }
+
+    void TearDown() override
+    {
+        if (module) {
+            wasm_module_delete(module);
+            module = nullptr;
+        }
+        if (store) {
+            wasm_store_delete(store);
+            store = nullptr;
+        }
+        if (engine) {
+            wasm_engine_delete(engine);
+            engine = nullptr;
+        }
+        if (runtime_initialized) {
+            wasm_runtime_destroy();
+        }
+    }
+
+    bool runtime_initialized = false;
+    wasm_engine_t *engine = nullptr;
+    wasm_store_t *store = nullptr;
+    wasm_module_t *module = nullptr;
+    std::vector<uint8_t> wasm_simple_global;
+};
+
+/******
+ * Test Case: wasm_module_exports_NullModule_ReturnsSilently
+ * Source: core/iwasm/common/wasm_c_api.c:2695-2697
+ * Target Lines: 2695-2697 (null module validation)
+ * Functional Purpose: Validates that wasm_module_exports correctly handles null module
+ *                     parameter and returns silently without crash.
+ * Call Path: wasm_module_exports() direct public API call
+ * Coverage Goal: Exercise null module validation path
+ ******/
+TEST_F(EnhancedWasmCApiTest, wasm_module_exports_NullModule_ReturnsSilently)
+{
+    wasm_exporttype_vec_t exports;
+
+    // Test with null module - should return silently
+    wasm_module_exports(nullptr, &exports);
+
+    // Function should return silently without setting any exports
+    // No assertion needed as silent return is expected behavior
+}
+
+/******
+ * Test Case: wasm_module_exports_BothNullParams_ReturnsSilently
+ * Source: core/iwasm/common/wasm_c_api.c:2695-2697
+ * Target Lines: 2695-2697 (null parameter validation)
+ * Functional Purpose: Validates that wasm_module_exports correctly handles both null
+ *                     parameters and returns silently without crash.
+ * Call Path: wasm_module_exports() direct public API call
+ * Coverage Goal: Exercise null parameter validation paths
+ ******/
+TEST_F(EnhancedWasmCApiTest, wasm_module_exports_BothNullParams_ReturnsSilently)
+{
+    // Test with both null parameters - should return silently
+    wasm_module_exports(nullptr, nullptr);
+
+    // Function should return silently without crash or error
+    // No assertion needed as silent return is expected behavior
+}
+
