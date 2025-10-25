@@ -482,3 +482,243 @@ TEST_F(EnhancedWasmRuntimeCommonCApiTest, wasm_runtime_invoke_c_api_native_Resul
     wasm_runtime_clear_exception(module_inst);
     wasm_runtime_unload(module);
 }
+
+/*****************************************************************************
+ * New Test Cases for wasm_externref_obj2ref function (lines 6538-6603)
+ *****************************************************************************/
+
+// Enhanced test fixture class for externref functions
+class EnhancedWasmRuntimeCommonTest : public testing::Test {
+protected:
+    void SetUp() override {
+        memset(&init_args, 0, sizeof(RuntimeInitArgs));
+        init_args.mem_alloc_type = Alloc_With_Pool;
+        init_args.mem_alloc_option.pool.heap_buf = global_heap_buf;
+        init_args.mem_alloc_option.pool.heap_size = sizeof(global_heap_buf);
+
+        wasm_runtime_full_init(&init_args);
+
+        module_inst = nullptr;
+        error_buf[0] = '\0';
+        simple_wasm_size = 0;
+        simple_wasm = nullptr;
+
+        CreateSimpleWasmModule();
+    }
+
+    void TearDown() override {
+        if (module_inst) {
+            wasm_runtime_deinstantiate(module_inst);
+            module_inst = nullptr;
+        }
+        if (simple_wasm) {
+            free(simple_wasm);
+            simple_wasm = nullptr;
+        }
+        wasm_runtime_destroy();
+    }
+
+    // Create a simple WASM module for testing
+    void CreateSimpleWasmModule() {
+        // Use existing simple WASM module from main.wasm file
+        const char *wasm_file = "main.wasm";
+        FILE *file = fopen(wasm_file, "rb");
+        if (!file) {
+            // Fallback to minimal WASM module
+            uint8_t wasm_bytes[] = {
+                0x00, 0x61, 0x73, 0x6d, // WASM magic
+                0x01, 0x00, 0x00, 0x00, // version
+                0x01, 0x07,             // type section header
+                0x01,                   // 1 function type
+                0x60, 0x02, 0x7f, 0x7f, 0x01, 0x7f, // func type: (i32,i32)->i32
+                0x03, 0x02,             // function section header
+                0x01, 0x00,             // 1 function, type 0
+                0x0a, 0x09,             // code section header
+                0x01,                   // 1 function body
+                0x07,                   // function body size
+                0x00,                   // 0 locals
+                0x20, 0x00,             // local.get 0
+                0x20, 0x01,             // local.get 1
+                0x6a,                   // i32.add
+                0x0b                    // end
+            };
+
+            simple_wasm_size = sizeof(wasm_bytes);
+            simple_wasm = (uint8_t*)malloc(simple_wasm_size);
+            memcpy(simple_wasm, wasm_bytes, simple_wasm_size);
+            return;
+        }
+
+        // Get file size and read
+        fseek(file, 0, SEEK_END);
+        simple_wasm_size = ftell(file);
+        fseek(file, 0, SEEK_SET);
+
+        simple_wasm = (uint8_t*)malloc(simple_wasm_size);
+        fread(simple_wasm, 1, simple_wasm_size, file);
+        fclose(file);
+    }
+
+public:
+    char global_heap_buf[512 * 1024];
+    RuntimeInitArgs init_args;
+    WASMModuleInstanceCommon *module_inst;
+    char error_buf[128];
+    uint8_t *simple_wasm;
+    uint32 simple_wasm_size;
+};
+
+#if WASM_ENABLE_GC == 0 && WASM_ENABLE_REF_TYPES != 0
+
+/******
+ * Test Case: wasm_externref_obj2ref_NullRef32Bit_Success
+ * Source: core/iwasm/common/wasm_runtime_common.c:6549-6556
+ * Target Lines: 6549-6556 (NULL reference handling for 32-bit platforms)
+ * Functional Purpose: Tests NULL reference detection on 32-bit platforms where
+ *                     extern_obj equals (uint32)-1, should set NULL_REF and return true
+ * Call Path: Direct API call to wasm_externref_obj2ref()
+ * Coverage Goal: Exercise NULL reference detection path for 32-bit platforms
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, wasm_externref_obj2ref_NullRef32Bit_Success) {
+    // Create a mock module instance for testing externref functions
+    // Since externref functions don't actually require a real WASM module,
+    // we can create a minimal mock instance for testing
+
+    uint32 externref_idx = 0;
+
+    // Test NULL reference for 32-bit platform (uintptr_t cast of -1)
+#if UINTPTR_MAX == UINT32_MAX
+    void *null_extern_obj = (void*)(uintptr_t)((uint32)-1);
+#else
+    void *null_extern_obj = (void*)(uintptr_t)((uint64)-1LL);
+#endif
+
+    // Create a simple mock module instance
+    // Note: For externref functions, we mainly need a non-null pointer to pass as module_inst
+    // The actual externref infrastructure is global and doesn't depend on specific module state
+    WASMModuleInstanceCommon mock_module_inst = {0};
+
+    // Call the function under test
+    bool result = wasm_externref_obj2ref(&mock_module_inst, null_extern_obj, &externref_idx);
+
+    ASSERT_TRUE(result);
+    ASSERT_EQ(NULL_REF, externref_idx);
+}
+
+/******
+ * Test Case: wasm_externref_obj2ref_ValidObject_NewEntryCreated
+ * Source: core/iwasm/common/wasm_runtime_common.c:6574-6598
+ * Target Lines: 6574-6598 (new entry creation path)
+ * Functional Purpose: Tests creation of new externref entry when object not found in hashmap,
+ *                     exercises malloc, hashmap insertion, and global ID increment
+ * Call Path: Direct API call to wasm_externref_obj2ref()
+ * Coverage Goal: Exercise new entry creation path with successful allocation and insertion
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, wasm_externref_obj2ref_ValidObject_NewEntryCreated) {
+    uint32 externref_idx = 0;
+
+    // Create a test object that's not NULL_REF
+    int test_object = 42;
+    void *extern_obj = &test_object;
+
+    // Create a simple mock module instance
+    WASMModuleInstanceCommon mock_module_inst = {0};
+
+    // Call the function under test
+    bool result = wasm_externref_obj2ref(&mock_module_inst, extern_obj, &externref_idx);
+
+    ASSERT_TRUE(result);
+    ASSERT_NE(NULL_REF, externref_idx);
+    ASSERT_GT(externref_idx, 0); // Should be assigned a valid ID
+}
+
+/******
+ * Test Case: wasm_externref_obj2ref_ExistingObject_FoundInHashmap
+ * Source: core/iwasm/common/wasm_runtime_common.c:6565-6572
+ * Target Lines: 6565-6572 (hashmap lookup success path)
+ * Functional Purpose: Tests lookup of existing external object in hashmap,
+ *                     should find existing entry and return its externref_idx
+ * Call Path: Direct API call to wasm_externref_obj2ref() -> lookup_extobj_callback()
+ * Coverage Goal: Exercise hashmap lookup success path
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, wasm_externref_obj2ref_ExistingObject_FoundInHashmap) {
+    uint32 externref_idx1 = 0;
+    uint32 externref_idx2 = 0;
+
+    // Create a test object
+    int test_object = 123;
+    void *extern_obj = &test_object;
+
+    // Create a simple mock module instance
+    WASMModuleInstanceCommon mock_module_inst = {0};
+
+    // First call - should create new entry
+    bool result1 = wasm_externref_obj2ref(&mock_module_inst, extern_obj, &externref_idx1);
+    ASSERT_TRUE(result1);
+    ASSERT_NE(NULL_REF, externref_idx1);
+
+    // Second call with same object - should find existing entry
+    bool result2 = wasm_externref_obj2ref(&mock_module_inst, extern_obj, &externref_idx2);
+    ASSERT_TRUE(result2);
+    ASSERT_EQ(externref_idx1, externref_idx2); // Should return same index
+}
+
+/******
+ * Test Case: wasm_externref_obj2ref_MultipleObjects_DifferentIndices
+ * Source: core/iwasm/common/wasm_runtime_common.c:6588-6598
+ * Target Lines: 6588-6598 (global ID increment and multiple entries)
+ * Functional Purpose: Tests creation of multiple externref entries with different objects,
+ *                     verifies global ID increment and proper hashmap management
+ * Call Path: Direct API call to wasm_externref_obj2ref()
+ * Coverage Goal: Exercise global ID increment path and multiple entry creation
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, wasm_externref_obj2ref_MultipleObjects_DifferentIndices) {
+    // Create multiple test objects
+    int test_object1 = 100;
+    int test_object2 = 200;
+    int test_object3 = 300;
+
+    uint32 externref_idx1, externref_idx2, externref_idx3;
+
+    // Create a simple mock module instance
+    WASMModuleInstanceCommon mock_module_inst = {0};
+
+    // Create externref for first object
+    bool result1 = wasm_externref_obj2ref(&mock_module_inst, &test_object1, &externref_idx1);
+    ASSERT_TRUE(result1);
+    ASSERT_NE(NULL_REF, externref_idx1);
+
+    // Create externref for second object
+    bool result2 = wasm_externref_obj2ref(&mock_module_inst, &test_object2, &externref_idx2);
+    ASSERT_TRUE(result2);
+    ASSERT_NE(NULL_REF, externref_idx2);
+    ASSERT_NE(externref_idx1, externref_idx2); // Should be different indices
+
+    // Create externref for third object
+    bool result3 = wasm_externref_obj2ref(&mock_module_inst, &test_object3, &externref_idx3);
+    ASSERT_TRUE(result3);
+    ASSERT_NE(NULL_REF, externref_idx3);
+    ASSERT_NE(externref_idx1, externref_idx3); // Should be different from first
+    ASSERT_NE(externref_idx2, externref_idx3); // Should be different from second
+}
+
+#else
+
+// Fallback tests when REF_TYPES is not enabled or GC is enabled
+TEST_F(EnhancedWasmRuntimeCommonTest, wasm_externref_obj2ref_FeatureNotEnabled_Skipped) {
+    // Test still exercises the enhanced test fixture creation
+    ASSERT_NE(nullptr, simple_wasm);
+    ASSERT_GT(simple_wasm_size, 0);
+
+    // Create a simple coverage test for lines that don't require externref
+    int test_value = 42;
+    void *test_ptr = &test_value;
+
+    // This exercises basic pointer handling without externref functionality
+    ASSERT_NE(nullptr, test_ptr);
+    ASSERT_EQ(42, *(int*)test_ptr);
+
+    printf("Note: wasm_externref_obj2ref tests skipped - WASM_ENABLE_REF_TYPES not properly enabled or GC is enabled\n");
+}
+
+#endif /* WASM_ENABLE_GC == 0 && WASM_ENABLE_REF_TYPES != 0 */

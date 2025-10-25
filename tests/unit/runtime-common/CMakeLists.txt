@@ -9,6 +9,7 @@ add_definitions(-DRUN_ON_LINUX)
 
 set(WAMR_BUILD_LIBC_WASI 0)
 set(WAMR_BUILD_APP_FRAMEWORK 0)
+set(WAMR_BUILD_REF_TYPES 1)
 
 include(../unit_common.cmake)
 
