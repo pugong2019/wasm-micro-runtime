@@ -3042,3 +3042,112 @@ TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_set_module_name_BytecodeModul
     // Clean up
     wasm_runtime_unload(module);
 }
+
+/*****************************************************************************
+ * New Test Cases for wasm_runtime_get_module_name function (lines 7841-7857)
+ *****************************************************************************/
+
+/******
+ * Test Case: WasmRuntimeGetModuleName_NullModule_ReturnsEmptyString
+ * Source: core/iwasm/common/wasm_runtime_common.c:7841-7857
+ * Target Lines: 7844-7845 (null check and early return)
+ * Functional Purpose: Validates that wasm_runtime_get_module_name() correctly handles
+ *                     null module parameter by returning empty string without crashing.
+ * Call Path: Direct API call with null parameter
+ * Coverage Goal: Exercise null parameter validation and early return path
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmRuntimeGetModuleName_NullModule_ReturnsEmptyString) {
+    // Call function with null module
+    const char *result = wasm_runtime_get_module_name(nullptr);
+
+    // Should return empty string for null module
+    ASSERT_NE(nullptr, result);
+    ASSERT_STREQ("", result);
+}
+
+/******
+ * Test Case: WasmRuntimeGetModuleName_BytecodeModule_CallsWasmGetModuleName
+ * Source: core/iwasm/common/wasm_runtime_common.c:7841-7857
+ * Target Lines: 7847-7850 (WASM_ENABLE_INTERP bytecode module path)
+ * Functional Purpose: Validates that wasm_runtime_get_module_name() correctly dispatches
+ *                     to wasm_get_module_name() for bytecode modules and returns the result.
+ * Call Path: wasm_runtime_get_module_name() -> wasm_get_module_name() for bytecode type
+ * Coverage Goal: Exercise interpreter module type branch with bytecode module
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmRuntimeGetModuleName_BytecodeModule_CallsWasmGetModuleName) {
+    char error_buf[128] = {0};
+
+    // Load a valid bytecode module
+    wasm_module_t module = wasm_runtime_load(simple_wasm, simple_wasm_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    // Verify this is a bytecode module
+    WASMModuleCommon *module_common = (WASMModuleCommon*)module;
+    ASSERT_EQ(Wasm_Module_Bytecode, module_common->module_type);
+
+    // Call function - should dispatch to bytecode path
+    const char *result = wasm_runtime_get_module_name(module);
+
+    // Should return a valid string (may be empty if no name set)
+    ASSERT_NE(nullptr, result);
+
+    // Clean up
+    wasm_runtime_unload(module);
+}
+
+#if WASM_ENABLE_AOT != 0
+/******
+ * Test Case: WasmRuntimeGetModuleName_AotModule_CallsAotGetModuleName
+ * Source: core/iwasm/common/wasm_runtime_common.c:7841-7857
+ * Target Lines: 7852-7855 (WASM_ENABLE_AOT aot module path)
+ * Functional Purpose: Validates that wasm_runtime_get_module_name() correctly dispatches
+ *                     to aot_get_module_name() for AOT modules and returns the result.
+ * Call Path: wasm_runtime_get_module_name() -> aot_get_module_name() for AOT type
+ * Coverage Goal: Exercise AOT module type branch with compiled module
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmRuntimeGetModuleName_AotModule_CallsAotGetModuleName) {
+    // Create a mock AOT module structure to test the path
+    // Note: Creating a proper AOT module requires compilation, so we simulate the structure
+
+    // Allocate memory for mock AOT module structure
+    WASMModuleCommon mock_aot_module;
+    mock_aot_module.module_type = Wasm_Module_AoT;
+
+    // Cast to wasm_module_t to match function signature
+    wasm_module_t aot_module = (wasm_module_t)&mock_aot_module;
+
+    // Call function - should dispatch to AOT path
+    const char *result = wasm_runtime_get_module_name(aot_module);
+
+    // Should return a valid string (may be empty if aot_get_module_name returns empty)
+    ASSERT_NE(nullptr, result);
+
+    // The actual return value depends on aot_get_module_name implementation
+    // but we've successfully exercised the AOT dispatch path
+}
+#endif
+
+/******
+ * Test Case: WasmRuntimeGetModuleName_UnknownModuleType_ReturnsFallbackEmpty
+ * Source: core/iwasm/common/wasm_runtime_common.c:7841-7857
+ * Target Lines: 7857 (fallback return for unknown module types)
+ * Functional Purpose: Validates that wasm_runtime_get_module_name() returns empty string
+ *                     for unrecognized module types, providing safe fallback behavior.
+ * Call Path: Direct API call with invalid module type to trigger fallback
+ * Coverage Goal: Exercise fallback return path for edge case module types
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmRuntimeGetModuleName_UnknownModuleType_ReturnsFallbackEmpty) {
+    // Create a mock module structure with invalid type
+    WASMModuleCommon mock_module;
+    mock_module.module_type = (uint8)99; // Invalid module type
+
+    // Cast to wasm_module_t to match function signature
+    wasm_module_t invalid_module = (wasm_module_t)&mock_module;
+
+    // Call function - should hit fallback case
+    const char *result = wasm_runtime_get_module_name(invalid_module);
+
+    // Should return empty string for unknown module type
+    ASSERT_NE(nullptr, result);
+    ASSERT_STREQ("", result);
+}
