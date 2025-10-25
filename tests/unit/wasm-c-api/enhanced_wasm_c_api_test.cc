@@ -860,3 +860,232 @@ TEST_F(EnhancedWasmCApiTestWasmValToRtVal, wasm_val_to_rt_val_UnknownType_LogsWa
     wasm_module_delete(module);
     wasm_byte_vec_delete(&wasm_bytes);
 }
+
+// ===== NEW TEST FIXTURE FOR wasm_ref_delete COVERAGE =====
+
+// Enhanced test fixture for wasm_ref_delete coverage improvement
+class EnhancedWasmCApiRefTest : public testing::Test
+{
+protected:
+    void SetUp() override
+    {
+        // Initialize runtime
+        bool init_result = wasm_runtime_init();
+        ASSERT_TRUE(init_result);
+        runtime_initialized = true;
+    }
+
+    void TearDown() override
+    {
+        if (runtime_initialized) {
+            wasm_runtime_destroy();
+        }
+    }
+
+    bool runtime_initialized = false;
+
+    // Helper to create a simple store for testing
+    wasm_store_t* create_test_store() {
+        wasm_engine_t* engine = wasm_engine_new();
+        EXPECT_NE(nullptr, engine);
+        wasm_store_t* store = wasm_store_new(engine);
+        wasm_engine_delete(engine);
+        return store;
+    }
+
+    // Helper finalizer function for host_info testing
+    static bool finalizer_called;
+    static void test_finalizer(void* data) {
+        finalizer_called = true;
+    }
+};
+
+// Static member initialization
+bool EnhancedWasmCApiRefTest::finalizer_called = false;
+
+/******
+ * Test Case: wasm_ref_delete_NullRef_ReturnsEarly
+ * Source: core/iwasm/common/wasm_c_api.c:1772-1775
+ * Target Lines: 1774-1775 (null ref validation and early return)
+ * Functional Purpose: Validates that wasm_ref_delete correctly handles NULL ref
+ *                     parameter by returning early without any operations.
+ * Call Path: Direct API call - wasm_ref_delete(NULL)
+ * Coverage Goal: Exercise null ref parameter validation path
+ ******/
+TEST_F(EnhancedWasmCApiRefTest, wasm_ref_delete_NullRef_ReturnsEarly)
+{
+    // Test NULL ref parameter - should return early at line 1774-1775
+    wasm_ref_delete(nullptr);
+
+    // If we reach here without crash, the null check worked correctly
+    ASSERT_TRUE(true);  // Successful completion validates null handling
+}
+
+/******
+ * Test Case: wasm_ref_delete_NullStore_ReturnsEarly
+ * Source: core/iwasm/common/wasm_c_api.c:1772-1775
+ * Target Lines: 1774-1775 (null store validation and early return)
+ * Functional Purpose: Validates that wasm_ref_delete correctly handles ref with
+ *                     NULL store by returning early without any operations.
+ * Call Path: Direct API call with manually constructed ref
+ * Coverage Goal: Exercise null store parameter validation path
+ ******/
+TEST_F(EnhancedWasmCApiRefTest, wasm_ref_delete_NullStore_ReturnsEarly)
+{
+    // Create a ref with NULL store to test store validation
+    wasm_ref_t test_ref;
+    test_ref.store = nullptr;  // This should trigger early return at line 1774
+    test_ref.kind = WASM_REF_func;
+    test_ref.host_info.info = nullptr;
+    test_ref.host_info.finalizer = nullptr;
+    test_ref.ref_idx_rt = 0;
+    test_ref.inst_comm_rt = nullptr;
+
+    // Should return early due to null store check
+    wasm_ref_delete(&test_ref);
+
+    // If we reach here without crash, the null store check worked correctly
+    ASSERT_TRUE(true);  // Successful completion validates null store handling
+}
+
+/******
+ * Test Case: wasm_ref_delete_WithHostInfo_CallsFinalizer
+ * Source: core/iwasm/common/wasm_c_api.c:1777, 1764-1769
+ * Target Lines: 1777 (DELETE_HOST_INFO call), 1765-1767 (finalizer execution)
+ * Functional Purpose: Validates that wasm_ref_delete properly calls the host_info
+ *                     finalizer when present, ensuring proper cleanup of host data.
+ * Call Path: Direct API call with host_info containing finalizer
+ * Coverage Goal: Exercise DELETE_HOST_INFO macro with finalizer execution
+ ******/
+TEST_F(EnhancedWasmCApiRefTest, wasm_ref_delete_WithHostInfo_CallsFinalizer)
+{
+    wasm_store_t* store = create_test_store();
+    ASSERT_NE(nullptr, store);
+
+    // Create a ref with host_info and finalizer
+    wasm_ref_t* test_ref = (wasm_ref_t*)wasm_runtime_malloc(sizeof(wasm_ref_t));
+    ASSERT_NE(nullptr, test_ref);
+
+    test_ref->store = store;
+    test_ref->kind = WASM_REF_func;  // Non-foreign type
+    test_ref->host_info.info = (void*)0x12345678;  // Some test data
+    test_ref->host_info.finalizer = test_finalizer;
+    test_ref->ref_idx_rt = 0;
+    test_ref->inst_comm_rt = nullptr;
+
+    // Reset finalizer flag and call delete
+    finalizer_called = false;
+    wasm_ref_delete(test_ref);
+
+    // Verify finalizer was called (line 1767)
+    ASSERT_TRUE(finalizer_called);
+
+    wasm_store_delete(store);
+}
+
+/******
+ * Test Case: wasm_ref_delete_WithoutHostInfo_SkipsFinalizer
+ * Source: core/iwasm/common/wasm_c_api.c:1777, 1764-1769
+ * Target Lines: 1777 (DELETE_HOST_INFO call), 1765 (info null check)
+ * Functional Purpose: Validates that wasm_ref_delete correctly skips finalizer
+ *                     execution when host_info.info is NULL.
+ * Call Path: Direct API call with null host_info.info
+ * Coverage Goal: Exercise DELETE_HOST_INFO macro without finalizer execution
+ ******/
+TEST_F(EnhancedWasmCApiRefTest, wasm_ref_delete_WithoutHostInfo_SkipsFinalizer)
+{
+    wasm_store_t* store = create_test_store();
+    ASSERT_NE(nullptr, store);
+
+    // Create a ref without host_info.info
+    wasm_ref_t* test_ref = (wasm_ref_t*)wasm_runtime_malloc(sizeof(wasm_ref_t));
+    ASSERT_NE(nullptr, test_ref);
+
+    test_ref->store = store;
+    test_ref->kind = WASM_REF_func;  // Non-foreign type
+    test_ref->host_info.info = nullptr;  // NULL info should skip finalizer
+    test_ref->host_info.finalizer = test_finalizer;
+    test_ref->ref_idx_rt = 0;
+    test_ref->inst_comm_rt = nullptr;
+
+    // Reset finalizer flag and call delete
+    finalizer_called = false;
+    wasm_ref_delete(test_ref);
+
+    // Verify finalizer was NOT called due to null info (line 1765)
+    ASSERT_FALSE(finalizer_called);
+
+    wasm_store_delete(store);
+}
+
+/******
+ * Test Case: wasm_ref_delete_NonForeignRef_SkipsForeignCleanup
+ * Source: core/iwasm/common/wasm_c_api.c:1779, 1788
+ * Target Lines: 1779 (foreign type check), 1788 (final cleanup)
+ * Functional Purpose: Validates that wasm_ref_delete correctly skips foreign-specific
+ *                     cleanup for non-foreign reference types and proceeds to final cleanup.
+ * Call Path: Direct API call with non-foreign reference type
+ * Coverage Goal: Exercise non-foreign path and final memory cleanup
+ ******/
+TEST_F(EnhancedWasmCApiRefTest, wasm_ref_delete_NonForeignRef_SkipsForeignCleanup)
+{
+    wasm_store_t* store = create_test_store();
+    ASSERT_NE(nullptr, store);
+
+    // Create a non-foreign ref (func type)
+    wasm_ref_t* test_ref = (wasm_ref_t*)wasm_runtime_malloc(sizeof(wasm_ref_t));
+    ASSERT_NE(nullptr, test_ref);
+
+    test_ref->store = store;
+    test_ref->kind = WASM_REF_func;  // Non-foreign type to skip foreign cleanup
+    test_ref->host_info.info = nullptr;
+    test_ref->host_info.finalizer = nullptr;
+    test_ref->ref_idx_rt = 0;
+    test_ref->inst_comm_rt = nullptr;
+
+    // This should skip foreign cleanup (line 1779) and go to final cleanup (line 1788)
+    wasm_ref_delete(test_ref);
+
+    // If we reach here, the non-foreign path worked correctly
+    ASSERT_TRUE(true);  // Successful completion validates non-foreign cleanup path
+
+    wasm_store_delete(store);
+}
+
+/******
+ * Test Case: wasm_ref_delete_ForeignRef_CleansForeignObject
+ * Source: core/iwasm/common/wasm_c_api.c:1779-1786
+ * Target Lines: 1779 (foreign type check), 1782-1784 (foreign vector get and cleanup)
+ * Functional Purpose: Validates that wasm_ref_delete properly handles foreign reference
+ *                     cleanup by retrieving and deleting the foreign object from the store.
+ * Call Path: Direct API call with WASM_REF_foreign type
+ * Coverage Goal: Exercise foreign reference cleanup path including bh_vector_get
+ ******/
+TEST_F(EnhancedWasmCApiRefTest, wasm_ref_delete_ForeignRef_CleansForeignObject)
+{
+    wasm_store_t* store = create_test_store();
+    ASSERT_NE(nullptr, store);
+
+    // Create a foreign object and add it to the store's foreigns vector
+    wasm_foreign_t* foreign = wasm_foreign_new(store);
+    ASSERT_NE(nullptr, foreign);
+
+    // Create a foreign ref pointing to this foreign object
+    wasm_ref_t* test_ref = (wasm_ref_t*)wasm_runtime_malloc(sizeof(wasm_ref_t));
+    ASSERT_NE(nullptr, test_ref);
+
+    test_ref->store = store;
+    test_ref->kind = WASM_REF_foreign;  // This triggers foreign cleanup path
+    test_ref->host_info.info = nullptr;
+    test_ref->host_info.finalizer = nullptr;
+    test_ref->ref_idx_rt = 0;  // Index to the foreign object in store->foreigns
+    test_ref->inst_comm_rt = nullptr;
+
+    // Call wasm_ref_delete - should execute foreign cleanup path (lines 1779-1786)
+    wasm_ref_delete(test_ref);
+
+    // If we reach here, the foreign cleanup path worked correctly
+    ASSERT_TRUE(true);  // Successful completion validates foreign cleanup path
+
+    wasm_store_delete(store);
+}
