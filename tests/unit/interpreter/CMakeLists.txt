@@ -14,8 +14,14 @@ add_definitions (-Dattr_container_free=free)
 set (WAMR_BUILD_LIBC_WASI 0)
 set (WAMR_BUILD_APP_FRAMEWORK 1)
 set (WAMR_BUILD_AOT 0)
+set (WAMR_BUILD_THREAD_MGR 1)
 
 include (../unit_common.cmake)
+
+# Include thread manager if enabled
+if (WAMR_BUILD_THREAD_MGR EQUAL 1)
+    include (${CMAKE_CURRENT_SOURCE_DIR}/../../../core/iwasm/libraries/thread-mgr/thread_mgr.cmake)
+endif ()
 
 include_directories (${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -32,6 +38,7 @@ set (unit_test_sources
      ${LIBC_BUILTIN_SOURCE}
      ${IWASM_COMMON_SOURCE}
      ${IWASM_INTERP_SOURCE}
+     ${THREAD_MGR_SOURCE}
     )
 
 # Now simply link against gtest or gtest_main as needed. Eg

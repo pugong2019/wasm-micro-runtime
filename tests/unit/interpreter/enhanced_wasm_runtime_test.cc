@@ -557,3 +557,212 @@ TEST_F(EnhancedWasmRuntimeTest, wasm_module_realloc_internal_NoMemory_SetsOutOfM
     wasm_runtime_deinstantiate(module_inst);
     wasm_runtime_unload(module);
 }
+
+// =============================================================================
+// New Test Cases for wasm_set_aux_stack function (lines 4078-4108)
+// =============================================================================
+
+#if WASM_ENABLE_THREAD_MGR != 0
+
+/******
+ * Test Case: wasm_set_aux_stack_InvalidStackTopIdx_ReturnsFalse
+ * Source: core/iwasm/interpreter/wasm_runtime.c:4078-4108
+ * Target Lines: 4078-4082 (parameter setup), 4094 (stack_top_idx check), 4108 (return false)
+ * Functional Purpose: Validates that wasm_set_aux_stack() returns false when
+ *                     stack_top_idx is invalid (-1), ensuring proper validation
+ *                     of auxiliary stack configuration.
+ * Call Path: wasm_set_aux_stack() <- wasm_exec_env_set_aux_stack() <- thread_manager
+ * Coverage Goal: Exercise early return path for invalid stack configuration
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_set_aux_stack_InvalidStackTopIdx_ReturnsFalse) {
+    // Create a simple WASM module
+    uint8 simple_wasm[] = {
+        0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, // WASM header
+        0x01, 0x04, 0x01, 0x60, 0x00, 0x00,             // Type section: () -> ()
+        0x03, 0x02, 0x01, 0x00,                         // Function section: 1 function of type 0
+        0x0a, 0x04, 0x01, 0x02, 0x00, 0x0b              // Code section: empty function
+    };
+
+    char error_buf[128];
+    wasm_module_t module = wasm_runtime_load(simple_wasm, sizeof(simple_wasm), error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 65536, 0, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    WASMExecEnv *exec_env = wasm_runtime_create_exec_env(module_inst, 65536);
+    ASSERT_NE(nullptr, exec_env);
+
+    // Set aux_stack_top_global_index to invalid value (-1)
+    WASMModuleInstance *wasm_module_inst = (WASMModuleInstance*)module_inst;
+    wasm_module_inst->module->aux_stack_top_global_index = (uint32)-1;
+
+    // Call wasm_set_aux_stack - should return false due to invalid stack_top_idx
+    bool result = wasm_set_aux_stack(exec_env, 1000, 512);
+    ASSERT_FALSE(result);  // Line 4108: return false
+
+    wasm_runtime_destroy_exec_env(exec_env);
+    wasm_runtime_deinstantiate(module_inst);
+    wasm_runtime_unload(module);
+}
+
+#if WASM_ENABLE_HEAP_AUX_STACK_ALLOCATION == 0
+/******
+ * Test Case: wasm_set_aux_stack_StackBeforeData_InsufficientSize_ReturnsFalse
+ * Source: core/iwasm/interpreter/wasm_runtime.c:4078-4108
+ * Target Lines: 4084-4092 (aux stack space check), specifically 4089-4091
+ * Functional Purpose: Validates that wasm_set_aux_stack() returns false when
+ *                     stack is before data and size > start_offset (insufficient space)
+ * Call Path: wasm_set_aux_stack() <- wasm_exec_env_set_aux_stack() <- thread_manager
+ * Coverage Goal: Exercise error path for stack space validation (stack before data)
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_set_aux_stack_StackBeforeData_InsufficientSize_ReturnsFalse) {
+    // Create a simple WASM module
+    uint8 simple_wasm[] = {
+        0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, // WASM header
+        0x01, 0x04, 0x01, 0x60, 0x00, 0x00,             // Type section: () -> ()
+        0x03, 0x02, 0x01, 0x00,                         // Function section: 1 function of type 0
+        0x0a, 0x04, 0x01, 0x02, 0x00, 0x0b              // Code section: empty function
+    };
+
+    char error_buf[128];
+    wasm_module_t module = wasm_runtime_load(simple_wasm, sizeof(simple_wasm), error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 65536, 0, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    WASMExecEnv *exec_env = wasm_runtime_create_exec_env(module_inst, 65536);
+    ASSERT_NE(nullptr, exec_env);
+
+    WASMModuleInstance *wasm_module_inst = (WASMModuleInstance*)module_inst;
+
+    // Configure module for stack before data scenario (line 4088)
+    wasm_module_inst->module->aux_data_end = 2000;      // Data ends at 2000
+    wasm_module_inst->module->aux_stack_bottom = 1000;  // Stack starts at 1000 (before data)
+    wasm_module_inst->module->aux_stack_top_global_index = 0; // Valid stack top index
+
+    // Set insufficient space: size (600) > start_offset (500)
+    uint64 start_offset = 500;
+    uint32 size = 600;
+
+    // This should fail the condition: is_stack_before_data && (size > start_offset)
+    bool result = wasm_set_aux_stack(exec_env, start_offset, size);
+    ASSERT_FALSE(result);  // Line 4091: return false
+
+    wasm_runtime_destroy_exec_env(exec_env);
+    wasm_runtime_deinstantiate(module_inst);
+    wasm_runtime_unload(module);
+}
+
+/******
+ * Test Case: wasm_set_aux_stack_StackAfterData_InsufficientSpace_ReturnsFalse
+ * Source: core/iwasm/interpreter/wasm_runtime.c:4078-4108
+ * Target Lines: 4084-4092 (aux stack space check), specifically 4089-4091
+ * Functional Purpose: Validates that wasm_set_aux_stack() returns false when
+ *                     stack is after data and available space is insufficient
+ * Call Path: wasm_set_aux_stack() <- wasm_exec_env_set_aux_stack() <- thread_manager
+ * Coverage Goal: Exercise error path for stack space validation (stack after data)
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_set_aux_stack_StackAfterData_InsufficientSpace_ReturnsFalse) {
+    // Create a simple WASM module
+    uint8 simple_wasm[] = {
+        0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, // WASM header
+        0x01, 0x04, 0x01, 0x60, 0x00, 0x00,             // Type section: () -> ()
+        0x03, 0x02, 0x01, 0x00,                         // Function section: 1 function of type 0
+        0x0a, 0x04, 0x01, 0x02, 0x00, 0x0b              // Code section: empty function
+    };
+
+    char error_buf[128];
+    wasm_module_t module = wasm_runtime_load(simple_wasm, sizeof(simple_wasm), error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 65536, 0, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    WASMExecEnv *exec_env = wasm_runtime_create_exec_env(module_inst, 65536);
+    ASSERT_NE(nullptr, exec_env);
+
+    WASMModuleInstance *wasm_module_inst = (WASMModuleInstance*)module_inst;
+
+    // Configure module for stack after data scenario (line 4088)
+    wasm_module_inst->module->aux_data_end = 1000;      // Data ends at 1000
+    wasm_module_inst->module->aux_stack_bottom = 2000;  // Stack starts at 2000 (after data)
+    wasm_module_inst->module->aux_stack_top_global_index = 0; // Valid stack top index
+
+    // Set insufficient space: start_offset - data_end (1500 - 1000 = 500) < size (600)
+    uint64 start_offset = 1500;
+    uint32 size = 600;
+
+    // This should fail the condition: !is_stack_before_data && (start_offset - data_end < size)
+    bool result = wasm_set_aux_stack(exec_env, start_offset, size);
+    ASSERT_FALSE(result);  // Line 4091: return false
+
+    wasm_runtime_destroy_exec_env(exec_env);
+    wasm_runtime_deinstantiate(module_inst);
+    wasm_runtime_unload(module);
+}
+#endif
+
+/******
+ * Test Case: wasm_set_aux_stack_ValidConfiguration_ReturnsTrue
+ * Source: core/iwasm/interpreter/wasm_runtime.c:4078-4108
+ * Target Lines: 4094-4105 (valid stack_top_idx path), 4097-4104 (global address setting)
+ * Functional Purpose: Validates that wasm_set_aux_stack() successfully sets aux stack
+ *                     when provided with valid configuration and global index
+ * Call Path: wasm_set_aux_stack() <- wasm_exec_env_set_aux_stack() <- thread_manager
+ * Coverage Goal: Exercise successful execution path with global address updates
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_set_aux_stack_ValidConfiguration_ReturnsTrue) {
+    // Create a simple WASM module with a global
+    uint8 simple_wasm[] = {
+        0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, // WASM header
+        0x01, 0x04, 0x01, 0x60, 0x00, 0x00,             // Type section: () -> ()
+        0x03, 0x02, 0x01, 0x00,                         // Function section: 1 function of type 0
+        0x06, 0x06, 0x01, 0x7f, 0x00, 0x41, 0x00, 0x0b, // Global section: i32 global = 0
+        0x0a, 0x04, 0x01, 0x02, 0x00, 0x0b              // Code section: empty function
+    };
+
+    char error_buf[128];
+    wasm_module_t module = wasm_runtime_load(simple_wasm, sizeof(simple_wasm), error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 65536, 0, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    WASMExecEnv *exec_env = wasm_runtime_create_exec_env(module_inst, 65536);
+    ASSERT_NE(nullptr, exec_env);
+
+    WASMModuleInstance *wasm_module_inst = (WASMModuleInstance*)module_inst;
+
+    // Configure valid stack top global index
+    wasm_module_inst->module->aux_stack_top_global_index = 0; // Valid global index
+
+#if WASM_ENABLE_HEAP_AUX_STACK_ALLOCATION == 0
+    // Configure valid aux stack space
+    wasm_module_inst->module->aux_data_end = 1000;      // Data ends at 1000
+    wasm_module_inst->module->aux_stack_bottom = 2000;  // Stack starts at 2000 (after data)
+#endif
+
+    // Set valid aux stack configuration
+    uint64 start_offset = 2000;
+    uint32 size = 512;
+
+    // This should succeed
+    bool result = wasm_set_aux_stack(exec_env, start_offset, size);
+    ASSERT_TRUE(result);  // Line 4105: return true
+
+    // Verify that global address was set correctly (lines 4097-4100)
+    uint8 *global_addr = wasm_module_inst->global_data + wasm_module_inst->e->globals[0].data_offset;
+    ASSERT_EQ((uint32)start_offset, *(int32 *)global_addr);
+
+    // Verify exec_env aux stack boundary and bottom were set (lines 4103-4104)
+    ASSERT_EQ((uintptr_t)start_offset - size, exec_env->aux_stack_boundary);
+    ASSERT_EQ((uintptr_t)start_offset, exec_env->aux_stack_bottom);
+
+    wasm_runtime_destroy_exec_env(exec_env);
+    wasm_runtime_deinstantiate(module_inst);
+    wasm_runtime_unload(module);
+}
+
+#endif // WASM_ENABLE_THREAD_MGR
