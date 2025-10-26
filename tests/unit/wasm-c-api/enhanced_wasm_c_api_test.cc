@@ -2657,3 +2657,147 @@ TEST_F(EnhancedWasmCApiMemoryDataTest, wasm_memory_data_ModuleInstanceAssignment
     wasm_byte_vec_delete(&wasm_bytes);
 }
 
+// =============================================================================
+// NEW TEST CASES FOR wasm_memory_data_size (lines 4402-4429)
+// =============================================================================
+
+/******
+ * Test Case: wasm_memory_data_size_NullMemory_ReturnsZero
+ * Source: core/iwasm/common/wasm_c_api.c:4398-4400
+ * Target Lines: 4398-4400 (null memory parameter validation)
+ * Functional Purpose: Validates that wasm_memory_data_size correctly handles
+ *                     null memory parameter and returns 0 without attempting
+ *                     any memory operations.
+ * Call Path: Direct API call
+ * Coverage Goal: Exercise null memory parameter validation path
+ ******/
+TEST_F(EnhancedWasmCApiTestTableSet, wasm_memory_data_size_NullMemory_ReturnsZero)
+{
+    // Test null memory parameter - this exercises lines 4398-4400
+    size_t result = wasm_memory_data_size(nullptr);
+    ASSERT_EQ(0u, result);
+}
+
+/******
+ * Test Case: wasm_memory_data_size_NullInstCommRt_ReturnsZero
+ * Source: core/iwasm/common/wasm_c_api.c:4398-4400
+ * Target Lines: 4398-4400 (null inst_comm_rt validation)
+ * Functional Purpose: Validates that wasm_memory_data_size correctly handles
+ *                     memory object with null inst_comm_rt and returns 0.
+ * Call Path: Direct API call
+ * Coverage Goal: Exercise inst_comm_rt null validation path
+ ******/
+TEST_F(EnhancedWasmCApiTestTableSet, wasm_memory_data_size_NullInstCommRt_ReturnsZero)
+{
+    // Test memory without inst_comm_rt - this exercises lines 4398-4400
+    wasm_memory_t* invalid_memory = (wasm_memory_t*)wasm_runtime_malloc(sizeof(wasm_memory_t));
+    ASSERT_NE(nullptr, invalid_memory);
+    memset(invalid_memory, 0, sizeof(wasm_memory_t));
+    invalid_memory->inst_comm_rt = nullptr;
+
+    size_t result = wasm_memory_data_size(invalid_memory);
+    ASSERT_EQ(0u, result);
+
+    wasm_runtime_free(invalid_memory);
+}
+
+/******
+ * Test Case: wasm_memory_data_size_ValidInterpreterMemory_ReturnsCorrectSize
+ * Source: core/iwasm/common/wasm_c_api.c:4402-4411
+ * Target Lines: 4402 (assignment), 4404-4411 (interpreter path)
+ * Functional Purpose: Validates that wasm_memory_data_size correctly calculates
+ *                     memory data size for interpreter module instances by
+ *                     multiplying page count by bytes per page.
+ * Call Path: Direct API call
+ * Coverage Goal: Exercise interpreter module memory size calculation
+ ******/
+TEST_F(EnhancedWasmCApiTestTableSet, wasm_memory_data_size_ValidInterpreterMemory_ReturnsCorrectSize)
+{
+    // Load a WASM module with memory and export it
+    uint8_t simple_wasm[] = {
+        0x00, 0x61, 0x73, 0x6d, // magic
+        0x01, 0x00, 0x00, 0x00, // version
+        // Memory section
+        0x05, 0x04, 0x01,       // memory section header
+        0x01, 0x01, 0x02,       // min=1, max=2 pages
+        // Export section
+        0x07, 0x07, 0x01,       // export section header (1 export)
+        0x03, 0x6d, 0x65, 0x6d, // "mem" (export name length + name)
+        0x02, 0x00              // memory export, index 0
+    };
+
+    wasm_engine_t* engine = wasm_engine_new();
+    ASSERT_NE(nullptr, engine);
+
+    wasm_store_t* store = wasm_store_new(engine);
+    ASSERT_NE(nullptr, store);
+
+    wasm_byte_vec_t wasm_bytes;
+    wasm_byte_vec_new(&wasm_bytes, sizeof(simple_wasm), (wasm_byte_t*)simple_wasm);
+
+    wasm_module_t* module = wasm_module_new(store, &wasm_bytes);
+    ASSERT_NE(nullptr, module);
+
+    wasm_instance_t* instance = wasm_instance_new(store, module, nullptr, nullptr);
+    ASSERT_NE(nullptr, instance);
+
+    // Get memory from exports
+    wasm_extern_vec_t exports;
+    wasm_instance_exports(instance, &exports);
+    ASSERT_EQ(1u, exports.size);
+
+    wasm_memory_t* memory = wasm_extern_as_memory(exports.data[0]);
+    ASSERT_NE(nullptr, memory);
+    ASSERT_NE(nullptr, memory->inst_comm_rt);
+
+    // Test the target function - this exercises lines 4402, 4404-4411
+    size_t data_size = wasm_memory_data_size(memory);
+
+    // Memory should have at least 1 page (64KB minimum)
+    ASSERT_GE(data_size, 65536u);
+
+    // Clean up
+    wasm_extern_vec_delete(&exports);
+    wasm_instance_delete(instance);
+    wasm_module_delete(module);
+    wasm_byte_vec_delete(&wasm_bytes);
+    wasm_store_delete(store);
+    wasm_engine_delete(engine);
+}
+
+/******
+ * Test Case: wasm_memory_data_size_InvalidModuleType_ReturnsZero
+ * Source: core/iwasm/common/wasm_c_api.c:4425-4429
+ * Target Lines: 4425-4429 (invalid module type fallback)
+ * Functional Purpose: Validates that wasm_memory_data_size handles the edge case
+ *                     where module type doesn't match any supported type, indicating
+ *                     wrong combination of module filetype and compilation flags.
+ * Call Path: Direct API call
+ * Coverage Goal: Exercise error fallback path for invalid module type
+ ******/
+TEST_F(EnhancedWasmCApiTestTableSet, wasm_memory_data_size_InvalidModuleType_ReturnsZero)
+{
+    // Create a mock memory with invalid module type
+    wasm_memory_t* malformed_memory = (wasm_memory_t*)wasm_runtime_malloc(sizeof(wasm_memory_t));
+    ASSERT_NE(nullptr, malformed_memory);
+    memset(malformed_memory, 0, sizeof(wasm_memory_t));
+
+    // Create a mock module instance with invalid module type
+    WASMModuleInstanceCommon* mock_inst = (WASMModuleInstanceCommon*)wasm_runtime_malloc(sizeof(WASMModuleInstanceCommon));
+    ASSERT_NE(nullptr, mock_inst);
+    memset(mock_inst, 0, sizeof(WASMModuleInstanceCommon));
+
+    // Set an invalid module type (not Wasm_Module_Bytecode or Wasm_Module_AoT)
+    mock_inst->module_type = (uint8)99; // Invalid type
+
+    malformed_memory->inst_comm_rt = mock_inst;
+    malformed_memory->memory_idx_rt = 0;
+
+    // This should exercise the fallback path at lines 4425-4429
+    size_t result = wasm_memory_data_size(malformed_memory);
+    ASSERT_EQ(0u, result);
+
+    wasm_runtime_free(mock_inst);
+    wasm_runtime_free(malformed_memory);
+}
+
