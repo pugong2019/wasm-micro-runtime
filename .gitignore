@@ -14,7 +14,7 @@
 .DS_Store
 *.o
 .aider*
-
+./tests/unit/test-coverage-tasks.json
 core/deps/**
 core/shared/mem-alloc/tlsf
 core/iwasm/libraries/lib-wasi-threads/test/*.wasm

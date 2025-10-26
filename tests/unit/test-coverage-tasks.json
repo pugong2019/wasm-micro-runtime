@@ -1,28 +1,34 @@
 {
+  "metadata": {
+    "total_tasks": 2,
+    "completed_tasks": 0,
+    "pending_tasks": 2,
+    "failed_tasks": 0
+  },
   "tasks": [
     {
       "task_id": 1,
       "module": "runtime_common",
       "source_file": "core/iwasm/common/wasm_runtime_common.c",
       "code_lines": "7820-7839",
+      "status": "in_progress",
+      "covered_lines": "",
+      "coverage_percentage": "",
+      "execution_date": "2025-10-26",
+      "commit_hash": "",
+      "notes": ""
+    },
+    {
+      "task_id": 2,
+      "module": "runtime_common",
+      "source_file": "core/iwasm/common/wasm_runtime_common.c",
+      "code_lines": "7841-7857",
       "status": "pending",
       "covered_lines": "",
       "coverage_percentage": "",
       "execution_date": "",
       "commit_hash": "",
       "notes": ""
-    },
-    {
-        "task_id": 1,
-        "module": "runtime_common",
-        "source_file": "core/iwasm/common/wasm_runtime_common.c",
-        "code_lines": "7841-7857",
-        "status": "pending",
-        "covered_lines": "",
-        "coverage_percentage": "",
-        "execution_date": "",
-        "commit_hash": "",
-        "notes": ""
-      }
+    }
   ]
 }

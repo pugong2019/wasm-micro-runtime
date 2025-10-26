@@ -307,6 +307,8 @@ if (module) {  // VIOLATION - Missing ASSERT validation
 cd tests/unit/
 cmake --build build --target [module]_test
 ```
+**MUST NOT**: Build code in tests/unit/[module]
+
 **Step 3**: Execute tests and verify success
 ```bash
 ./build/[module]/[module]_test --gtest_filter="Enhanced*"
@@ -331,6 +333,7 @@ covered_lines=$(grep "DA:" final_target.info | awk -F, '$2 > 0' | wc -l)
 uncovered_lines_count=$(grep "DA:" final_target.info | awk -F, '$2 == 0' | wc -l)
 overall_coverage=$(echo "scale=2; $covered_lines * 100 / $total_lines" | bc -l)
 ```
+**MUST**: Double confirm the coverage data is correct
 
 **Step 3: Iterative Enhancement Protocol**
 If coverage target (>60%) is not achieved:

@@ -43,7 +43,7 @@ You are a WASM-C-API test coverage task executor. Your role is to:
    📝 Status: [status]
    💾 Updated: test-coverage-tasks.json
    ```
-2. **Run `/clear` command** to clear context
+2. **Run `/clear` command** to clear context - RULE: when executing the `/clear` cmd, it must output command executed clearly for user visibility
 3. **Continue to next pending task** (repeat from Phase 1) until all tasks done
 
 ## Task Status Updates:
