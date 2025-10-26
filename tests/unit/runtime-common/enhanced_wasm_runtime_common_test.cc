@@ -4225,3 +4225,213 @@ TEST_F(EnhancedWasmRuntimeCommonTest, WasmRuntimeGetMaxMem_ValidMaxMemoryPages_R
     // Verify that function returns max_memory_pages when it's within valid range
     ASSERT_EQ(max_memory_pages, result);
 }
+
+/**** New Test Cases for InstantiationArgs2 functions (lines 1687-1711) ****/
+
+/******
+ * Test Case: wasm_runtime_instantiation_args_destroy_ValidArgs_FreesMemory
+ * Source: core/iwasm/common/wasm_runtime_common.c:1687-1690
+ * Target Lines: 1687 (function signature), 1689 (wasm_runtime_free call), 1690 (function end)
+ * Functional Purpose: Validates that wasm_runtime_instantiation_args_destroy() correctly
+ *                     frees allocated memory for InstantiationArgs2 structure.
+ * Call Path: wasm_runtime_instantiation_args_destroy() -> wasm_runtime_free()
+ * Coverage Goal: Exercise memory deallocation path for InstantiationArgs2
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_instantiation_args_destroy_ValidArgs_FreesMemory) {
+    struct InstantiationArgs2 *args = nullptr;
+
+    // Create args structure first
+    bool create_result = wasm_runtime_instantiation_args_create(&args);
+    ASSERT_TRUE(create_result);
+    ASSERT_NE(nullptr, args);
+
+    // Call destroy function - should complete without error
+    wasm_runtime_instantiation_args_destroy(args);
+
+    // Test passes if no crashes occur during destruction
+    // Memory deallocation is handled by wasm_runtime_free internally
+}
+
+/******
+ * Test Case: wasm_runtime_instantiation_args_destroy_NullArgs_HandlesGracefully
+ * Source: core/iwasm/common/wasm_runtime_common.c:1687-1690
+ * Target Lines: 1687 (function signature), 1689 (wasm_runtime_free with null)
+ * Functional Purpose: Validates that wasm_runtime_instantiation_args_destroy() handles
+ *                     NULL pointer input gracefully without crashing.
+ * Call Path: wasm_runtime_instantiation_args_destroy() -> wasm_runtime_free(NULL)
+ * Coverage Goal: Exercise null pointer handling in destroy function
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_instantiation_args_destroy_NullArgs_HandlesGracefully) {
+    // Call destroy with NULL pointer - should handle gracefully
+    wasm_runtime_instantiation_args_destroy(nullptr);
+
+    // Test passes if no crashes occur
+}
+
+/******
+ * Test Case: wasm_runtime_instantiation_args_set_default_stack_size_ValidArgs_SetsValue
+ * Source: core/iwasm/common/wasm_runtime_common.c:1693-1697
+ * Target Lines: 1693-1694 (function signature), 1696 (field assignment), 1697 (function end)
+ * Functional Purpose: Validates that wasm_runtime_instantiation_args_set_default_stack_size()
+ *                     correctly sets the default_stack_size field in InstantiationArgs2.
+ * Call Path: Direct function call setting p->v1.default_stack_size
+ * Coverage Goal: Exercise stack size configuration path
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_instantiation_args_set_default_stack_size_ValidArgs_SetsValue) {
+    struct InstantiationArgs2 *args = nullptr;
+
+    // Create args structure
+    bool create_result = wasm_runtime_instantiation_args_create(&args);
+    ASSERT_TRUE(create_result);
+    ASSERT_NE(nullptr, args);
+
+    // Set stack size to a specific value
+    uint32 test_stack_size = 65536; // 64KB
+    wasm_runtime_instantiation_args_set_default_stack_size(args, test_stack_size);
+
+    // Verify the value was set correctly
+    ASSERT_EQ(test_stack_size, args->v1.default_stack_size);
+
+    // Cleanup
+    wasm_runtime_instantiation_args_destroy(args);
+}
+
+/******
+ * Test Case: wasm_runtime_instantiation_args_set_default_stack_size_ZeroValue_SetsZero
+ * Source: core/iwasm/common/wasm_runtime_common.c:1693-1697
+ * Target Lines: 1693-1694 (function signature), 1696 (field assignment with zero)
+ * Functional Purpose: Validates that wasm_runtime_instantiation_args_set_default_stack_size()
+ *                     correctly handles zero stack size value.
+ * Call Path: Direct function call setting p->v1.default_stack_size = 0
+ * Coverage Goal: Exercise zero value assignment edge case
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_instantiation_args_set_default_stack_size_ZeroValue_SetsZero) {
+    struct InstantiationArgs2 *args = nullptr;
+
+    // Create args structure
+    bool create_result = wasm_runtime_instantiation_args_create(&args);
+    ASSERT_TRUE(create_result);
+    ASSERT_NE(nullptr, args);
+
+    // Set stack size to zero
+    uint32 zero_stack_size = 0;
+    wasm_runtime_instantiation_args_set_default_stack_size(args, zero_stack_size);
+
+    // Verify zero value was set
+    ASSERT_EQ(zero_stack_size, args->v1.default_stack_size);
+
+    // Cleanup
+    wasm_runtime_instantiation_args_destroy(args);
+}
+
+/******
+ * Test Case: wasm_runtime_instantiation_args_set_host_managed_heap_size_ValidArgs_SetsValue
+ * Source: core/iwasm/common/wasm_runtime_common.c:1700-1704
+ * Target Lines: 1700-1701 (function signature), 1703 (field assignment), 1704 (function end)
+ * Functional Purpose: Validates that wasm_runtime_instantiation_args_set_host_managed_heap_size()
+ *                     correctly sets the host_managed_heap_size field in InstantiationArgs2.
+ * Call Path: Direct function call setting p->v1.host_managed_heap_size
+ * Coverage Goal: Exercise heap size configuration path
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_instantiation_args_set_host_managed_heap_size_ValidArgs_SetsValue) {
+    struct InstantiationArgs2 *args = nullptr;
+
+    // Create args structure
+    bool create_result = wasm_runtime_instantiation_args_create(&args);
+    ASSERT_TRUE(create_result);
+    ASSERT_NE(nullptr, args);
+
+    // Set heap size to a specific value
+    uint32 test_heap_size = 1048576; // 1MB
+    wasm_runtime_instantiation_args_set_host_managed_heap_size(args, test_heap_size);
+
+    // Verify the value was set correctly
+    ASSERT_EQ(test_heap_size, args->v1.host_managed_heap_size);
+
+    // Cleanup
+    wasm_runtime_instantiation_args_destroy(args);
+}
+
+/******
+ * Test Case: wasm_runtime_instantiation_args_set_host_managed_heap_size_MaxValue_SetsMax
+ * Source: core/iwasm/common/wasm_runtime_common.c:1700-1704
+ * Target Lines: 1700-1701 (function signature), 1703 (field assignment with max value)
+ * Functional Purpose: Validates that wasm_runtime_instantiation_args_set_host_managed_heap_size()
+ *                     correctly handles maximum uint32 value for heap size.
+ * Call Path: Direct function call setting p->v1.host_managed_heap_size = UINT32_MAX
+ * Coverage Goal: Exercise maximum value boundary condition
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_instantiation_args_set_host_managed_heap_size_MaxValue_SetsMax) {
+    struct InstantiationArgs2 *args = nullptr;
+
+    // Create args structure
+    bool create_result = wasm_runtime_instantiation_args_create(&args);
+    ASSERT_TRUE(create_result);
+    ASSERT_NE(nullptr, args);
+
+    // Set heap size to maximum uint32 value
+    uint32 max_heap_size = UINT32_MAX;
+    wasm_runtime_instantiation_args_set_host_managed_heap_size(args, max_heap_size);
+
+    // Verify maximum value was set
+    ASSERT_EQ(max_heap_size, args->v1.host_managed_heap_size);
+
+    // Cleanup
+    wasm_runtime_instantiation_args_destroy(args);
+}
+
+/******
+ * Test Case: wasm_runtime_instantiation_args_set_max_memory_pages_ValidArgs_SetsValue
+ * Source: core/iwasm/common/wasm_runtime_common.c:1707-1711
+ * Target Lines: 1707-1708 (function signature), 1710 (field assignment), 1711 (function end)
+ * Functional Purpose: Validates that wasm_runtime_instantiation_args_set_max_memory_pages()
+ *                     correctly sets the max_memory_pages field in InstantiationArgs2.
+ * Call Path: Direct function call setting p->v1.max_memory_pages
+ * Coverage Goal: Exercise memory pages configuration path
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_instantiation_args_set_max_memory_pages_ValidArgs_SetsValue) {
+    struct InstantiationArgs2 *args = nullptr;
+
+    // Create args structure
+    bool create_result = wasm_runtime_instantiation_args_create(&args);
+    ASSERT_TRUE(create_result);
+    ASSERT_NE(nullptr, args);
+
+    // Set max memory pages to a typical value
+    uint32 test_max_pages = 256; // 16MB (256 * 64KB per page)
+    wasm_runtime_instantiation_args_set_max_memory_pages(args, test_max_pages);
+
+    // Verify the value was set correctly
+    ASSERT_EQ(test_max_pages, args->v1.max_memory_pages);
+
+    // Cleanup
+    wasm_runtime_instantiation_args_destroy(args);
+}
+
+/******
+ * Test Case: wasm_runtime_instantiation_args_set_max_memory_pages_MinimumValue_SetsOne
+ * Source: core/iwasm/common/wasm_runtime_common.c:1707-1711
+ * Target Lines: 1707-1708 (function signature), 1710 (field assignment with minimum)
+ * Functional Purpose: Validates that wasm_runtime_instantiation_args_set_max_memory_pages()
+ *                     correctly handles minimum memory pages value (1 page = 64KB).
+ * Call Path: Direct function call setting p->v1.max_memory_pages = 1
+ * Coverage Goal: Exercise minimum value boundary condition
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_instantiation_args_set_max_memory_pages_MinimumValue_SetsOne) {
+    struct InstantiationArgs2 *args = nullptr;
+
+    // Create args structure
+    bool create_result = wasm_runtime_instantiation_args_create(&args);
+    ASSERT_TRUE(create_result);
+    ASSERT_NE(nullptr, args);
+
+    // Set max memory pages to minimum value
+    uint32 min_pages = 1;
+    wasm_runtime_instantiation_args_set_max_memory_pages(args, min_pages);
+
+    // Verify minimum value was set
+    ASSERT_EQ(min_pages, args->v1.max_memory_pages);
+
+    // Cleanup
+    wasm_runtime_instantiation_args_destroy(args);
+}

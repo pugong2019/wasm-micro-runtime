@@ -85,4 +85,4 @@ add_custom_command(TARGET runtime_common_test POST_BUILD
 
 # Skip gtest_discover_tests for now to avoid build issues
 # include(GoogleTest)
-# gtest_discover_tests(runtime_common_test)
+gtest_discover_tests(runtime_common_test)
