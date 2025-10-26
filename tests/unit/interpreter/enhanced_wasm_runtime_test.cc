@@ -1801,3 +1801,205 @@ TEST_F(EnhancedWasmRuntimeTest, wasm_check_utf8_str_TruncatedSequences_ReturnsFa
     bool result3 = wasm_check_utf8_str(truncated_4byte, sizeof(truncated_4byte));
     ASSERT_FALSE(result3);
 }
+
+#if WASM_ENABLE_LIBC_WASI != 0 && WASM_ENABLE_MULTI_MODULE != 0
+
+/******
+ * Test Case: wasm_propagate_wasi_args_NoImports_EarlyReturn
+ * Source: core/iwasm/interpreter/wasm_runtime.c:4977-4978
+ * Target Lines: 4977 (condition check), 4978 (early return)
+ * Functional Purpose: Validates that wasm_propagate_wasi_args() correctly handles
+ *                     modules with no imports by returning early without processing.
+ * Call Path: wasm_propagate_wasi_args() <- wasm_runtime_set_wasi_args_ex()
+ * Coverage Goal: Exercise early return path when import_count is 0
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_propagate_wasi_args_NoImports_EarlyReturn) {
+    // Create a module with no imports
+    WASMModule *module = (WASMModule*)wasm_runtime_malloc(sizeof(WASMModule));
+    ASSERT_NE(nullptr, module);
+
+    memset(module, 0, sizeof(WASMModule));
+
+    // Set import_count to 0 to trigger early return
+    module->import_count = 0;
+
+    // Initialize WASI args with test data
+    module->wasi_args.argc = 2;
+    const char* test_argv[] = {"test_prog", "arg1"};
+    module->wasi_args.argv = (char**)test_argv;
+
+    // Call the function - should return early due to import_count == 0
+    wasm_propagate_wasi_args(module);
+
+    // Validation: Function should have returned early, WASI args remain unchanged
+    ASSERT_EQ(2, module->wasi_args.argc);
+    ASSERT_NE(nullptr, module->wasi_args.argv);
+
+    // Clean up
+    wasm_runtime_free(module);
+}
+
+/******
+ * Test Case: wasm_propagate_wasi_args_SingleImport_PropagatesArgs
+ * Source: core/iwasm/interpreter/wasm_runtime.c:4980-4991
+ * Target Lines: 4980 (assert), 4982-4983 (get first elem), 4984 (while condition),
+ *               4985-4986 (get wasi_args), 4987 (assert), 4989-4990 (memcpy), 4991 (next)
+ * Functional Purpose: Validates that wasm_propagate_wasi_args() correctly propagates
+ *                     WASI arguments from parent module to single imported module.
+ * Call Path: wasm_propagate_wasi_args() <- wasm_runtime_set_wasi_args_ex()
+ * Coverage Goal: Exercise main loop with single imported module
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_propagate_wasi_args_SingleImport_PropagatesArgs) {
+    // Create parent module with imports
+    WASMModule *parent_module = (WASMModule*)wasm_runtime_malloc(sizeof(WASMModule));
+    ASSERT_NE(nullptr, parent_module);
+    memset(parent_module, 0, sizeof(WASMModule));
+
+    // Create imported module
+    WASMModule *imported_module = (WASMModule*)wasm_runtime_malloc(sizeof(WASMModule));
+    ASSERT_NE(nullptr, imported_module);
+    memset(imported_module, 0, sizeof(WASMModule));
+
+    // Create registered module node
+    WASMRegisteredModule *reg_module = (WASMRegisteredModule*)wasm_runtime_malloc(sizeof(WASMRegisteredModule));
+    ASSERT_NE(nullptr, reg_module);
+    memset(reg_module, 0, sizeof(WASMRegisteredModule));
+
+    // Set up parent module
+    parent_module->import_count = 1;
+    bh_list_init(&parent_module->import_module_list_head);
+
+    // Set up WASI args in parent module
+    parent_module->wasi_args.argc = 3;
+    const char* parent_argv[] = {"parent_prog", "parent_arg1", "parent_arg2"};
+    parent_module->wasi_args.argv = (char**)parent_argv;
+    parent_module->wasi_args.env_count = 1;
+    const char* parent_env[] = {"TEST_ENV=test_value"};
+    parent_module->wasi_args.env = parent_env;
+
+    // Set up imported module with different WASI args
+    imported_module->wasi_args.argc = 1;
+    const char* imported_argv[] = {"imported_prog"};
+    imported_module->wasi_args.argv = (char**)imported_argv;
+    imported_module->wasi_args.env_count = 0;
+    imported_module->wasi_args.env = nullptr;
+
+    // Set up registered module node
+    reg_module->module = (WASMModuleCommon*)imported_module;
+
+    // Add registered module to parent's import list
+    bh_list_insert(&parent_module->import_module_list_head, reg_module);
+
+    // Call the function - should propagate WASI args to imported module
+    wasm_propagate_wasi_args(parent_module);
+
+    // Validation: Imported module should now have parent's WASI args
+    ASSERT_EQ(3, imported_module->wasi_args.argc);
+    ASSERT_EQ(parent_module->wasi_args.argv, imported_module->wasi_args.argv);
+    ASSERT_EQ(1, imported_module->wasi_args.env_count);
+    ASSERT_EQ(parent_module->wasi_args.env, imported_module->wasi_args.env);
+
+    // Clean up
+    bh_list_remove(&parent_module->import_module_list_head, reg_module);
+    wasm_runtime_free(reg_module);
+    wasm_runtime_free(imported_module);
+    wasm_runtime_free(parent_module);
+}
+
+/******
+ * Test Case: wasm_propagate_wasi_args_MultipleImports_PropagatesAll
+ * Source: core/iwasm/interpreter/wasm_runtime.c:4980-4991
+ * Target Lines: 4980 (assert), 4982-4983 (get first elem), 4984 (while condition),
+ *               4985-4986 (get wasi_args), 4987 (assert), 4989-4990 (memcpy), 4991 (next)
+ * Functional Purpose: Validates that wasm_propagate_wasi_args() correctly propagates
+ *                     WASI arguments to multiple imported modules in the import list.
+ * Call Path: wasm_propagate_wasi_args() <- wasm_runtime_set_wasi_args_ex()
+ * Coverage Goal: Exercise full loop iteration with multiple imported modules
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_propagate_wasi_args_MultipleImports_PropagatesAll) {
+    // Create parent module with imports
+    WASMModule *parent_module = (WASMModule*)wasm_runtime_malloc(sizeof(WASMModule));
+    ASSERT_NE(nullptr, parent_module);
+    memset(parent_module, 0, sizeof(WASMModule));
+
+    // Create two imported modules
+    WASMModule *imported_module1 = (WASMModule*)wasm_runtime_malloc(sizeof(WASMModule));
+    ASSERT_NE(nullptr, imported_module1);
+    memset(imported_module1, 0, sizeof(WASMModule));
+
+    WASMModule *imported_module2 = (WASMModule*)wasm_runtime_malloc(sizeof(WASMModule));
+    ASSERT_NE(nullptr, imported_module2);
+    memset(imported_module2, 0, sizeof(WASMModule));
+
+    // Create registered module nodes
+    WASMRegisteredModule *reg_module1 = (WASMRegisteredModule*)wasm_runtime_malloc(sizeof(WASMRegisteredModule));
+    ASSERT_NE(nullptr, reg_module1);
+    memset(reg_module1, 0, sizeof(WASMRegisteredModule));
+
+    WASMRegisteredModule *reg_module2 = (WASMRegisteredModule*)wasm_runtime_malloc(sizeof(WASMRegisteredModule));
+    ASSERT_NE(nullptr, reg_module2);
+    memset(reg_module2, 0, sizeof(WASMRegisteredModule));
+
+    // Set up parent module
+    parent_module->import_count = 2;
+    bh_list_init(&parent_module->import_module_list_head);
+
+    // Set up WASI args in parent module
+    parent_module->wasi_args.argc = 4;
+    const char* parent_argv[] = {"parent_prog", "arg1", "arg2", "arg3"};
+    parent_module->wasi_args.argv = (char**)parent_argv;
+    parent_module->wasi_args.env_count = 2;
+    const char* parent_env[] = {"ENV1=value1", "ENV2=value2"};
+    parent_module->wasi_args.env = parent_env;
+    parent_module->wasi_args.dir_count = 1;
+    const char* parent_dirs[] = {"/tmp"};
+    parent_module->wasi_args.dir_list = parent_dirs;
+
+    // Set up imported modules with different initial WASI args
+    imported_module1->wasi_args.argc = 1;
+    imported_module1->wasi_args.env_count = 0;
+    imported_module1->wasi_args.dir_count = 0;
+
+    imported_module2->wasi_args.argc = 2;
+    imported_module2->wasi_args.env_count = 1;
+    imported_module2->wasi_args.dir_count = 3;
+
+    // Set up registered module nodes
+    reg_module1->module = (WASMModuleCommon*)imported_module1;
+    reg_module2->module = (WASMModuleCommon*)imported_module2;
+
+    // Add registered modules to parent's import list
+    bh_list_insert(&parent_module->import_module_list_head, reg_module1);
+    bh_list_insert(&parent_module->import_module_list_head, reg_module2);
+
+    // Call the function - should propagate WASI args to all imported modules
+    wasm_propagate_wasi_args(parent_module);
+
+    // Validation: Both imported modules should now have parent's WASI args
+    // Check imported_module1
+    ASSERT_EQ(4, imported_module1->wasi_args.argc);
+    ASSERT_EQ(parent_module->wasi_args.argv, imported_module1->wasi_args.argv);
+    ASSERT_EQ(2, imported_module1->wasi_args.env_count);
+    ASSERT_EQ(parent_module->wasi_args.env, imported_module1->wasi_args.env);
+    ASSERT_EQ(1, imported_module1->wasi_args.dir_count);
+    ASSERT_EQ(parent_module->wasi_args.dir_list, imported_module1->wasi_args.dir_list);
+
+    // Check imported_module2
+    ASSERT_EQ(4, imported_module2->wasi_args.argc);
+    ASSERT_EQ(parent_module->wasi_args.argv, imported_module2->wasi_args.argv);
+    ASSERT_EQ(2, imported_module2->wasi_args.env_count);
+    ASSERT_EQ(parent_module->wasi_args.env, imported_module2->wasi_args.env);
+    ASSERT_EQ(1, imported_module2->wasi_args.dir_count);
+    ASSERT_EQ(parent_module->wasi_args.dir_list, imported_module2->wasi_args.dir_list);
+
+    // Clean up
+    bh_list_remove(&parent_module->import_module_list_head, reg_module1);
+    bh_list_remove(&parent_module->import_module_list_head, reg_module2);
+    wasm_runtime_free(reg_module2);
+    wasm_runtime_free(reg_module1);
+    wasm_runtime_free(imported_module2);
+    wasm_runtime_free(imported_module1);
+    wasm_runtime_free(parent_module);
+}
+
+#endif /* WASM_ENABLE_LIBC_WASI != 0 && WASM_ENABLE_MULTI_MODULE != 0 */

@@ -11,12 +11,18 @@ add_definitions (-Dattr_container_malloc=malloc)
 add_definitions (-Dattr_container_free=free)
 # add_definitions (-DWASM_ENABLE_WAMR_COMPILER=1)
 
-set (WAMR_BUILD_LIBC_WASI 0)
+set (WAMR_BUILD_LIBC_WASI 1)
 set (WAMR_BUILD_APP_FRAMEWORK 1)
 set (WAMR_BUILD_AOT 0)
 set (WAMR_BUILD_THREAD_MGR 1)
+set (WAMR_BUILD_MULTI_MODULE 1)
 
 include (../unit_common.cmake)
+
+# Include LIBC WASI if enabled
+if (WAMR_BUILD_LIBC_WASI EQUAL 1)
+    include (${CMAKE_CURRENT_SOURCE_DIR}/../../../core/iwasm/libraries/libc-wasi/libc_wasi.cmake)
+endif ()
 
 # Include thread manager if enabled
 if (WAMR_BUILD_THREAD_MGR EQUAL 1)
@@ -36,6 +42,7 @@ set (unit_test_sources
      ${MEM_ALLOC_SHARED_SOURCE}
      ${NATIVE_INTERFACE_SOURCE}
      ${LIBC_BUILTIN_SOURCE}
+     ${LIBC_WASI_SOURCE}
      ${IWASM_COMMON_SOURCE}
      ${IWASM_INTERP_SOURCE}
      ${THREAD_MGR_SOURCE}
