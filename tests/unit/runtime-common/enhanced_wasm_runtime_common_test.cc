@@ -3270,4 +3270,152 @@ TEST_F(EnhancedWasmRuntimeCommonTest, WasmExternrefRef2obj_ThreadSafetyMutexLock
     ASSERT_FALSE(invalid_result);
 }
 
+/******
+ * Test Case: WasmExternrefSetCleanup_ValidExternref_SuccessfulCleanupSet
+ * Source: core/iwasm/common/wasm_runtime_common.c:6509-6534
+ * Target Lines: 6513-6519 (setup), 6521-6524 (mutex/traverse), 6525-6531 (found case), 6532-6534 (unlock/return)
+ * Functional Purpose: Validates that wasm_externref_set_cleanup() successfully sets
+ *                     a cleanup callback for an existing externref mapping and
+ *                     returns true when the extern object is found in the hash map.
+ * Call Path: Direct API call to wasm_externref_set_cleanup()
+ * Coverage Goal: Exercise successful cleanup callback assignment path
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmExternrefSetCleanup_ValidExternref_SuccessfulCleanupSet) {
+    // Create test object and cleanup function
+    int test_object = 42;
+    void *test_extern_obj = &test_object;
+    uint32 externref_idx = 0;
+
+    // Create cleanup callback function
+    auto cleanup_func = [](void *obj) {
+        // Simple cleanup function for testing
+        ASSERT_NE(nullptr, obj);
+    };
+
+    // First create externref mapping
+    bool obj2ref_result = wasm_externref_obj2ref(module_inst, test_extern_obj, &externref_idx);
+    ASSERT_TRUE(obj2ref_result);
+    ASSERT_GT(externref_idx, 0);
+
+    // Test wasm_externref_set_cleanup with valid externref
+    // This should exercise lines 6513-6519 (setup), 6521-6524 (mutex/traverse),
+    // 6525-6531 (found case - setting cleanup), and 6532-6534 (unlock/return)
+    bool set_cleanup_result = wasm_externref_set_cleanup(module_inst, test_extern_obj, cleanup_func);
+
+    // Verify successful cleanup setting
+    ASSERT_TRUE(set_cleanup_result);
+
+    // Verify the mapping still exists and is valid
+    void *retrieved_obj = nullptr;
+    bool ref2obj_result = wasm_externref_ref2obj(externref_idx, &retrieved_obj);
+    ASSERT_TRUE(ref2obj_result);
+    ASSERT_EQ(test_extern_obj, retrieved_obj);
+}
+
+/******
+ * Test Case: WasmExternrefSetCleanup_NonexistentExternref_ReturnsFalse
+ * Source: core/iwasm/common/wasm_runtime_common.c:6509-6534
+ * Target Lines: 6513-6519 (setup), 6521-6524 (mutex/traverse), 6532-6534 (unlock/return false)
+ * Functional Purpose: Validates that wasm_externref_set_cleanup() returns false
+ *                     when trying to set cleanup for a non-existent extern object,
+ *                     properly exercising the not-found code path.
+ * Call Path: Direct API call to wasm_externref_set_cleanup()
+ * Coverage Goal: Exercise failure path when externref not found in hash map
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmExternrefSetCleanup_NonexistentExternref_ReturnsFalse) {
+    // Create test object that doesn't exist in externref mapping
+    int test_object = 99;
+    void *nonexistent_extern_obj = &test_object;
+
+    // Create cleanup callback function
+    auto cleanup_func = [](void *obj) {
+        // This should never be called since object doesn't exist
+    };
+
+    // Test wasm_externref_set_cleanup with non-existent externref
+    // This should exercise lines 6513-6519 (setup), 6521-6524 (mutex/traverse),
+    // skip 6525-6531 (not found), and go to 6532-6534 (unlock/return false)
+    bool set_cleanup_result = wasm_externref_set_cleanup(module_inst, nonexistent_extern_obj, cleanup_func);
+
+    // Verify cleanup setting failed for non-existent object
+    ASSERT_FALSE(set_cleanup_result);
+}
+
+/******
+ * Test Case: WasmExternrefSetCleanup_NullCleanupFunction_SuccessfulNullSet
+ * Source: core/iwasm/common/wasm_runtime_common.c:6509-6534
+ * Target Lines: 6513-6519 (setup), 6521-6524 (mutex/traverse), 6525-6531 (found case with null), 6532-6534 (unlock/return)
+ * Functional Purpose: Validates that wasm_externref_set_cleanup() can successfully
+ *                     set a NULL cleanup function, which is valid for clearing
+ *                     an existing cleanup callback.
+ * Call Path: Direct API call to wasm_externref_set_cleanup()
+ * Coverage Goal: Exercise successful path with NULL cleanup callback
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmExternrefSetCleanup_NullCleanupFunction_SuccessfulNullSet) {
+    // Create test object
+    int test_object = 123;
+    void *test_extern_obj = &test_object;
+    uint32 externref_idx = 0;
+
+    // First create externref mapping
+    bool obj2ref_result = wasm_externref_obj2ref(module_inst, test_extern_obj, &externref_idx);
+    ASSERT_TRUE(obj2ref_result);
+    ASSERT_GT(externref_idx, 0);
+
+    // Test wasm_externref_set_cleanup with NULL cleanup function
+    // This should exercise lines 6513-6519 (setup), 6521-6524 (mutex/traverse),
+    // 6525-6531 (found case - setting NULL cleanup), and 6532-6534 (unlock/return)
+    bool set_cleanup_result = wasm_externref_set_cleanup(module_inst, test_extern_obj, nullptr);
+
+    // Verify successful NULL cleanup setting
+    ASSERT_TRUE(set_cleanup_result);
+
+    // Verify the mapping still exists and is valid
+    void *retrieved_obj = nullptr;
+    bool ref2obj_result = wasm_externref_ref2obj(externref_idx, &retrieved_obj);
+    ASSERT_TRUE(ref2obj_result);
+    ASSERT_EQ(test_extern_obj, retrieved_obj);
+}
+
+/******
+ * Test Case: WasmExternrefSetCleanup_MutexLockingSafety_ProperLockUnlockSequence
+ * Source: core/iwasm/common/wasm_runtime_common.c:6509-6534
+ * Target Lines: 6521 (os_mutex_lock), 6523-6524 (bh_hash_map_traverse), 6532 (os_mutex_unlock)
+ * Functional Purpose: Validates that wasm_externref_set_cleanup() properly acquires
+ *                     and releases the externref_lock mutex during hash map operations,
+ *                     ensuring thread-safe access to the externref_map.
+ * Call Path: Direct API call to wasm_externref_set_cleanup()
+ * Coverage Goal: Exercise mutex lock/unlock sequence for thread safety
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmExternrefSetCleanup_MutexLockingSafety_ProperLockUnlockSequence) {
+    // Create test objects for both success and failure cases
+    int test_object1 = 456;
+    int test_object2 = 789;
+    void *existing_extern_obj = &test_object1;
+    void *nonexistent_extern_obj = &test_object2;
+    uint32 externref_idx = 0;
+
+    // Create cleanup callback function
+    auto cleanup_func = [](void *obj) {
+        ASSERT_NE(nullptr, obj);
+    };
+
+    // First create externref mapping for one object
+    bool obj2ref_result = wasm_externref_obj2ref(module_inst, existing_extern_obj, &externref_idx);
+    ASSERT_TRUE(obj2ref_result);
+
+    // Test successful case - should properly lock/unlock mutex
+    // This exercises lines 6521 (lock), 6523-6524 (traverse), 6525-6531 (found), 6532 (unlock)
+    bool success_result = wasm_externref_set_cleanup(module_inst, existing_extern_obj, cleanup_func);
+    ASSERT_TRUE(success_result);
+
+    // Test failure case - should also properly lock/unlock mutex
+    // This exercises lines 6521 (lock), 6523-6524 (traverse), skip 6525-6531 (not found), 6532 (unlock)
+    bool failure_result = wasm_externref_set_cleanup(module_inst, nonexistent_extern_obj, cleanup_func);
+    ASSERT_FALSE(failure_result);
+
+    // If we reach here, mutex was properly managed in both cases
+    // (otherwise we would have deadlocks or other issues)
+}
+
 #endif // WASM_ENABLE_REF_TYPES
