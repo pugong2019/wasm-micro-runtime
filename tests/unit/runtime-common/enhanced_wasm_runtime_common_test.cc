@@ -4156,3 +4156,72 @@ TEST_F(EnhancedWasmRuntimeCommonTest, WasmRuntimeSetMaxThreadNum_HighThreadCount
     ASSERT_TRUE(true); // Meaningful assertion to verify successful execution
 #endif
 }
+
+/******
+ * Test Case: WasmRuntimeGetMaxMem_MaxMemoryLowerThanInitialMemory_ReturnsInitialMemory
+ * Source: core/iwasm/common/wasm_runtime_common.c:1608-1612
+ * Target Lines: 1608 (condition check), 1609-1610 (LOG_WARNING), 1611 (return statement)
+ * Functional Purpose: Validates that wasm_runtime_get_max_mem() correctly handles the case
+ *                     where max_memory_pages is lower than module_init_page_count,
+ *                     logs a warning and returns module_init_page_count.
+ * Call Path: Direct function call (Internal API)
+ * Coverage Goal: Exercise error handling path for insufficient max memory configuration
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmRuntimeGetMaxMem_MaxMemoryLowerThanInitialMemory_ReturnsInitialMemory) {
+    // Test scenario: max_memory_pages (5) < module_init_page_count (10)
+    uint32 max_memory_pages = 5;
+    uint32 module_init_page_count = 10;
+    uint32 module_max_page_count = 20;
+
+    // Call the function - should trigger warning and return module_init_page_count
+    uint32 result = wasm_runtime_get_max_mem(max_memory_pages, module_init_page_count, module_max_page_count);
+
+    // Verify that function returns module_init_page_count when max_memory_pages is too low
+    ASSERT_EQ(module_init_page_count, result);
+}
+
+/******
+ * Test Case: WasmRuntimeGetMaxMem_MaxMemoryHigherThanModuleMaxMemory_ReturnsModuleMaxMemory
+ * Source: core/iwasm/common/wasm_runtime_common.c:1614-1618
+ * Target Lines: 1614 (condition check), 1615-1616 (LOG_WARNING), 1617 (return statement)
+ * Functional Purpose: Validates that wasm_runtime_get_max_mem() correctly handles the case
+ *                     where max_memory_pages is higher than module_max_page_count,
+ *                     logs a warning and returns module_max_page_count.
+ * Call Path: Direct function call (Internal API)
+ * Coverage Goal: Exercise error handling path for excessive max memory configuration
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmRuntimeGetMaxMem_MaxMemoryHigherThanModuleMaxMemory_ReturnsModuleMaxMemory) {
+    // Test scenario: max_memory_pages (30) > module_max_page_count (20)
+    uint32 max_memory_pages = 30;
+    uint32 module_init_page_count = 10;
+    uint32 module_max_page_count = 20;
+
+    // Call the function - should trigger warning and return module_max_page_count
+    uint32 result = wasm_runtime_get_max_mem(max_memory_pages, module_init_page_count, module_max_page_count);
+
+    // Verify that function returns module_max_page_count when max_memory_pages is too high
+    ASSERT_EQ(module_max_page_count, result);
+}
+
+/******
+ * Test Case: WasmRuntimeGetMaxMem_ValidMaxMemoryPages_ReturnsMaxMemoryPages
+ * Source: core/iwasm/common/wasm_runtime_common.c:1620
+ * Target Lines: 1620 (return statement)
+ * Functional Purpose: Validates that wasm_runtime_get_max_mem() correctly returns
+ *                     max_memory_pages when it falls within the valid range
+ *                     (between module_init_page_count and module_max_page_count).
+ * Call Path: Direct function call (Internal API)
+ * Coverage Goal: Exercise normal execution path for valid max memory configuration
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmRuntimeGetMaxMem_ValidMaxMemoryPages_ReturnsMaxMemoryPages) {
+    // Test scenario: module_init_page_count (10) <= max_memory_pages (15) <= module_max_page_count (20)
+    uint32 max_memory_pages = 15;
+    uint32 module_init_page_count = 10;
+    uint32 module_max_page_count = 20;
+
+    // Call the function - should return max_memory_pages without warnings
+    uint32 result = wasm_runtime_get_max_mem(max_memory_pages, module_init_page_count, module_max_page_count);
+
+    // Verify that function returns max_memory_pages when it's within valid range
+    ASSERT_EQ(max_memory_pages, result);
+}
