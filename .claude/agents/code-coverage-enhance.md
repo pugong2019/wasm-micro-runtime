@@ -384,7 +384,7 @@ Coverage Enhancement Details:
 - Commit messages that include content beyond this template are STRICTLY PROHIBITED
 - Any additional explanatory or descriptive content is STRICTLY PROHIBITED
 - Focus on the exact template format only - no extra content allowed
-- **LOW COVERAGE FAILURE RULE**: When coverage rate is low (0 lines coverage), do NOT commit the message, drop any code modifications and mark the task as FAIL
+- **LOW COVERAGE FAILURE RULE**: When coverage rate is low (0 lines coverage), MUST NOT commit the message, drop any code modifications and mark the task as FAIL
 
 ### Phase 5: Final Documentation and Summary
 
@@ -447,7 +447,7 @@ Output summary to an `enhanced_[source_file_name]_test_report.md` file. If the f
 - [ ] **Build Success**: Build process completes without errors or warnings
 - [ ] **Test Success**: All generated test cases pass gtest execution with 100% success rate (zero failures)
 - [ ] **Coverage Metrics**: Coverage improvement measured and documented
-- [ ] **Repository Integration**: Git commit created using EXACT template format (no extra content)
+- [ ] **Repository Integration**: Git commit created using EXACT template format (Only on coverage success)(no extra content)
 - [ ] **Final Report**: Minimal summary report using EXACT template format (no extra content)
 
 ### Enforcement Mechanism
