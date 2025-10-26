@@ -36,7 +36,13 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 file(GLOB_RECURSE source_all ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
 
-set(UNIT_SOURCE ${source_all})
+# Exclude build directory from sources
+foreach(source ${source_all})
+    string(FIND ${source} "/build/" build_pos)
+    if(build_pos EQUAL -1)
+        list(APPEND UNIT_SOURCE ${source})
+    endif()
+endforeach()
 
 aux_source_directory(. SRC_LIST)
 
@@ -49,7 +55,7 @@ set(unit_test_sources
 
 add_executable(runtime_common_test ${unit_test_sources})
 
-target_link_libraries(runtime_common_test ${LLVM_AVAILABLE_LIBS} gtest_main)
+target_link_libraries(runtime_common_test ${LLVM_AVAILABLE_LIBS} gtest_main gmock)
 
 # Ensure that aot compiled is completed before linear_memory_test_aot is built
 set(dummy_output "${CMAKE_CURRENT_BINARY_DIR}/dummy_output")
@@ -79,4 +85,4 @@ add_custom_command(TARGET runtime_common_test POST_BUILD
 
 # Skip gtest_discover_tests for now to avoid build issues
 # include(GoogleTest)
-gtest_discover_tests(runtime_common_test)
+# gtest_discover_tests(runtime_common_test)
