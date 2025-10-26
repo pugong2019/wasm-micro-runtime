@@ -559,6 +559,38 @@ protected:
         fclose(file);
     }
 
+    // Create WASMFuncType for testing
+    WASMFuncType* CreateTestFuncType(uint32 param_count, uint32 result_count,
+                                     bool include_unsupported = false) {
+        WASMFuncType *func_type = (WASMFuncType*)malloc(
+            sizeof(WASMFuncType) + (param_count + result_count) * sizeof(uint8));
+        if (!func_type) return nullptr;
+
+        func_type->param_count = param_count;
+        func_type->result_count = result_count;
+
+        // Fill with supported types by default
+        for (uint32 i = 0; i < param_count; i++) {
+            func_type->types[i] = VALUE_TYPE_I32;
+        }
+        for (uint32 i = 0; i < result_count; i++) {
+            func_type->types[param_count + i] = VALUE_TYPE_I32;
+        }
+
+        // Add unsupported type for error testing
+        if (include_unsupported && param_count > 0) {
+            func_type->types[0] = 0xFF; // Unsupported type
+        }
+
+        return func_type;
+    }
+
+    void FreeFuncType(WASMFuncType *func_type) {
+        if (func_type) {
+            free(func_type);
+        }
+    }
+
 public:
     char global_heap_buf[512 * 1024];
     RuntimeInitArgs init_args;
@@ -3419,3 +3451,390 @@ TEST_F(EnhancedWasmRuntimeCommonTest, WasmExternrefSetCleanup_MutexLockingSafety
 }
 
 #endif // WASM_ENABLE_REF_TYPES
+
+// Test cases for wasm_runtime_invoke_native_raw function - Lines 4735-4870
+
+// Native function implementations for testing
+static void mock_add_native_func(wasm_exec_env_t env, uint64 *args) {
+    // For invoke_native_raw, args contains the processed arguments
+    // The first two uint64 slots contain the two i32 arguments
+    uint32 arg1 = (uint32)args[0];
+    uint32 arg2 = (uint32)args[1];
+    uint32 result = arg1 + arg2;
+    // Store result in the first slot for return
+    args[0] = result;
+}
+
+static void mock_simple_native_func(wasm_exec_env_t env, uint64 *args) {
+    args[0] = 42; // Set a simple return value
+}
+
+static void mock_float_native_func(wasm_exec_env_t env, uint64 *args) {
+    float32 f32_val = *(float32*)&args[0];
+    *(float32*)&args[0] = f32_val + 1.0f;
+}
+
+static void mock_pointer_native_func(wasm_exec_env_t env, uint64 *args) {
+    uintptr_t ptr = (uintptr_t)args[0];
+    args[0] = (ptr != 0) ? 1 : 0; // Return 1 if pointer is not null
+}
+
+static void mock_string_native_func(wasm_exec_env_t env, uint64 *args) {
+    const char* str = (const char*)(uintptr_t)args[0];
+    args[0] = (str != nullptr) ? 1 : 0; // Return 1 if string pointer is not null
+}
+
+static void mock_i32_return_native_func(wasm_exec_env_t env, uint64 *args) {
+    *(uint32*)args = 0x12345678; // Set I32 return value
+}
+
+static void mock_f32_return_native_func(wasm_exec_env_t env, uint64 *args) {
+    *(float32*)args = 3.14159f; // Set F32 return value
+}
+
+static void mock_exception_native_func(wasm_exec_env_t env, uint64 *args) {
+    // Simulate setting an exception in the runtime
+    wasm_runtime_set_exception(wasm_runtime_get_module_inst(env), "Test exception");
+}
+
+/******
+ * Test Case: InvokeNativeRaw_BasicI32Parameter_Success
+ * Source: core/iwasm/common/wasm_runtime_common.c:4735-4870
+ * Target Lines: 4735-4760 (function setup), 4765-4806 (I32 parameter handling)
+ * Functional Purpose: Tests basic invocation of native function with I32 parameters,
+ *                     exercises argument buffer allocation and I32 parameter processing
+ * Call Path: Direct API call to wasm_runtime_invoke_native_raw()
+ * Coverage Goal: Exercise basic function setup and I32 parameter handling paths
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonCApiTest, InvokeNativeRaw_BasicI32Parameter_Success) {
+    // Load a simple WASM module
+    wasm_module_t module = wasm_runtime_load(simple_wasm, simple_wasm_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    module_inst = wasm_runtime_instantiate(module, 65536, 0, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    // Create execution environment
+    wasm_exec_env_t exec_env = wasm_runtime_create_exec_env(module_inst, 32768);
+    ASSERT_NE(nullptr, exec_env);
+
+    // Create function type: (i32, i32) -> i32
+    WASMFuncType *func_type = CreateTestFuncType(2, 1);
+    ASSERT_NE(nullptr, func_type);
+
+    // Set parameter and result types
+    func_type->types[0] = VALUE_TYPE_I32; // param 1
+    func_type->types[1] = VALUE_TYPE_I32; // param 2
+    func_type->types[2] = VALUE_TYPE_I32; // result
+
+    // Set up arguments: arg1=10, arg2=20
+    uint32 argv[2] = { 10, 20 };
+    uint32 argv_ret[1] = { 0 };
+
+    // Test basic I32 parameter handling (lines 4767-4806)
+    bool result = wasm_runtime_invoke_native_raw(exec_env, (void*)mock_add_native_func, func_type,
+                                                nullptr, nullptr, argv, 2, argv_ret);
+    ASSERT_TRUE(result);
+    ASSERT_EQ(30, argv_ret[0]); // 10 + 20 = 30
+
+    FreeFuncType(func_type);
+    wasm_runtime_destroy_exec_env(exec_env);
+    wasm_runtime_unload(module);
+}
+
+/******
+ * Test Case: InvokeNativeRaw_LargeArgvBuffer_Success
+ * Source: core/iwasm/common/wasm_runtime_common.c:4754-4760
+ * Target Lines: 4754-4760 (large argv buffer allocation and error handling)
+ * Functional Purpose: Tests allocation of larger argument buffer when parameter count
+ *                     exceeds the static buffer size (16 uint64 slots)
+ * Call Path: Direct API call to wasm_runtime_invoke_native_raw()
+ * Coverage Goal: Exercise dynamic argument buffer allocation path
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonCApiTest, InvokeNativeRaw_LargeArgvBuffer_Success) {
+    // Load a simple WASM module
+    wasm_module_t module = wasm_runtime_load(simple_wasm, simple_wasm_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    module_inst = wasm_runtime_instantiate(module, 65536, 0, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    // Create execution environment
+    wasm_exec_env_t exec_env = wasm_runtime_create_exec_env(module_inst, 32768);
+    ASSERT_NE(nullptr, exec_env);
+
+    // Create function type with 20 parameters (more than static buffer of 16)
+    WASMFuncType *func_type = CreateTestFuncType(20, 1);
+    ASSERT_NE(nullptr, func_type);
+
+    // All parameters are I32 by default, set result type
+    func_type->types[20] = VALUE_TYPE_I32; // result type
+
+    // Set up 20 i32 arguments
+    uint32 argv[20];
+    for (int i = 0; i < 20; i++) {
+        argv[i] = i + 1;
+    }
+    uint32 argv_ret[1] = { 0 };
+
+    // Test large argv buffer allocation (lines 4754-4760)
+    bool result = wasm_runtime_invoke_native_raw(exec_env, (void*)mock_simple_native_func, func_type,
+                                                nullptr, nullptr, argv, 20, argv_ret);
+    ASSERT_TRUE(result);
+    ASSERT_EQ(42, argv_ret[0]);
+
+    FreeFuncType(func_type);
+    wasm_runtime_destroy_exec_env(exec_env);
+    wasm_runtime_unload(module);
+}
+
+/******
+ * Test Case: InvokeNativeRaw_F32F64Parameters_Success
+ * Source: core/iwasm/common/wasm_runtime_common.c:4850-4857
+ * Target Lines: 4850-4857 (F32 and F64 parameter handling)
+ * Functional Purpose: Tests handling of floating point parameters (F32 and F64),
+ *                     verifying proper memory copying and type conversion
+ * Call Path: Direct API call to wasm_runtime_invoke_native_raw()
+ * Coverage Goal: Exercise floating point parameter processing paths
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonCApiTest, InvokeNativeRaw_F32F64Parameters_Success) {
+    // Load a simple WASM module
+    wasm_module_t module = wasm_runtime_load(simple_wasm, simple_wasm_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    module_inst = wasm_runtime_instantiate(module, 65536, 0, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    // Create execution environment
+    wasm_exec_env_t exec_env = wasm_runtime_create_exec_env(module_inst, 32768);
+    ASSERT_NE(nullptr, exec_env);
+
+    // Create function type: (f32, f64) -> f32
+    WASMFuncType *func_type = CreateTestFuncType(2, 1);
+    ASSERT_NE(nullptr, func_type);
+
+    // Set parameter and result types
+    func_type->types[0] = VALUE_TYPE_F32; // param 1: f32
+    func_type->types[1] = VALUE_TYPE_F64; // param 2: f64
+    func_type->types[2] = VALUE_TYPE_F32; // result: f32
+
+    // Set up arguments: f32=3.14f, f64=2.718
+    uint32 argv[3]; // f32 (1 word) + f64 (2 words)
+    float32 f32_arg = 3.14f;
+    float64 f64_arg = 2.718;
+    memcpy(&argv[0], &f32_arg, sizeof(float32));
+    memcpy(&argv[1], &f64_arg, sizeof(float64));
+
+    uint32 argv_ret[1] = { 0 };
+
+    // Test F32/F64 parameter handling (lines 4850-4857)
+    bool result = wasm_runtime_invoke_native_raw(exec_env, (void*)mock_float_native_func, func_type,
+                                                nullptr, nullptr, argv, 3, argv_ret);
+    ASSERT_TRUE(result);
+
+    float32 result_f32;
+    memcpy(&result_f32, &argv_ret[0], sizeof(float32));
+    ASSERT_NEAR(4.14f, result_f32, 0.001f); // 3.14 + 1.0 = 4.14
+
+    FreeFuncType(func_type);
+    wasm_runtime_destroy_exec_env(exec_env);
+    wasm_runtime_unload(module);
+}
+
+/******
+ * Test Case: InvokeNativeRaw_PointerValidation_Success
+ * Source: core/iwasm/common/wasm_runtime_common.c:4773-4805
+ * Target Lines: 4773-4805 (pointer validation and address conversion)
+ * Functional Purpose: Tests pointer parameter validation and address conversion from
+ *                     WebAssembly app address to native address using signature '*'
+ * Call Path: Direct API call to wasm_runtime_invoke_native_raw()
+ * Coverage Goal: Exercise pointer validation and address conversion paths
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonCApiTest, InvokeNativeRaw_PointerValidation_Success) {
+    // Load a simple WASM module
+    wasm_module_t module = wasm_runtime_load(simple_wasm, simple_wasm_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    module_inst = wasm_runtime_instantiate(module, 65536, 0, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    // Create execution environment
+    wasm_exec_env_t exec_env = wasm_runtime_create_exec_env(module_inst, 32768);
+    ASSERT_NE(nullptr, exec_env);
+
+    // Create function type: (i32*) -> i32 with signature indicating pointer
+    WASMFuncType *func_type = CreateTestFuncType(1, 1);
+    ASSERT_NE(nullptr, func_type);
+
+    // Set parameter and result types
+    func_type->types[0] = VALUE_TYPE_I32; // param: i32 (pointer)
+    func_type->types[1] = VALUE_TYPE_I32; // result: i32
+
+    // Set up arguments: use a valid WASM app address (offset into memory)
+    uint32 argv[1] = { 64 }; // Use offset 64 as a valid address
+    uint32 argv_ret[1] = { 0 };
+
+    // Use signature "*" to indicate first parameter is a pointer
+    const char *signature = "*";
+
+    // Test pointer validation and conversion (lines 4773-4805)
+    bool result = wasm_runtime_invoke_native_raw(exec_env, (void*)mock_pointer_native_func, func_type,
+                                                signature, nullptr, argv, 1, argv_ret);
+    ASSERT_TRUE(result);
+    ASSERT_EQ(1, argv_ret[0]); // Should return 1 (pointer was valid and converted)
+
+    FreeFuncType(func_type);
+    wasm_runtime_destroy_exec_env(exec_env);
+    wasm_runtime_unload(module);
+}
+
+/******
+ * Test Case: InvokeNativeRaw_StringValidation_Success
+ * Source: core/iwasm/common/wasm_runtime_common.c:4795-4805
+ * Target Lines: 4795-4805 (string parameter validation and address conversion)
+ * Functional Purpose: Tests string parameter validation and address conversion from
+ *                     WebAssembly app address to native address using signature '$'
+ * Call Path: Direct API call to wasm_runtime_invoke_native_raw()
+ * Coverage Goal: Exercise string validation and address conversion paths
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonCApiTest, InvokeNativeRaw_StringValidation_Success) {
+    // Load a simple WASM module
+    wasm_module_t module = wasm_runtime_load(simple_wasm, simple_wasm_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    module_inst = wasm_runtime_instantiate(module, 65536, 0, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    // Create execution environment
+    wasm_exec_env_t exec_env = wasm_runtime_create_exec_env(module_inst, 32768);
+    ASSERT_NE(nullptr, exec_env);
+
+    // Create function type: (i32) -> i32 where i32 represents string address
+    WASMFuncType *func_type = CreateTestFuncType(1, 1);
+    ASSERT_NE(nullptr, func_type);
+
+    // Set parameter and result types
+    func_type->types[0] = VALUE_TYPE_I32; // param: i32 (string address)
+    func_type->types[1] = VALUE_TYPE_I32; // result: i32
+
+    // Set up arguments: use a valid WASM app address for string
+    uint32 argv[1] = { 128 }; // Use offset 128 as a valid string address
+    uint32 argv_ret[1] = { 0 };
+
+    // Use signature "$" to indicate first parameter is a string
+    const char *signature = "$";
+
+    // Test string validation and conversion (lines 4795-4805)
+    bool result = wasm_runtime_invoke_native_raw(exec_env, (void*)mock_string_native_func, func_type,
+                                                signature, nullptr, argv, 1, argv_ret);
+    ASSERT_TRUE(result);
+    ASSERT_EQ(1, argv_ret[0]); // Should return 1 (string was valid and converted)
+
+    FreeFuncType(func_type);
+    wasm_runtime_destroy_exec_env(exec_env);
+    wasm_runtime_unload(module);
+}
+
+/******
+ * Test Case: InvokeNativeRaw_ReturnValueHandling_Success
+ * Source: core/iwasm/common/wasm_runtime_common.c:4909-4971
+ * Target Lines: 4909-4971 (return value processing for different types)
+ * Functional Purpose: Tests return value handling for different WebAssembly types,
+ *                     ensuring proper copying from native results to WASM return buffer
+ * Call Path: Direct API call to wasm_runtime_invoke_native_raw()
+ * Coverage Goal: Exercise return value processing paths for various types
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonCApiTest, InvokeNativeRaw_ReturnValueHandling_Success) {
+    // Load a simple WASM module
+    wasm_module_t module = wasm_runtime_load(simple_wasm, simple_wasm_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    module_inst = wasm_runtime_instantiate(module, 65536, 0, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    // Create execution environment
+    wasm_exec_env_t exec_env = wasm_runtime_create_exec_env(module_inst, 32768);
+    ASSERT_NE(nullptr, exec_env);
+
+    // Test I32 return value
+    {
+        WASMFuncType *func_type = CreateTestFuncType(0, 1);
+        ASSERT_NE(nullptr, func_type);
+        func_type->types[0] = VALUE_TYPE_I32; // result type
+
+        uint32 argv_ret[1] = { 0 };
+
+        bool result = wasm_runtime_invoke_native_raw(exec_env, (void*)mock_i32_return_native_func, func_type,
+                                                    nullptr, nullptr, nullptr, 0, argv_ret);
+        ASSERT_TRUE(result);
+        ASSERT_EQ(0x12345678, argv_ret[0]); // Test I32 return handling (line 4915)
+
+        FreeFuncType(func_type);
+    }
+
+    // Test F32 return value
+    {
+        WASMFuncType *func_type = CreateTestFuncType(0, 1);
+        ASSERT_NE(nullptr, func_type);
+        func_type->types[0] = VALUE_TYPE_F32; // result type
+
+        uint32 argv_ret[1] = { 0 };
+
+        bool result = wasm_runtime_invoke_native_raw(exec_env, (void*)mock_f32_return_native_func, func_type,
+                                                    nullptr, nullptr, nullptr, 0, argv_ret);
+        ASSERT_TRUE(result);
+
+        float32 result_f32;
+        memcpy(&result_f32, &argv_ret[0], sizeof(float32));
+        ASSERT_NEAR(3.14159f, result_f32, 0.00001f); // Test F32 return handling (line 4918)
+
+        FreeFuncType(func_type);
+    }
+
+    wasm_runtime_destroy_exec_env(exec_env);
+    wasm_runtime_unload(module);
+}
+
+/******
+ * Test Case: InvokeNativeRaw_ExceptionHandling_ReturnsFailure
+ * Source: core/iwasm/common/wasm_runtime_common.c:4973-4978
+ * Target Lines: 4973-4978 (exception handling and cleanup)
+ * Functional Purpose: Tests exception handling after native function execution,
+ *                     ensuring proper cleanup and error propagation
+ * Call Path: Direct API call to wasm_runtime_invoke_native_raw()
+ * Coverage Goal: Exercise exception detection and cleanup paths
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonCApiTest, InvokeNativeRaw_ExceptionHandling_ReturnsFailure) {
+    // Load a simple WASM module
+    wasm_module_t module = wasm_runtime_load(simple_wasm, simple_wasm_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    module_inst = wasm_runtime_instantiate(module, 65536, 0, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    // Create execution environment
+    wasm_exec_env_t exec_env = wasm_runtime_create_exec_env(module_inst, 32768);
+    ASSERT_NE(nullptr, exec_env);
+
+    // Create simple function type: () -> i32
+    WASMFuncType *func_type = CreateTestFuncType(0, 1);
+    ASSERT_NE(nullptr, func_type);
+    func_type->types[0] = VALUE_TYPE_I32; // result type
+
+    uint32 argv_ret[1] = { 0 };
+
+    // Test exception handling (lines 4973-4978)
+    bool result = wasm_runtime_invoke_native_raw(exec_env, (void*)mock_exception_native_func, func_type,
+                                                nullptr, nullptr, nullptr, 0, argv_ret);
+    ASSERT_FALSE(result); // Should return false due to exception
+
+    // Verify exception was set
+    const char* exception = wasm_runtime_get_exception(module_inst);
+    ASSERT_NE(nullptr, exception);
+    // Exception may have prefix "Exception: "
+    ASSERT_TRUE(strstr(exception, "Test exception") != nullptr);
+
+    FreeFuncType(func_type);
+    wasm_runtime_destroy_exec_env(exec_env);
+    wasm_runtime_unload(module);
+}
