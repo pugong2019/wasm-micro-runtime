@@ -3308,3 +3308,328 @@ TEST_F(EnhancedWasmRuntimeTest, WasmInterpDumpCallStack_ValidFrames_BufferMode_S
     wasm_runtime_deinstantiate(module_inst);
     wasm_runtime_unload(module);
 }
+
+/******
+ * Test Case: wasm_interp_dump_call_stack_FrameWithoutName_FormatsWithFuncIndex
+ * Source: core/iwasm/interpreter/wasm_runtime.c:4495-4500
+ * Target Lines: 4495 (null check condition), 4496-4499 (snprintf formatting)
+ * Functional Purpose: Validates that wasm_interp_dump_call_stack() correctly formats
+ *                     call stack entries when frame.func_name_wp is NULL, using function
+ *                     index and offset in the formatted output string.
+ * Call Path: Direct call to wasm_interp_dump_call_stack()
+ * Coverage Goal: Exercise lines 4495-4500 for frames without exported function names
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, WasmInterpDumpCallStack_FrameWithoutName_FormatsWithFuncIndex) {
+    const uint8_t simple_wasm[] = {
+        0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
+        0x01, 0x04, 0x01, 0x60, 0x00, 0x00, 0x03, 0x02,
+        0x01, 0x00, 0x0a, 0x04, 0x01, 0x02, 0x00, 0x0b
+    };
+    char error_buf[256];
+    char buffer[1024];
+
+    wasm_module_t module = wasm_runtime_load(const_cast<uint8_t*>(simple_wasm), sizeof(simple_wasm), error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 1024, 1024, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    wasm_exec_env_t exec_env = wasm_exec_env_create(module_inst, 8192);
+    ASSERT_NE(nullptr, exec_env);
+
+    // Create frames vector and add frame without function name
+    WASMModuleInstance *wasm_inst = (WASMModuleInstance*)module_inst;
+    if (wasm_inst->frames) {
+        bh_vector_destroy(wasm_inst->frames);
+        wasm_runtime_free(wasm_inst->frames);
+    }
+    wasm_inst->frames = (Vector*)wasm_runtime_malloc(sizeof(Vector));
+    ASSERT_NE(nullptr, wasm_inst->frames);
+    bool success = bh_vector_init(wasm_inst->frames, 1, sizeof(WASMCApiFrame), false);
+    ASSERT_TRUE(success);
+
+    // Create frame with NULL func_name_wp to target lines 4495-4500
+    WASMCApiFrame frame = {0};
+    frame.func_index = 42;        // Test specific func_index
+    frame.func_offset = 0x5678;   // Test specific offset
+    frame.func_name_wp = nullptr; // This triggers the null check at line 4495
+    bool append_success = bh_vector_append(wasm_inst->frames, &frame);
+    ASSERT_TRUE(append_success);
+
+    // Test call stack dump with buffer to capture formatted output
+    memset(buffer, 0, sizeof(buffer));
+    uint32_t result = wasm_interp_dump_call_stack(exec_env, false, buffer, sizeof(buffer));
+    ASSERT_GT(result, 0);
+
+    // Verify output contains function index and offset format (lines 4496-4499)
+    ASSERT_NE(nullptr, strstr(buffer, "$f42"));     // Function index should appear
+    ASSERT_NE(nullptr, strstr(buffer, "0x5678"));   // Function offset should appear
+
+    wasm_exec_env_destroy(exec_env);
+    wasm_runtime_deinstantiate(module_inst);
+    wasm_runtime_unload(module);
+}
+
+/******
+ * Test Case: wasm_interp_dump_call_stack_FrameWithName_FormatsWithFuncName
+ * Source: core/iwasm/interpreter/wasm_runtime.c:4501-4505
+ * Target Lines: 4501 (else branch), 4502-4504 (snprintf with name formatting)
+ * Functional Purpose: Validates that wasm_interp_dump_call_stack() correctly formats
+ *                     call stack entries when frame.func_name_wp is not NULL, using the
+ *                     actual function name in the formatted output string.
+ * Call Path: Direct call to wasm_interp_dump_call_stack()
+ * Coverage Goal: Exercise lines 4501-4505 for frames with exported function names
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, WasmInterpDumpCallStack_FrameWithName_FormatsWithFuncName) {
+    const uint8_t simple_wasm[] = {
+        0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
+        0x01, 0x04, 0x01, 0x60, 0x00, 0x00, 0x03, 0x02,
+        0x01, 0x00, 0x0a, 0x04, 0x01, 0x02, 0x00, 0x0b
+    };
+    char error_buf[256];
+    char buffer[1024];
+    const char* test_func_name = "test_function";
+
+    wasm_module_t module = wasm_runtime_load(const_cast<uint8_t*>(simple_wasm), sizeof(simple_wasm), error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 1024, 1024, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    wasm_exec_env_t exec_env = wasm_exec_env_create(module_inst, 8192);
+    ASSERT_NE(nullptr, exec_env);
+
+    // Create frames vector and add frame with function name
+    WASMModuleInstance *wasm_inst = (WASMModuleInstance*)module_inst;
+    if (wasm_inst->frames) {
+        bh_vector_destroy(wasm_inst->frames);
+        wasm_runtime_free(wasm_inst->frames);
+    }
+    wasm_inst->frames = (Vector*)wasm_runtime_malloc(sizeof(Vector));
+    ASSERT_NE(nullptr, wasm_inst->frames);
+    bool success = bh_vector_init(wasm_inst->frames, 1, sizeof(WASMCApiFrame), false);
+    ASSERT_TRUE(success);
+
+    // Create frame with valid func_name_wp to target lines 4501-4505
+    WASMCApiFrame frame = {0};
+    frame.func_index = 1;
+    frame.func_offset = 0xABCD;
+    frame.func_name_wp = (char*)test_func_name; // This triggers the else branch at line 4501
+    bool append_success = bh_vector_append(wasm_inst->frames, &frame);
+    ASSERT_TRUE(append_success);
+
+    // Test call stack dump with buffer to capture formatted output
+    memset(buffer, 0, sizeof(buffer));
+    uint32_t result = wasm_interp_dump_call_stack(exec_env, false, buffer, sizeof(buffer));
+    ASSERT_GT(result, 0);
+
+    // Verify output contains function name and offset format (lines 4502-4504)
+    ASSERT_NE(nullptr, strstr(buffer, test_func_name)); // Function name should appear
+    ASSERT_NE(nullptr, strstr(buffer, "0xabcd"));       // Function offset should appear
+
+    wasm_exec_env_destroy(exec_env);
+    wasm_runtime_deinstantiate(module_inst);
+    wasm_runtime_unload(module);
+}
+
+/******
+ * Test Case: wasm_interp_dump_call_stack_LongLineOverflow_TruncatesWithDots
+ * Source: core/iwasm/interpreter/wasm_runtime.c:4508-4515
+ * Target Lines: 4508 (length check), 4509-4514 (truncation logic), 4515 (newline)
+ * Functional Purpose: Validates that wasm_interp_dump_call_stack() correctly handles
+ *                     line length overflow by truncating long lines and ensuring proper
+ *                     formatting with dots and newline character placement.
+ * Call Path: Direct call to wasm_interp_dump_call_stack()
+ * Coverage Goal: Exercise lines 4508-4515 for line length overflow handling
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, WasmInterpDumpCallStack_LongLineOverflow_TruncatesWithDots) {
+    const uint8_t simple_wasm[] = {
+        0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
+        0x01, 0x04, 0x01, 0x60, 0x00, 0x00, 0x03, 0x02,
+        0x01, 0x00, 0x0a, 0x04, 0x01, 0x02, 0x00, 0x0b
+    };
+    char error_buf[256];
+    char buffer[2048];
+
+    // Create very long function name to trigger overflow (line 4508)
+    std::string long_func_name(300, 'A'); // 300 characters, exceeds 256 line buffer
+
+    wasm_module_t module = wasm_runtime_load(const_cast<uint8_t*>(simple_wasm), sizeof(simple_wasm), error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 1024, 1024, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    wasm_exec_env_t exec_env = wasm_exec_env_create(module_inst, 8192);
+    ASSERT_NE(nullptr, exec_env);
+
+    // Create frames vector
+    WASMModuleInstance *wasm_inst = (WASMModuleInstance*)module_inst;
+    if (wasm_inst->frames) {
+        bh_vector_destroy(wasm_inst->frames);
+        wasm_runtime_free(wasm_inst->frames);
+    }
+    wasm_inst->frames = (Vector*)wasm_runtime_malloc(sizeof(Vector));
+    ASSERT_NE(nullptr, wasm_inst->frames);
+    bool success = bh_vector_init(wasm_inst->frames, 1, sizeof(WASMCApiFrame), false);
+    ASSERT_TRUE(success);
+
+    // Create frame with very long function name to trigger overflow
+    WASMCApiFrame frame = {0};
+    frame.func_index = 0;
+    frame.func_offset = 0x1234;
+    frame.func_name_wp = const_cast<char*>(long_func_name.c_str());
+    bool append_success = bh_vector_append(wasm_inst->frames, &frame);
+    ASSERT_TRUE(append_success);
+
+    // Test call stack dump - this should trigger line length overflow handling
+    memset(buffer, 0, sizeof(buffer));
+    uint32_t result = wasm_interp_dump_call_stack(exec_env, false, buffer, sizeof(buffer));
+    ASSERT_GT(result, 0);
+
+    // The formatting should handle overflow by truncation with dots (lines 4511-4514)
+    // Look for truncation pattern - dots followed by newline
+    ASSERT_NE(nullptr, strstr(buffer, "..."));
+
+    wasm_exec_env_destroy(exec_env);
+    wasm_runtime_deinstantiate(module_inst);
+    wasm_runtime_unload(module);
+}
+
+/******
+ * Test Case: wasm_interp_dump_call_stack_MultipleFrames_IteratesAllFrames
+ * Source: core/iwasm/interpreter/wasm_runtime.c:4517-4525
+ * Target Lines: 4517 (PRINT_OR_DUMP), 4519 (n++), 4520 (loop end), 4521-4525 (cleanup)
+ * Functional Purpose: Validates that wasm_interp_dump_call_stack() correctly iterates
+ *                     through multiple frames, increments counters, and performs final
+ *                     cleanup with proper formatting and unlock operations.
+ * Call Path: Direct call to wasm_interp_dump_call_stack()
+ * Coverage Goal: Exercise lines 4517-4525 for multiple frame iteration and cleanup
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, WasmInterpDumpCallStack_MultipleFrames_IteratesAllFrames) {
+    const uint8_t simple_wasm[] = {
+        0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
+        0x01, 0x04, 0x01, 0x60, 0x00, 0x00, 0x03, 0x02,
+        0x01, 0x00, 0x0a, 0x04, 0x01, 0x02, 0x00, 0x0b
+    };
+    char error_buf[256];
+    char buffer[2048];
+
+    wasm_module_t module = wasm_runtime_load(const_cast<uint8_t*>(simple_wasm), sizeof(simple_wasm), error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 1024, 1024, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    wasm_exec_env_t exec_env = wasm_exec_env_create(module_inst, 8192);
+    ASSERT_NE(nullptr, exec_env);
+
+    // Create frames vector with multiple frames
+    WASMModuleInstance *wasm_inst = (WASMModuleInstance*)module_inst;
+    if (wasm_inst->frames) {
+        bh_vector_destroy(wasm_inst->frames);
+        wasm_runtime_free(wasm_inst->frames);
+    }
+    wasm_inst->frames = (Vector*)wasm_runtime_malloc(sizeof(Vector));
+    ASSERT_NE(nullptr, wasm_inst->frames);
+    bool success = bh_vector_init(wasm_inst->frames, 3, sizeof(WASMCApiFrame), false);
+    ASSERT_TRUE(success);
+
+    // Add multiple frames to test iteration (lines 4519-4520)
+    for (uint32_t i = 0; i < 3; i++) {
+        WASMCApiFrame frame = {0};
+        frame.func_index = i;
+        frame.func_offset = 0x1000 + (i * 0x100);
+        frame.func_name_wp = nullptr; // Mix of named and unnamed functions
+        if (i == 1) {
+            frame.func_name_wp = const_cast<char*>("middle_func");
+        }
+        bool append_success = bh_vector_append(wasm_inst->frames, &frame);
+        ASSERT_TRUE(append_success);
+    }
+
+    // Test call stack dump with multiple frames
+    memset(buffer, 0, sizeof(buffer));
+    uint32_t result = wasm_interp_dump_call_stack(exec_env, false, buffer, sizeof(buffer));
+    ASSERT_GT(result, 0);
+
+    // Verify all frames appear in output (tests lines 4517-4520 iteration)
+    ASSERT_NE(nullptr, strstr(buffer, "$f0"));        // First frame
+    ASSERT_NE(nullptr, strstr(buffer, "middle_func")); // Second frame (named)
+    ASSERT_NE(nullptr, strstr(buffer, "$f2"));        // Third frame
+
+    // Verify frame numbering format (#00, #01, #02)
+    ASSERT_NE(nullptr, strstr(buffer, "#00"));
+    ASSERT_NE(nullptr, strstr(buffer, "#01"));
+    ASSERT_NE(nullptr, strstr(buffer, "#02"));
+
+    // Verify final cleanup produces expected output (lines 4521-4525)
+    ASSERT_GT(strlen(buffer), 0);
+
+    wasm_exec_env_destroy(exec_env);
+    wasm_runtime_deinstantiate(module_inst);
+    wasm_runtime_unload(module);
+}
+
+/******
+ * Test Case: wasm_interp_dump_call_stack_PrintMode_DirectOutput
+ * Source: core/iwasm/interpreter/wasm_runtime.c:4495-4525
+ * Target Lines: All target lines with print=true parameter path
+ * Functional Purpose: Validates that wasm_interp_dump_call_stack() correctly handles
+ *                     print mode (print=true) by outputting directly to stdout while
+ *                     still exercising all the same formatting logic paths.
+ * Call Path: Direct call to wasm_interp_dump_call_stack()
+ * Coverage Goal: Exercise target lines 4495-4525 in print mode path
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, WasmInterpDumpCallStack_PrintMode_DirectOutput) {
+    const uint8_t simple_wasm[] = {
+        0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
+        0x01, 0x04, 0x01, 0x60, 0x00, 0x00, 0x03, 0x02,
+        0x01, 0x00, 0x0a, 0x04, 0x01, 0x02, 0x00, 0x0b
+    };
+    char error_buf[256];
+
+    wasm_module_t module = wasm_runtime_load(const_cast<uint8_t*>(simple_wasm), sizeof(simple_wasm), error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 1024, 1024, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    wasm_exec_env_t exec_env = wasm_exec_env_create(module_inst, 8192);
+    ASSERT_NE(nullptr, exec_env);
+
+    // Create frames vector
+    WASMModuleInstance *wasm_inst = (WASMModuleInstance*)module_inst;
+    if (wasm_inst->frames) {
+        bh_vector_destroy(wasm_inst->frames);
+        wasm_runtime_free(wasm_inst->frames);
+    }
+    wasm_inst->frames = (Vector*)wasm_runtime_malloc(sizeof(Vector));
+    ASSERT_NE(nullptr, wasm_inst->frames);
+    bool success = bh_vector_init(wasm_inst->frames, 2, sizeof(WASMCApiFrame), false);
+    ASSERT_TRUE(success);
+
+    // Add frames with different characteristics
+    WASMCApiFrame frame1 = {0};
+    frame1.func_index = 0;
+    frame1.func_offset = 0x2000;
+    frame1.func_name_wp = nullptr; // Test NULL path (lines 4495-4500)
+    bool append_success1 = bh_vector_append(wasm_inst->frames, &frame1);
+    ASSERT_TRUE(append_success1);
+
+    WASMCApiFrame frame2 = {0};
+    frame2.func_index = 1;
+    frame2.func_offset = 0x3000;
+    frame2.func_name_wp = const_cast<char*>("print_test_func"); // Test name path (lines 4501-4505)
+    bool append_success2 = bh_vector_append(wasm_inst->frames, &frame2);
+    ASSERT_TRUE(append_success2);
+
+    // Test call stack dump in print mode (print=true, buf=NULL, len=0)
+    // This exercises the same target lines but with print output
+    uint32_t result = wasm_interp_dump_call_stack(exec_env, true, nullptr, 0);
+    ASSERT_GT(result, 0); // Should return positive value indicating printed characters
+
+    wasm_exec_env_destroy(exec_env);
+    wasm_runtime_deinstantiate(module_inst);
+    wasm_runtime_unload(module);
+}
