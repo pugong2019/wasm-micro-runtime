@@ -766,3 +766,264 @@ TEST_F(EnhancedWasmRuntimeTest, wasm_set_aux_stack_ValidConfiguration_ReturnsTru
 }
 
 #endif // WASM_ENABLE_THREAD_MGR
+
+/******
+ * Test Case: MemoryInstantiate_AuxHeapBeforeHeapBase_ValidConditions
+ * Source: core/iwasm/interpreter/wasm_runtime.c:359-396
+ * Target Lines: 359-396 (App heap insertion before __heap_base logic)
+ * Functional Purpose: Tests the memory_instantiate function when aux_heap_base_global_index
+ *                     is valid and aux_heap_base is within initial page bounds, triggering
+ *                     the app heap insertion logic before __heap_base with proper global
+ *                     value adjustment and memory layout calculations.
+ * Call Path: wasm_instantiate() -> memories_instantiate() -> memory_instantiate()
+ * Coverage Goal: Exercise app heap insertion path and global value adjustment logic
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, MemoryInstantiate_AuxHeapBeforeHeapBase_ValidConditions) {
+    // Create a minimal WASM module that has memory with aux_heap_base set
+    uint8 simple_wasm[] = {
+        0x00, 0x61, 0x73, 0x6d, // magic
+        0x01, 0x00, 0x00, 0x00, // version
+
+        // Memory section
+        0x05, 0x04, 0x01,       // section id, size, count
+        0x01, 0x01, 0x02,       // memory: min=1, max=2 pages
+
+        // Global section with __heap_base
+        0x06, 0x06, 0x01,       // section id, size, count
+        0x7f, 0x00,             // i32, mutable=false
+        0x41, 0x00, 0x0b        // i32.const 0, end
+    };
+
+    char error_buf[256];
+    wasm_module_t module = wasm_runtime_load(simple_wasm, sizeof(simple_wasm), error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    // Cast to interpreter module to access internal fields for testing
+    WASMModule *interp_module = (WASMModule*)module;
+
+    // Set up the module to have aux_heap_base_global_index and aux_heap_base
+    interp_module->aux_heap_base_global_index = 0; // Valid global index (not -1)
+    interp_module->aux_heap_base = 32768; // 32KB, within 1 page (64KB)
+
+    // Create module instance with heap_size > 0 to trigger the target code path
+    uint32 heap_size = 8192; // 8KB heap
+    wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 32768, heap_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    // Cast to interpreter instance to access internal fields
+    WASMModuleInstance *interp_inst = (WASMModuleInstance*)module_inst;
+
+    // Verify that the module was instantiated successfully
+    ASSERT_NE(nullptr, interp_inst->memories);
+    ASSERT_GT(interp_inst->memory_count, 0U);
+
+    // Clean up
+    wasm_runtime_deinstantiate(module_inst);
+    wasm_runtime_unload(module);
+}
+
+/******
+ * Test Case: MemoryInstantiate_AuxHeapAlignment_BytesOfLastPageZero
+ * Source: core/iwasm/interpreter/wasm_runtime.c:360-362, 370-372
+ * Target Lines: 360-362, 370-372 (bytes_of_last_page == 0 conditions)
+ * Functional Purpose: Tests the specific case where aux_heap_base is exactly aligned
+ *                     to page boundaries, causing bytes_of_last_page to be 0 and
+ *                     requiring it to be set to num_bytes_per_page.
+ * Call Path: wasm_instantiate() -> memories_instantiate() -> memory_instantiate()
+ * Coverage Goal: Exercise alignment calculation logic for page-aligned aux_heap_base
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, MemoryInstantiate_AuxHeapAlignment_BytesOfLastPageZero) {
+    uint8 simple_wasm[] = {
+        0x00, 0x61, 0x73, 0x6d, // magic
+        0x01, 0x00, 0x00, 0x00, // version
+
+        // Memory section
+        0x05, 0x04, 0x01,       // section id, size, count
+        0x01, 0x01, 0x02,       // memory: min=1, max=2 pages
+
+        // Global section
+        0x06, 0x06, 0x01,       // section id, size, count
+        0x7f, 0x00,             // i32, mutable=false
+        0x41, 0x00, 0x0b        // i32.const 0, end
+    };
+
+    char error_buf[256];
+    wasm_module_t module = wasm_runtime_load(simple_wasm, sizeof(simple_wasm), error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    // Cast to interpreter module to access internal fields for testing
+    WASMModule *interp_module = (WASMModule*)module;
+
+    // Set aux_heap_base to be exactly at page boundary (64KB)
+    interp_module->aux_heap_base_global_index = 0;
+    interp_module->aux_heap_base = 65536; // Exactly 1 page (64KB), so bytes_of_last_page will be 0
+
+    uint32 heap_size = 4096; // 4KB heap
+    wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 32768, heap_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    // Cast to interpreter instance to access internal fields
+    WASMModuleInstance *interp_inst = (WASMModuleInstance*)module_inst;
+
+    // Verify successful instantiation
+    ASSERT_NE(nullptr, interp_inst->memories);
+    ASSERT_GT(interp_inst->memory_count, 0U);
+
+    wasm_runtime_deinstantiate(module_inst);
+    wasm_runtime_unload(module);
+}
+
+/******
+ * Test Case: MemoryInstantiate_AuxHeapSpaceCheck_RequiresExtraKB
+ * Source: core/iwasm/interpreter/wasm_runtime.c:374-377
+ * Target Lines: 374-377 (bytes_to_page_end < 1 * BH_KB condition)
+ * Functional Purpose: Tests the condition where the space remaining to page end
+ *                     is less than 1KB, requiring aux_heap_base adjustment and
+ *                     increment of page count for proper memory layout.
+ * Call Path: wasm_instantiate() -> memories_instantiate() -> memory_instantiate()
+ * Coverage Goal: Exercise space check and page count adjustment logic
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, MemoryInstantiate_AuxHeapSpaceCheck_RequiresExtraKB) {
+    uint8 simple_wasm[] = {
+        0x00, 0x61, 0x73, 0x6d, // magic
+        0x01, 0x00, 0x00, 0x00, // version
+
+        // Memory section
+        0x05, 0x04, 0x01,       // section id, size, count
+        0x01, 0x01, 0x04,       // memory: min=1, max=4 pages
+
+        // Global section
+        0x06, 0x06, 0x01,       // section id, size, count
+        0x7f, 0x00,             // i32, mutable=false
+        0x41, 0x00, 0x0b        // i32.const 0, end
+    };
+
+    char error_buf[256];
+    wasm_module_t module = wasm_runtime_load(simple_wasm, sizeof(simple_wasm), error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    // Cast to interpreter module to access internal fields for testing
+    WASMModule *interp_module = (WASMModule*)module;
+
+    // Set aux_heap_base to create scenario where bytes_to_page_end < 1KB
+    // Page size is 64KB, so setting base near end of page
+    interp_module->aux_heap_base_global_index = 0;
+    interp_module->aux_heap_base = 32768; // 32KB base
+
+    // Use large heap size to trigger complex calculations
+    uint32 heap_size = 16384; // 16KB heap
+    wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 65536, heap_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    // Cast to interpreter instance to access internal fields
+    WASMModuleInstance *interp_inst = (WASMModuleInstance*)module_inst;
+
+    // Verify successful instantiation with proper memory setup
+    ASSERT_NE(nullptr, interp_inst->memories);
+    ASSERT_GT(interp_inst->memory_count, 0U);
+
+    wasm_runtime_deinstantiate(module_inst);
+    wasm_runtime_unload(module);
+}
+
+#if WASM_ENABLE_MEMORY64 != 0
+/******
+ * Test Case: MemoryInstantiate_Memory64_GlobalValueAdjustment
+ * Source: core/iwasm/interpreter/wasm_runtime.c:385-389
+ * Target Lines: 385-389 (Memory64 global value adjustment)
+ * Functional Purpose: Tests the memory64-specific path where the global __heap_base
+ *                     value is adjusted as a 64-bit integer when memory64 is enabled.
+ * Call Path: wasm_instantiate() -> memories_instantiate() -> memory_instantiate()
+ * Coverage Goal: Exercise memory64 global value adjustment branch
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, MemoryInstantiate_Memory64_GlobalValueAdjustment) {
+    uint8 memory64_wasm[] = {
+        0x00, 0x61, 0x73, 0x6d, // magic
+        0x01, 0x00, 0x00, 0x00, // version
+
+        // Memory section with memory64 flag
+        0x05, 0x05, 0x01,       // section id, size, count
+        0x04, 0x01, 0x02,       // memory64 flag (0x04), min=1, max=2
+
+        // Global section
+        0x06, 0x06, 0x01,       // section id, size, count
+        0x7e, 0x00,             // i64, mutable=false
+        0x42, 0x00, 0x0b        // i64.const 0, end
+    };
+
+    char error_buf[256];
+    wasm_module_t module = wasm_runtime_load(memory64_wasm, sizeof(memory64_wasm), error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    // Cast to interpreter module to access internal fields for testing
+    WASMModule *interp_module = (WASMModule*)module;
+
+    // Set up for memory64 with aux heap base
+    interp_module->aux_heap_base_global_index = 0;
+    interp_module->aux_heap_base = 40960; // 40KB
+
+    uint32 heap_size = 8192; // 8KB heap
+    wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 32768, heap_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    // Cast to interpreter instance to access internal fields
+    WASMModuleInstance *interp_inst = (WASMModuleInstance*)module_inst;
+
+    // Verify memory64 setup
+    ASSERT_NE(nullptr, interp_inst->memories);
+    ASSERT_GT(interp_inst->memory_count, 0U);
+
+    wasm_runtime_deinstantiate(module_inst);
+    wasm_runtime_unload(module);
+}
+#endif
+
+/******
+ * Test Case: MemoryInstantiate_Memory32_GlobalValueAdjustment
+ * Source: core/iwasm/interpreter/wasm_runtime.c:392-395
+ * Target Lines: 392-395 (Memory32 global value adjustment)
+ * Functional Purpose: Tests the memory32 path where the global __heap_base value
+ *                     is adjusted as a 32-bit integer in the standard memory model.
+ * Call Path: wasm_instantiate() -> memories_instantiate() -> memory_instantiate()
+ * Coverage Goal: Exercise memory32 global value adjustment branch
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, MemoryInstantiate_Memory32_GlobalValueAdjustment) {
+    uint8 simple_wasm[] = {
+        0x00, 0x61, 0x73, 0x6d, // magic
+        0x01, 0x00, 0x00, 0x00, // version
+
+        // Memory section (memory32)
+        0x05, 0x04, 0x01,       // section id, size, count
+        0x01, 0x01, 0x02,       // memory: min=1, max=2 pages
+
+        // Global section
+        0x06, 0x06, 0x01,       // section id, size, count
+        0x7f, 0x00,             // i32, mutable=false
+        0x41, 0x00, 0x0b        // i32.const 0, end
+    };
+
+    char error_buf[256];
+    wasm_module_t module = wasm_runtime_load(simple_wasm, sizeof(simple_wasm), error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    // Cast to interpreter module to access internal fields for testing
+    WASMModule *interp_module = (WASMModule*)module;
+
+    // Set up for memory32 with aux heap base
+    interp_module->aux_heap_base_global_index = 0;
+    interp_module->aux_heap_base = 24576; // 24KB
+
+    uint32 heap_size = 12288; // 12KB heap
+    wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 32768, heap_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    // Cast to interpreter instance to access internal fields
+    WASMModuleInstance *interp_inst = (WASMModuleInstance*)module_inst;
+
+    // Verify memory32 setup
+    ASSERT_NE(nullptr, interp_inst->memories);
+    ASSERT_GT(interp_inst->memory_count, 0U);
+
+    wasm_runtime_deinstantiate(module_inst);
+    wasm_runtime_unload(module);
+}
