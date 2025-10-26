@@ -16,6 +16,7 @@ set (WAMR_BUILD_APP_FRAMEWORK 1)
 set (WAMR_BUILD_AOT 0)
 set (WAMR_BUILD_THREAD_MGR 1)
 set (WAMR_BUILD_MULTI_MODULE 1)
+set (WAMR_BUILD_BULK_MEMORY 1)
 
 include (../unit_common.cmake)
 
