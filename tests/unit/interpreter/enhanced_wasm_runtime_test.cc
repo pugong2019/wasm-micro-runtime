@@ -1335,3 +1335,166 @@ TEST_F(EnhancedWasmRuntimeTest, ConstStrListInsert_MemoryAllocationFailure_Retur
         }
     }
 }
+
+/***********************************************************************
+ * Enhanced Test Cases for wasm_set_module_name (Lines 5129-5138)
+ ***********************************************************************/
+
+/******
+ * Test Case: WasmSetModuleName_NullName_ReturnsFalse
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5129-5138
+ * Target Lines: 5132 (null check), 5133 (return false)
+ * Functional Purpose: Validates that wasm_set_module_name() correctly handles
+ *                     NULL name parameter by returning false as per line 5132-5133.
+ * Call Path: wasm_set_module_name() [DIRECT PUBLIC API CALL]
+ * Coverage Goal: Exercise null pointer validation path (lines 5132-5133)
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, WasmSetModuleName_NullName_ReturnsFalse) {
+    // Create a minimal WASMModule for testing
+    WASMModule module;
+    memset(&module, 0, sizeof(WASMModule));
+    module.const_str_list = nullptr;
+
+    char error_buf[256];
+
+    // Test with NULL name - should trigger line 5132 condition and return false on line 5133
+    bool result = wasm_set_module_name(&module, nullptr, error_buf, sizeof(error_buf));
+
+    // Validation: Function should return false when name is NULL
+    ASSERT_FALSE(result);
+
+    // Validation: Module name should remain unchanged (not set)
+    ASSERT_EQ(nullptr, module.name);
+}
+
+/******
+ * Test Case: WasmSetModuleName_ValidName_ReturnsTrue
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5129-5138
+ * Target Lines: 5135-5137 (wasm_const_str_list_insert call), 5138 (return success)
+ * Functional Purpose: Validates that wasm_set_module_name() correctly processes
+ *                     valid module names by calling wasm_const_str_list_insert
+ *                     and returns true when successful.
+ * Call Path: wasm_set_module_name() -> wasm_const_str_list_insert()
+ * Coverage Goal: Exercise successful name setting path (lines 5135-5138)
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, WasmSetModuleName_ValidName_ReturnsTrue) {
+    // Create a minimal WASMModule for testing
+    WASMModule module;
+    memset(&module, 0, sizeof(WASMModule));
+    module.const_str_list = nullptr;
+
+    char error_buf[256];
+    const char *test_name = "test_module";
+
+    // Test with valid name - should execute lines 5135-5137 and return true on line 5138
+    bool result = wasm_set_module_name(&module, test_name, error_buf, sizeof(error_buf));
+
+    // Validation: Function should return true for valid name
+    ASSERT_TRUE(result);
+
+    // Validation: Module name should be set (line 5138 condition module->name != NULL)
+    ASSERT_NE(nullptr, module.name);
+
+    // Validation: Module name should match the provided name
+    ASSERT_STREQ(test_name, module.name);
+}
+
+/******
+ * Test Case: WasmSetModuleName_InvalidUTF8_ReturnsFalse
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5129-5138
+ * Target Lines: 5135-5137 (wasm_const_str_list_insert call), 5138 (return false)
+ * Functional Purpose: Validates that wasm_set_module_name() correctly handles
+ *                     invalid UTF-8 strings by propagating failure from
+ *                     wasm_const_str_list_insert and returning false.
+ * Call Path: wasm_set_module_name() -> wasm_const_str_list_insert() -> wasm_check_utf8_str()
+ * Coverage Goal: Exercise UTF-8 validation failure path (lines 5135-5138)
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, WasmSetModuleName_InvalidUTF8_ReturnsFalse) {
+    // Create a minimal WASMModule for testing
+    WASMModule module;
+    memset(&module, 0, sizeof(WASMModule));
+    module.const_str_list = nullptr;
+
+    char error_buf[256];
+
+    // Create invalid UTF-8 string (invalid continuation byte)
+    char invalid_utf8[] = {(char)0xC0, (char)0x80, '\0'}; // Invalid UTF-8 sequence
+
+    // Test with invalid UTF-8 - should execute line 5135-5137 but wasm_const_str_list_insert fails
+    bool result = wasm_set_module_name(&module, invalid_utf8, error_buf, sizeof(error_buf));
+
+    // Validation: Function should return false for invalid UTF-8
+    ASSERT_FALSE(result);
+
+    // Validation: Module name should remain NULL (line 5138 condition fails)
+    ASSERT_EQ(nullptr, module.name);
+
+    // Validation: Error buffer should contain UTF-8 error message
+    ASSERT_NE('\0', error_buf[0]);
+}
+
+/******
+ * Test Case: WasmSetModuleName_EmptyString_ReturnsTrue
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5129-5138
+ * Target Lines: 5135-5137 (wasm_const_str_list_insert call), 5138 (return true)
+ * Functional Purpose: Validates that wasm_set_module_name() correctly handles
+ *                     empty string names, which should succeed and return an
+ *                     empty string constant.
+ * Call Path: wasm_set_module_name() -> wasm_const_str_list_insert()
+ * Coverage Goal: Exercise empty string edge case (lines 5135-5138)
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, WasmSetModuleName_EmptyString_ReturnsTrue) {
+    // Create a minimal WASMModule for testing
+    WASMModule module;
+    memset(&module, 0, sizeof(WASMModule));
+    module.const_str_list = nullptr;
+
+    char error_buf[256];
+    const char *empty_name = "";
+
+    // Test with empty string - should execute lines 5135-5137 and return true
+    bool result = wasm_set_module_name(&module, empty_name, error_buf, sizeof(error_buf));
+
+    // Validation: Function should return true for empty string
+    ASSERT_TRUE(result);
+
+    // Validation: Module name should be set to empty string (line 5138 condition passes)
+    ASSERT_NE(nullptr, module.name);
+
+    // Validation: Module name should be empty string
+    ASSERT_STREQ("", module.name);
+}
+
+/******
+ * Test Case: WasmSetModuleName_LongModuleName_ReturnsTrue
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5129-5138
+ * Target Lines: 5135-5137 (wasm_const_str_list_insert call), 5138 (return true)
+ * Functional Purpose: Validates that wasm_set_module_name() correctly handles
+ *                     long module names by successfully processing them through
+ *                     wasm_const_str_list_insert.
+ * Call Path: wasm_set_module_name() -> wasm_const_str_list_insert()
+ * Coverage Goal: Exercise long string processing path (lines 5135-5138)
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, WasmSetModuleName_LongModuleName_ReturnsTrue) {
+    // Create a minimal WASMModule for testing
+    WASMModule module;
+    memset(&module, 0, sizeof(WASMModule));
+    module.const_str_list = nullptr;
+
+    char error_buf[256];
+
+    // Create a long but valid module name (256 characters)
+    std::string long_name(256, 'A');
+
+    // Test with long name - should execute lines 5135-5137 and return true
+    bool result = wasm_set_module_name(&module, long_name.c_str(), error_buf, sizeof(error_buf));
+
+    // Validation: Function should return true for long valid name
+    ASSERT_TRUE(result);
+
+    // Validation: Module name should be set (line 5138 condition passes)
+    ASSERT_NE(nullptr, module.name);
+
+    // Validation: Module name should match the long name
+    ASSERT_STREQ(long_name.c_str(), module.name);
+}
