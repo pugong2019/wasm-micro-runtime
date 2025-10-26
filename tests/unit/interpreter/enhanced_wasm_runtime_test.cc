@@ -2309,3 +2309,203 @@ TEST_F(EnhancedWasmRuntimeTest, MemoryCopyOperation_ValidRange_CopiesDataCorrect
 }
 
 #endif /* WASM_ENABLE_BULK_MEMORY != 0 */
+
+// =============================================================================
+// New Test Cases for wasm_const_str_list_insert() - Lines 5093-5125
+// =============================================================================
+
+/******
+ * Test Case: wasm_const_str_list_insert_EmptyList_CreatesFirstNode
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5093-5125
+ * Target Lines: 5093-5099 (empty list search), 5105-5108 (malloc), 5110-5113 (setup), 5114-5117 (first node)
+ * Functional Purpose: Validates that wasm_const_str_list_insert() correctly creates the first
+ *                     node in an empty const_str_list and properly initializes it.
+ * Call Path: wasm_const_str_list_insert() [PUBLIC API]
+ * Coverage Goal: Exercise empty list initialization path
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_const_str_list_insert_EmptyList_CreatesFirstNode) {
+    WASMModule *module = (WASMModule*)wasm_runtime_malloc(sizeof(WASMModule));
+    ASSERT_NE(nullptr, module);
+    memset(module, 0, sizeof(WASMModule));
+
+    // Ensure list is initially empty
+    module->const_str_list = NULL;
+
+    const char *test_str = "hello";
+    char error_buf[256];
+
+    // Insert first string into empty list
+    char *result = wasm_const_str_list_insert((const uint8*)test_str, strlen(test_str),
+                                            module, false, error_buf, sizeof(error_buf));
+
+    ASSERT_NE(nullptr, result);
+    ASSERT_STREQ("hello", result);
+
+    // Verify list structure
+    ASSERT_NE(nullptr, module->const_str_list);
+    ASSERT_EQ(nullptr, module->const_str_list->next);
+    ASSERT_STREQ("hello", module->const_str_list->str);
+
+    wasm_runtime_free(module);
+}
+
+/******
+ * Test Case: wasm_const_str_list_insert_ExistingString_ReturnsExisting
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5093-5125
+ * Target Lines: 5093-5099 (search loop with match), 5101-5103 (return existing)
+ * Functional Purpose: Validates that wasm_const_str_list_insert() correctly finds and
+ *                     returns existing strings from the const_str_list without duplicating.
+ * Call Path: wasm_const_str_list_insert() [PUBLIC API]
+ * Coverage Goal: Exercise existing string lookup and return path
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_const_str_list_insert_ExistingString_ReturnsExisting) {
+    WASMModule *module = (WASMModule*)wasm_runtime_malloc(sizeof(WASMModule));
+    ASSERT_NE(nullptr, module);
+    memset(module, 0, sizeof(WASMModule));
+
+    module->const_str_list = NULL;
+    char error_buf[256];
+
+    // Insert first string
+    char *first_result = wasm_const_str_list_insert((const uint8*)"world", 5,
+                                                  module, false, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, first_result);
+
+    // Insert same string again - should return existing
+    char *second_result = wasm_const_str_list_insert((const uint8*)"world", 5,
+                                                   module, false, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, second_result);
+
+    // Should return the same pointer (existing string)
+    ASSERT_EQ(first_result, second_result);
+    ASSERT_STREQ("world", second_result);
+
+    wasm_runtime_free(module);
+}
+
+/******
+ * Test Case: wasm_const_str_list_insert_NonEmptyList_PrependsNewNode
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5093-5125
+ * Target Lines: 5093-5099 (search fails), 5105-5108 (malloc), 5110-5113 (setup), 5119-5123 (prepend)
+ * Functional Purpose: Validates that wasm_const_str_list_insert() correctly prepends new strings
+ *                     to the head of an existing const_str_list and maintains list integrity.
+ * Call Path: wasm_const_str_list_insert() [PUBLIC API]
+ * Coverage Goal: Exercise non-empty list insertion path (prepend to head)
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_const_str_list_insert_NonEmptyList_PrependsNewNode) {
+    WASMModule *module = (WASMModule*)wasm_runtime_malloc(sizeof(WASMModule));
+    ASSERT_NE(nullptr, module);
+    memset(module, 0, sizeof(WASMModule));
+
+    module->const_str_list = NULL;
+    char error_buf[256];
+
+    // Insert first string
+    char *first_result = wasm_const_str_list_insert((const uint8*)"first", 5,
+                                                  module, false, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, first_result);
+    ASSERT_STREQ("first", first_result);
+
+    // Store reference to first node
+    StringNode *first_node = module->const_str_list;
+    ASSERT_NE(nullptr, first_node);
+    ASSERT_EQ(nullptr, first_node->next);
+
+    // Insert second string - should prepend to head
+    char *second_result = wasm_const_str_list_insert((const uint8*)"second", 6,
+                                                   module, false, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, second_result);
+    ASSERT_STREQ("second", second_result);
+
+    // Verify list structure: second should be new head, first should be next
+    ASSERT_NE(nullptr, module->const_str_list);
+    ASSERT_STREQ("second", module->const_str_list->str);
+    ASSERT_EQ(first_node, module->const_str_list->next);
+    ASSERT_STREQ("first", module->const_str_list->next->str);
+    ASSERT_EQ(nullptr, module->const_str_list->next->next);
+
+    wasm_runtime_free(module);
+}
+
+/******
+ * Test Case: wasm_const_str_list_insert_SearchLoop_FindsInMiddle
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5093-5125
+ * Target Lines: 5093-5099 (multi-iteration search loop), 5101-5103 (return found)
+ * Functional Purpose: Validates that wasm_const_str_list_insert() correctly searches through
+ *                     multiple nodes in the const_str_list and finds existing string not at head.
+ * Call Path: wasm_const_str_list_insert() [PUBLIC API]
+ * Coverage Goal: Exercise search loop with multiple iterations before finding match
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_const_str_list_insert_SearchLoop_FindsInMiddle) {
+    WASMModule *module = (WASMModule*)wasm_runtime_malloc(sizeof(WASMModule));
+    ASSERT_NE(nullptr, module);
+    memset(module, 0, sizeof(WASMModule));
+
+    module->const_str_list = NULL;
+    char error_buf[256];
+
+    // Insert three different strings
+    char *first = wasm_const_str_list_insert((const uint8*)"alpha", 5,
+                                           module, false, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, first);
+
+    char *second = wasm_const_str_list_insert((const uint8*)"beta", 4,
+                                            module, false, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, second);
+
+    char *third = wasm_const_str_list_insert((const uint8*)"gamma", 5,
+                                           module, false, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, third);
+
+    // Now search for "alpha" which should be at the end of list (requires loop iterations)
+    char *found = wasm_const_str_list_insert((const uint8*)"alpha", 5,
+                                           module, false, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, found);
+    ASSERT_EQ(first, found); // Should return same pointer
+    ASSERT_STREQ("alpha", found);
+
+    wasm_runtime_free(module);
+}
+
+/******
+ * Test Case: wasm_const_str_list_insert_NodeSetup_CopiesStringCorrectly
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5093-5125
+ * Target Lines: 5110-5113 (node->str setup, bh_memcpy_s, null termination), 5125 (return)
+ * Functional Purpose: Validates that wasm_const_str_list_insert() correctly sets up new StringNode
+ *                     structure with proper string pointer calculation and data copying.
+ * Call Path: wasm_const_str_list_insert() [PUBLIC API]
+ * Coverage Goal: Exercise node initialization and string copying logic
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_const_str_list_insert_NodeSetup_CopiesStringCorrectly) {
+    WASMModule *module = (WASMModule*)wasm_runtime_malloc(sizeof(WASMModule));
+    ASSERT_NE(nullptr, module);
+    memset(module, 0, sizeof(WASMModule));
+
+    module->const_str_list = NULL;
+    char error_buf[256];
+
+    const char *test_data = "test_string_copy";
+    uint32 len = strlen(test_data);
+
+    char *result = wasm_const_str_list_insert((const uint8*)test_data, len,
+                                            module, false, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, result);
+
+    // Verify string is correctly copied
+    ASSERT_STREQ(test_data, result);
+    ASSERT_EQ(len, strlen(result));
+
+    // Verify node structure
+    StringNode *node = module->const_str_list;
+    ASSERT_NE(nullptr, node);
+    ASSERT_EQ(result, node->str);
+
+    // Verify string pointer is correctly calculated (node->str = ((char*)node) + sizeof(StringNode))
+    char *expected_str_ptr = ((char*)node) + sizeof(StringNode);
+    ASSERT_EQ(expected_str_ptr, node->str);
+
+    // Verify null termination
+    ASSERT_EQ('\0', result[len]);
+
+    wasm_runtime_free(module);
+}
