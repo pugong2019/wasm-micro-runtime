@@ -3838,3 +3838,174 @@ TEST_F(EnhancedWasmRuntimeCommonCApiTest, InvokeNativeRaw_ExceptionHandling_Retu
     wasm_runtime_destroy_exec_env(exec_env);
     wasm_runtime_unload(module);
 }
+
+/******
+ * Additional Test Cases for lines 4559-4587 in wasm_func_type_get_param_valkind()
+ * Target Function: wasm_func_type_get_param_valkind
+ * Coverage Goal: Test all value type mappings and error conditions
+ ******/
+
+/******
+ * Test Case: WasmFuncTypeGetParamValkind_ValidI32Type_ReturnsWasmI32
+ * Source: core/iwasm/common/wasm_runtime_common.c:4568-4569
+ * Target Lines: 4568 (VALUE_TYPE_I32 case), 4569 (return WASM_I32)
+ * Functional Purpose: Validates that wasm_func_type_get_param_valkind() correctly
+ *                     maps VALUE_TYPE_I32 parameter type to WASM_I32 return value.
+ * Call Path: Direct function call (public API)
+ * Coverage Goal: Exercise I32 type mapping path
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmFuncTypeGetParamValkind_ValidI32Type_ReturnsWasmI32) {
+    // Create function type with I32 parameter
+    WASMFuncType *func_type = CreateTestFuncType(1, 0);
+    ASSERT_NE(nullptr, func_type);
+
+    func_type->types[0] = VALUE_TYPE_I32;
+
+    // Test I32 parameter type mapping
+    wasm_valkind_t result = wasm_func_type_get_param_valkind(func_type, 0);
+    ASSERT_EQ(WASM_I32, result);
+
+    FreeFuncType(func_type);
+}
+
+/******
+ * Test Case: WasmFuncTypeGetParamValkind_ValidI64Type_ReturnsWasmI64
+ * Source: core/iwasm/common/wasm_runtime_common.c:4570-4571
+ * Target Lines: 4570 (VALUE_TYPE_I64 case), 4571 (return WASM_I64)
+ * Functional Purpose: Validates that wasm_func_type_get_param_valkind() correctly
+ *                     maps VALUE_TYPE_I64 parameter type to WASM_I64 return value.
+ * Call Path: Direct function call (public API)
+ * Coverage Goal: Exercise I64 type mapping path
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmFuncTypeGetParamValkind_ValidI64Type_ReturnsWasmI64) {
+    // Create function type with I64 parameter
+    WASMFuncType *func_type = CreateTestFuncType(1, 0);
+    ASSERT_NE(nullptr, func_type);
+
+    func_type->types[0] = VALUE_TYPE_I64;
+
+    // Test I64 parameter type mapping
+    wasm_valkind_t result = wasm_func_type_get_param_valkind(func_type, 0);
+    ASSERT_EQ(WASM_I64, result);
+
+    FreeFuncType(func_type);
+}
+
+/******
+ * Test Case: WasmFuncTypeGetParamValkind_ValidF32Type_ReturnsWasmF32
+ * Source: core/iwasm/common/wasm_runtime_common.c:4572-4573
+ * Target Lines: 4572 (VALUE_TYPE_F32 case), 4573 (return WASM_F32)
+ * Functional Purpose: Validates that wasm_func_type_get_param_valkind() correctly
+ *                     maps VALUE_TYPE_F32 parameter type to WASM_F32 return value.
+ * Call Path: Direct function call (public API)
+ * Coverage Goal: Exercise F32 type mapping path
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmFuncTypeGetParamValkind_ValidF32Type_ReturnsWasmF32) {
+    // Create function type with F32 parameter
+    WASMFuncType *func_type = CreateTestFuncType(1, 0);
+    ASSERT_NE(nullptr, func_type);
+
+    func_type->types[0] = VALUE_TYPE_F32;
+
+    // Test F32 parameter type mapping
+    wasm_valkind_t result = wasm_func_type_get_param_valkind(func_type, 0);
+    ASSERT_EQ(WASM_F32, result);
+
+    FreeFuncType(func_type);
+}
+
+/******
+ * Test Case: WasmFuncTypeGetParamValkind_ValidF64Type_ReturnsWasmF64
+ * Source: core/iwasm/common/wasm_runtime_common.c:4574-4575
+ * Target Lines: 4574 (VALUE_TYPE_F64 case), 4575 (return WASM_F64)
+ * Functional Purpose: Validates that wasm_func_type_get_param_valkind() correctly
+ *                     maps VALUE_TYPE_F64 parameter type to WASM_F64 return value.
+ * Call Path: Direct function call (public API)
+ * Coverage Goal: Exercise F64 type mapping path
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmFuncTypeGetParamValkind_ValidF64Type_ReturnsWasmF64) {
+    // Create function type with F64 parameter
+    WASMFuncType *func_type = CreateTestFuncType(1, 0);
+    ASSERT_NE(nullptr, func_type);
+
+    func_type->types[0] = VALUE_TYPE_F64;
+
+    // Test F64 parameter type mapping
+    wasm_valkind_t result = wasm_func_type_get_param_valkind(func_type, 0);
+    ASSERT_EQ(WASM_F64, result);
+
+    FreeFuncType(func_type);
+}
+
+/******
+ * Test Case: WasmFuncTypeGetParamValkind_ValidV128Type_ReturnsWasmV128
+ * Source: core/iwasm/common/wasm_runtime_common.c:4576-4577
+ * Target Lines: 4576 (VALUE_TYPE_V128 case), 4577 (return WASM_V128)
+ * Functional Purpose: Validates that wasm_func_type_get_param_valkind() correctly
+ *                     maps VALUE_TYPE_V128 parameter type to WASM_V128 return value.
+ * Call Path: Direct function call (public API)
+ * Coverage Goal: Exercise V128 type mapping path
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmFuncTypeGetParamValkind_ValidV128Type_ReturnsWasmV128) {
+    // Create function type with V128 parameter
+    WASMFuncType *func_type = CreateTestFuncType(1, 0);
+    ASSERT_NE(nullptr, func_type);
+
+    func_type->types[0] = VALUE_TYPE_V128;
+
+    // Test V128 parameter type mapping
+    wasm_valkind_t result = wasm_func_type_get_param_valkind(func_type, 0);
+    ASSERT_EQ(WASM_V128, result);
+
+    FreeFuncType(func_type);
+}
+
+/******
+ * Test Case: WasmFuncTypeGetParamValkind_ValidFuncrefType_ReturnsWasmFuncref
+ * Source: core/iwasm/common/wasm_runtime_common.c:4578-4579
+ * Target Lines: 4578 (VALUE_TYPE_FUNCREF case), 4579 (return WASM_FUNCREF)
+ * Functional Purpose: Validates that wasm_func_type_get_param_valkind() correctly
+ *                     maps VALUE_TYPE_FUNCREF parameter type to WASM_FUNCREF return value.
+ * Call Path: Direct function call (public API)
+ * Coverage Goal: Exercise FUNCREF type mapping path
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmFuncTypeGetParamValkind_ValidFuncrefType_ReturnsWasmFuncref) {
+    // Create function type with FUNCREF parameter
+    WASMFuncType *func_type = CreateTestFuncType(1, 0);
+    ASSERT_NE(nullptr, func_type);
+
+    func_type->types[0] = VALUE_TYPE_FUNCREF;
+
+    // Test FUNCREF parameter type mapping
+    wasm_valkind_t result = wasm_func_type_get_param_valkind(func_type, 0);
+    ASSERT_EQ(WASM_FUNCREF, result);
+
+    FreeFuncType(func_type);
+}
+
+/******
+ * Test Case: WasmFuncTypeGetParamValkind_ValidExternrefType_ReturnsWasmExternref
+ * Source: core/iwasm/common/wasm_runtime_common.c:4580-4581
+ * Target Lines: 4580 (VALUE_TYPE_EXTERNREF case), 4581 (return WASM_EXTERNREF)
+ * Functional Purpose: Validates that wasm_func_type_get_param_valkind() correctly
+ *                     maps VALUE_TYPE_EXTERNREF parameter type to WASM_EXTERNREF return value.
+ * Call Path: Direct function call (public API)
+ * Coverage Goal: Exercise EXTERNREF type mapping path
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmFuncTypeGetParamValkind_ValidExternrefType_ReturnsWasmExternref) {
+    // Create function type with EXTERNREF parameter
+    WASMFuncType *func_type = CreateTestFuncType(1, 0);
+    ASSERT_NE(nullptr, func_type);
+
+    func_type->types[0] = VALUE_TYPE_EXTERNREF;
+
+    // Test EXTERNREF parameter type mapping
+    wasm_valkind_t result = wasm_func_type_get_param_valkind(func_type, 0);
+    ASSERT_EQ(WASM_EXTERNREF, result);
+
+    FreeFuncType(func_type);
+}
+
+// Note: Test cases for NULL function type, invalid param index, VOID type, and unknown types
+// are not included because they trigger bh_assert(0) which causes program abort.
+// These are considered programming errors in WAMR and are not meant to be tested directly.
