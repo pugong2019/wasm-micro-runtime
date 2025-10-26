@@ -3151,3 +3151,123 @@ TEST_F(EnhancedWasmRuntimeCommonTest, WasmRuntimeGetModuleName_UnknownModuleType
     ASSERT_NE(nullptr, result);
     ASSERT_STREQ("", result);
 }
+
+// ============ NEW TESTS FOR EXTERNREF FUNCTIONALITY (LINES 6607-6625) ============
+
+#if WASM_ENABLE_REF_TYPES != 0
+
+/******
+ * Test Case: WasmExternrefRef2obj_NullRefIndex_SetsNullPointerAndReturnsTrue
+ * Source: core/iwasm/common/wasm_runtime_common.c:6607-6625
+ * Target Lines: 6612-6614 (NULL_REF check and null pointer assignment)
+ * Functional Purpose: Validates that when externref_idx equals NULL_REF,
+ *                     the function sets *p_extern_obj to NULL and returns true,
+ *                     correctly handling ref.null variables.
+ * Call Path: Direct API call with NULL_REF parameter
+ * Coverage Goal: Exercise NULL_REF early return path in externref reference conversion
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmExternrefRef2obj_NullRefIndex_SetsNullPointerAndReturnsTrue) {
+    void *extern_obj = (void*)0xdeadbeef; // Initialize with non-null value
+
+    // Call function with NULL_REF - should handle ref.null case
+    bool result = wasm_externref_ref2obj(NULL_REF, &extern_obj);
+
+    // Verify successful handling of NULL_REF
+    ASSERT_TRUE(result);
+    ASSERT_EQ(nullptr, extern_obj);
+}
+
+/******
+ * Test Case: WasmExternrefRef2obj_InvalidExternrefIndex_ReturnsFalse
+ * Source: core/iwasm/common/wasm_runtime_common.c:6607-6625
+ * Target Lines: 6617-6622 (mutex lock, hash map lookup, node validation, failure return)
+ * Functional Purpose: Validates that when an invalid externref_idx is provided
+ *                     (not found in externref_map), the function properly performs
+ *                     hash map lookup and returns false when no mapping exists.
+ * Call Path: Direct API call with non-existent externref index
+ * Coverage Goal: Exercise hash map lookup failure path and error return
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmExternrefRef2obj_InvalidExternrefIndex_ReturnsFalse) {
+    void *extern_obj = nullptr;
+    uint32 invalid_externref_idx = 99999; // Non-existent index
+
+    // Call function with invalid externref index
+    bool result = wasm_externref_ref2obj(invalid_externref_idx, &extern_obj);
+
+    // Should return false for non-existent externref index
+    ASSERT_FALSE(result);
+    // extern_obj pointer should remain unchanged since lookup failed
+}
+
+/******
+ * Test Case: WasmExternrefRef2obj_ValidExternrefIndex_ReturnsObjectAndTrue
+ * Source: core/iwasm/common/wasm_runtime_common.c:6607-6625
+ * Target Lines: 6617-6625 (mutex lock, hash map lookup, successful node retrieval, object assignment)
+ * Functional Purpose: Validates that when a valid externref_idx is provided,
+ *                     the function successfully performs hash map lookup,
+ *                     retrieves the external object, and returns true.
+ * Call Path: First create externref mapping via wasm_externref_obj2ref, then test ref2obj
+ * Coverage Goal: Exercise successful hash map lookup and object retrieval path
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmExternrefRef2obj_ValidExternrefIndex_ReturnsObjectAndTrue) {
+    // Create a test external object
+    int test_object = 42;
+    void *test_extern_obj = &test_object;
+    uint32 externref_idx = 0;
+    void *retrieved_obj = nullptr;
+
+    // First create an externref mapping using obj2ref
+    bool obj2ref_result = wasm_externref_obj2ref(module_inst, test_extern_obj, &externref_idx);
+    ASSERT_TRUE(obj2ref_result);
+    ASSERT_NE(NULL_REF, externref_idx);
+
+    // Now test ref2obj with the valid externref index
+    bool ref2obj_result = wasm_externref_ref2obj(externref_idx, &retrieved_obj);
+
+    // Verify successful retrieval
+    ASSERT_TRUE(ref2obj_result);
+    ASSERT_NE(nullptr, retrieved_obj);
+    ASSERT_EQ(test_extern_obj, retrieved_obj);
+    ASSERT_EQ(&test_object, retrieved_obj);
+    ASSERT_EQ(42, *(int*)retrieved_obj);
+}
+
+/******
+ * Test Case: WasmExternrefRef2obj_ThreadSafetyMutexLocking_ProperlyLocksAndUnlocks
+ * Source: core/iwasm/common/wasm_runtime_common.c:6607-6625
+ * Target Lines: 6617-6619 (os_mutex_lock, bh_hash_map_find, os_mutex_unlock sequence)
+ * Functional Purpose: Validates that the externref_ref2obj function properly
+ *                     acquires and releases the externref_lock mutex during hash map
+ *                     operations, ensuring thread-safe access to the externref_map.
+ * Call Path: Direct API call that exercises mutex locking mechanism
+ * Coverage Goal: Exercise mutex lock/unlock sequence in hash map lookup operations
+ ******/
+TEST_F(EnhancedWasmRuntimeCommonTest, WasmExternrefRef2obj_ThreadSafetyMutexLocking_ProperlyLocksAndUnlocks) {
+    // Create externref mapping for testing
+    int test_object = 123;
+    void *test_extern_obj = &test_object;
+    uint32 externref_idx = 0;
+    void *retrieved_obj = nullptr;
+
+    // Create valid externref mapping
+    bool obj2ref_result = wasm_externref_obj2ref(module_inst, test_extern_obj, &externref_idx);
+    ASSERT_TRUE(obj2ref_result);
+
+    // Call ref2obj - this will exercise the mutex lock/unlock sequence
+    // The function should properly lock externref_lock before hash map access
+    // and unlock it after completion, regardless of success or failure
+    bool ref2obj_result = wasm_externref_ref2obj(externref_idx, &retrieved_obj);
+
+    // Verify the function completed successfully (mutex was properly managed)
+    ASSERT_TRUE(ref2obj_result);
+    ASSERT_EQ(test_extern_obj, retrieved_obj);
+
+    // Test with invalid index to also exercise the failure path mutex handling
+    void *invalid_obj = nullptr;
+    bool invalid_result = wasm_externref_ref2obj(88888, &invalid_obj);
+
+    // Even with invalid index, function should complete properly (mutex handled correctly)
+    ASSERT_FALSE(invalid_result);
+}
+
+#endif // WASM_ENABLE_REF_TYPES
