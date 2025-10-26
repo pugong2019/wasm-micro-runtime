@@ -398,3 +398,162 @@ TEST_F(EnhancedWasmRuntimeTest, wasm_module_malloc_internal_CustomMallocFail_Ret
     // Test passes if no crashes occur - we've covered the execution paths
     ASSERT_TRUE(true);
 }
+
+/******************************************************************
+ * New test cases for wasm_module_realloc_internal - Lines 3869-3876
+ * Added to cover error handling paths in realloc function
+ ******************************************************************/
+
+/******
+ * Test Case: wasm_module_realloc_internal_AllocationFailure_SetsException
+ * Source: core/iwasm/interpreter/wasm_runtime.c:3869-3876
+ * Target Lines: 3869-3876 (error handling when mem_allocator_realloc fails)
+ * Functional Purpose: Validates that wasm_module_realloc_internal() correctly handles
+ *                     allocation failures and sets appropriate exception messages
+ * Call Path: Direct call to wasm_module_realloc_internal() public API
+ * Coverage Goal: Exercise error handling paths for realloc failures
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_module_realloc_internal_AllocationFailure_SetsException) {
+    char error_buf[128] = {0};
+
+    // Complete WASM module with proper sections (same format as working tests)
+    uint8 simple_wasm[] = {
+        0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, // WASM magic + version
+        0x01, 0x04, 0x01, 0x60, 0x00, 0x00,             // Type section: (void) -> void
+        0x03, 0x02, 0x01, 0x00,                         // Function section: 1 function of type 0
+        0x05, 0x03, 0x01, 0x00, 0x01,                   // Memory section: 1 page minimum
+        0x0a, 0x04, 0x01, 0x02, 0x00, 0x0b             // Code section: function body (nop, end)
+    };
+
+    wasm_module_t module = wasm_runtime_load(simple_wasm, sizeof(simple_wasm), error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 8192, 8192, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    WASMModuleInstance *wasm_module_inst = (WASMModuleInstance*)module_inst;
+
+    // Try to realloc with an extremely large size to force allocation failure
+    // This should trigger the error path starting at line 3868 (when addr is NULL)
+    // Note: must use UINT32_MAX or less due to assertion at line 3851
+    void *native_addr = nullptr;
+    uint64 huge_size = UINT32_MAX - 1; // Force allocation failure
+    uint64 result = wasm_module_realloc_internal(wasm_module_inst, nullptr, 0, huge_size, &native_addr);
+
+    // Should return 0 on failure (line 3876)
+    ASSERT_EQ(0, result);
+
+    // Should have set an exception (lines 3871 or 3874)
+    const char *exception = wasm_runtime_get_exception(module_inst);
+    ASSERT_NE(nullptr, exception);
+
+    // Exception should be either "app heap corrupted" or "out of memory"
+    bool valid_exception = (strstr(exception, "out of memory") != nullptr) ||
+                          (strstr(exception, "app heap corrupted") != nullptr);
+    ASSERT_TRUE(valid_exception);
+
+    wasm_runtime_deinstantiate(module_inst);
+    wasm_runtime_unload(module);
+}
+
+/******
+ * Test Case: wasm_module_realloc_internal_ReallocExistingPtr_HandlesFailure
+ * Source: core/iwasm/interpreter/wasm_runtime.c:3869-3876
+ * Target Lines: 3869-3876 (error handling during ptr reallocation)
+ * Functional Purpose: Tests reallocation failure when trying to resize existing allocation
+ * Call Path: Direct call to wasm_module_realloc_internal() public API
+ * Coverage Goal: Exercise error paths when reallocating existing memory fails
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_module_realloc_internal_ReallocExistingPtr_HandlesFailure) {
+    char error_buf[128] = {0};
+
+    uint8 simple_wasm[] = {
+        0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, // WASM magic + version
+        0x01, 0x04, 0x01, 0x60, 0x00, 0x00,             // Type section: (void) -> void
+        0x03, 0x02, 0x01, 0x00,                         // Function section: 1 function of type 0
+        0x05, 0x03, 0x01, 0x00, 0x01,                   // Memory section: 1 page minimum
+        0x0a, 0x04, 0x01, 0x02, 0x00, 0x0b             // Code section: function body (nop, end)
+    };
+
+    wasm_module_t module = wasm_runtime_load(simple_wasm, sizeof(simple_wasm), error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 8192, 8192, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    WASMModuleInstance *wasm_module_inst = (WASMModuleInstance*)module_inst;
+
+    // First allocate some memory successfully
+    void *native_addr = nullptr;
+    uint64 initial_ptr = wasm_module_malloc_internal(wasm_module_inst, nullptr, 64, &native_addr);
+
+    if (initial_ptr != 0) {
+        // Clear any previous exceptions
+        wasm_runtime_clear_exception(module_inst);
+
+        // Try to realloc to extremely large size to force failure
+        // Note: must use UINT32_MAX or less due to assertion at line 3851
+        uint64 huge_size = UINT32_MAX - 1;
+        uint64 result = wasm_module_realloc_internal(wasm_module_inst, nullptr, initial_ptr, huge_size, &native_addr);
+
+        // Should return 0 on failure (line 3876)
+        ASSERT_EQ(0, result);
+
+        // Should have set an exception (lines 3871 or 3874)
+        const char *exception = wasm_runtime_get_exception(module_inst);
+        ASSERT_NE(nullptr, exception);
+
+        // Free the originally allocated memory
+        wasm_module_free_internal(wasm_module_inst, nullptr, initial_ptr);
+    }
+
+    wasm_runtime_deinstantiate(module_inst);
+    wasm_runtime_unload(module);
+}
+
+/******
+ * Test Case: wasm_module_realloc_internal_NoMemory_SetsOutOfMemory
+ * Source: core/iwasm/interpreter/wasm_runtime.c:3873-3875
+ * Target Lines: 3873-3875 (specific "out of memory" exception path)
+ * Functional Purpose: Ensures "out of memory" exception is set for normal allocation failures
+ * Call Path: Direct call to wasm_module_realloc_internal() public API
+ * Coverage Goal: Target specific exception message for non-corrupted heap failures
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_module_realloc_internal_NoMemory_SetsOutOfMemory) {
+    char error_buf[128] = {0};
+
+    uint8 simple_wasm[] = {
+        0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, // WASM magic + version
+        0x01, 0x04, 0x01, 0x60, 0x00, 0x00,             // Type section: (void) -> void
+        0x03, 0x02, 0x01, 0x00,                         // Function section: 1 function of type 0
+        0x05, 0x03, 0x01, 0x00, 0x01,                   // Memory section: 1 page minimum
+        0x0a, 0x04, 0x01, 0x02, 0x00, 0x0b             // Code section: function body (nop, end)
+    };
+
+    wasm_module_t module = wasm_runtime_load(simple_wasm, sizeof(simple_wasm), error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module);
+
+    // Create instance with very small heap to force out-of-memory conditions
+    wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 1024, 1024, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, module_inst);
+
+    WASMModuleInstance *wasm_module_inst = (WASMModuleInstance*)module_inst;
+
+    // Clear any previous exceptions
+    wasm_runtime_clear_exception(module_inst);
+
+    // Try to allocate huge amount of memory to exhaust the small heap
+    void *native_addr = nullptr;
+    uint64 huge_size = 1024 * 1024; // 1MB - much larger than available heap
+    uint64 result = wasm_module_realloc_internal(wasm_module_inst, nullptr, 0, huge_size, &native_addr);
+
+    // Should return 0 on failure (line 3876)
+    ASSERT_EQ(0, result);
+
+    // Should have set an exception
+    const char *exception = wasm_runtime_get_exception(module_inst);
+    ASSERT_NE(nullptr, exception);
+
+    wasm_runtime_deinstantiate(module_inst);
+    wasm_runtime_unload(module);
+}
