@@ -1498,3 +1498,306 @@ TEST_F(EnhancedWasmRuntimeTest, WasmSetModuleName_LongModuleName_ReturnsTrue) {
     // Validation: Module name should match the long name
     ASSERT_STREQ(long_name.c_str(), module.name);
 }
+
+/******
+ * New Test Cases for wasm_check_utf8_str Function - Lines 5015-5061
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5015-5061
+ * Target Lines: UTF-8 validation logic for 2-byte, 3-byte, and 4-byte sequences
+ * Functional Purpose: Validates UTF-8 string encoding according to Unicode standards
+ * Call Path: wasm_check_utf8_str() [PUBLIC FUNCTION - Direct testing]
+ * Coverage Goal: Exercise all UTF-8 validation branches and edge cases
+ ******/
+
+/******
+ * Test Case: wasm_check_utf8_str_Valid2ByteSequence_ReturnsTrue
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5015-5020
+ * Target Lines: 5015 (2-byte condition), 5016-5018 (validation), 5019 (increment)
+ * Functional Purpose: Validates that wasm_check_utf8_str() correctly accepts
+ *                     valid 2-byte UTF-8 sequences (0xC2-0xDF range).
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_check_utf8_str_Valid2ByteSequence_ReturnsTrue) {
+    // Test valid 2-byte UTF-8 sequence: 0xC2 0x80 (U+0080)
+    uint8 utf8_2byte[] = {0xC2, 0x80};
+
+    // Test the function - should exercise lines 5015, 5016-5018, 5019
+    bool result = wasm_check_utf8_str(utf8_2byte, sizeof(utf8_2byte));
+
+    // Validation: Function should return true for valid 2-byte sequence
+    ASSERT_TRUE(result);
+}
+
+/******
+ * Test Case: wasm_check_utf8_str_Invalid2ByteSequence_ReturnsFalse
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5015-5020
+ * Target Lines: 5015 (2-byte condition), 5016-5017 (validation failure), 5017 (return false)
+ * Functional Purpose: Validates that wasm_check_utf8_str() correctly rejects
+ *                     invalid 2-byte UTF-8 sequences with wrong continuation byte.
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_check_utf8_str_Invalid2ByteSequence_ReturnsFalse) {
+    // Test invalid 2-byte UTF-8 sequence: 0xC2 0x7F (invalid continuation byte)
+    uint8 invalid_2byte[] = {0xC2, 0x7F};
+
+    // Test the function - should exercise lines 5015, 5016-5017 (validation failure)
+    bool result = wasm_check_utf8_str(invalid_2byte, sizeof(invalid_2byte));
+
+    // Validation: Function should return false for invalid 2-byte sequence
+    ASSERT_FALSE(result);
+}
+
+/******
+ * Test Case: wasm_check_utf8_str_Valid3ByteSequenceE0_ReturnsTrue
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5021-5038
+ * Target Lines: 5021 (3-byte condition), 5022-5025 (E0 validation), 5037 (increment)
+ * Functional Purpose: Validates that wasm_check_utf8_str() correctly accepts
+ *                     valid 3-byte UTF-8 sequences starting with 0xE0.
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_check_utf8_str_Valid3ByteSequenceE0_ReturnsTrue) {
+    // Test valid 3-byte UTF-8 sequence: 0xE0 0xA0 0x80 (U+0800)
+    uint8 utf8_3byte_e0[] = {0xE0, 0xA0, 0x80};
+
+    // Test the function - should exercise lines 5021, 5022-5025, 5037
+    bool result = wasm_check_utf8_str(utf8_3byte_e0, sizeof(utf8_3byte_e0));
+
+    // Validation: Function should return true for valid 3-byte E0 sequence
+    ASSERT_TRUE(result);
+}
+
+/******
+ * Test Case: wasm_check_utf8_str_Invalid3ByteSequenceE0_ReturnsFalse
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5021-5038
+ * Target Lines: 5021 (3-byte condition), 5022-5024 (E0 validation failure), 5024 (return false)
+ * Functional Purpose: Validates that wasm_check_utf8_str() correctly rejects
+ *                     invalid 3-byte UTF-8 sequences starting with 0xE0.
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_check_utf8_str_Invalid3ByteSequenceE0_ReturnsFalse) {
+    // Test invalid 3-byte UTF-8 sequence: 0xE0 0x9F 0x80 (invalid second byte)
+    uint8 invalid_3byte_e0[] = {0xE0, 0x9F, 0x80};
+
+    // Test the function - should exercise lines 5021, 5022-5024 (validation failure)
+    bool result = wasm_check_utf8_str(invalid_3byte_e0, sizeof(invalid_3byte_e0));
+
+    // Validation: Function should return false for invalid 3-byte E0 sequence
+    ASSERT_FALSE(result);
+}
+
+/******
+ * Test Case: wasm_check_utf8_str_Valid3ByteSequenceED_ReturnsTrue
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5021-5038
+ * Target Lines: 5021 (3-byte condition), 5027-5030 (ED validation), 5037 (increment)
+ * Functional Purpose: Validates that wasm_check_utf8_str() correctly accepts
+ *                     valid 3-byte UTF-8 sequences starting with 0xED.
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_check_utf8_str_Valid3ByteSequenceED_ReturnsTrue) {
+    // Test valid 3-byte UTF-8 sequence: 0xED 0x9F 0xBF (U+D7FF)
+    uint8 utf8_3byte_ed[] = {0xED, 0x9F, 0xBF};
+
+    // Test the function - should exercise lines 5021, 5027-5030, 5037
+    bool result = wasm_check_utf8_str(utf8_3byte_ed, sizeof(utf8_3byte_ed));
+
+    // Validation: Function should return true for valid 3-byte ED sequence
+    ASSERT_TRUE(result);
+}
+
+/******
+ * Test Case: wasm_check_utf8_str_Invalid3ByteSequenceED_ReturnsFalse
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5021-5038
+ * Target Lines: 5021 (3-byte condition), 5027-5029 (ED validation failure), 5029 (return false)
+ * Functional Purpose: Validates that wasm_check_utf8_str() correctly rejects
+ *                     invalid 3-byte UTF-8 sequences starting with 0xED (surrogate range).
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_check_utf8_str_Invalid3ByteSequenceED_ReturnsFalse) {
+    // Test invalid 3-byte UTF-8 sequence: 0xED 0xA0 0x80 (surrogate range)
+    uint8 invalid_3byte_ed[] = {0xED, 0xA0, 0x80};
+
+    // Test the function - should exercise lines 5021, 5027-5029 (validation failure)
+    bool result = wasm_check_utf8_str(invalid_3byte_ed, sizeof(invalid_3byte_ed));
+
+    // Validation: Function should return false for invalid 3-byte ED sequence
+    ASSERT_FALSE(result);
+}
+
+/******
+ * Test Case: wasm_check_utf8_str_Valid3ByteSequenceGeneral_ReturnsTrue
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5021-5038
+ * Target Lines: 5021 (3-byte condition), 5032-5035 (general validation), 5037 (increment)
+ * Functional Purpose: Validates that wasm_check_utf8_str() correctly accepts
+ *                     valid 3-byte UTF-8 sequences in general range (E1-EF).
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_check_utf8_str_Valid3ByteSequenceGeneral_ReturnsTrue) {
+    // Test valid 3-byte UTF-8 sequence: 0xE1 0x80 0x80 (U+1000)
+    uint8 utf8_3byte_general[] = {0xE1, 0x80, 0x80};
+
+    // Test the function - should exercise lines 5021, 5032-5035, 5037
+    bool result = wasm_check_utf8_str(utf8_3byte_general, sizeof(utf8_3byte_general));
+
+    // Validation: Function should return true for valid 3-byte general sequence
+    ASSERT_TRUE(result);
+}
+
+/******
+ * Test Case: wasm_check_utf8_str_Invalid3ByteSequenceGeneral_ReturnsFalse
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5021-5038
+ * Target Lines: 5021 (3-byte condition), 5032-5034 (general validation failure), 5034 (return false)
+ * Functional Purpose: Validates that wasm_check_utf8_str() correctly rejects
+ *                     invalid 3-byte UTF-8 sequences in general range with bad continuation bytes.
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_check_utf8_str_Invalid3ByteSequenceGeneral_ReturnsFalse) {
+    // Test invalid 3-byte UTF-8 sequence: 0xE1 0x7F 0x80 (invalid second byte)
+    uint8 invalid_3byte_general[] = {0xE1, 0x7F, 0x80};
+
+    // Test the function - should exercise lines 5021, 5032-5034 (validation failure)
+    bool result = wasm_check_utf8_str(invalid_3byte_general, sizeof(invalid_3byte_general));
+
+    // Validation: Function should return false for invalid 3-byte general sequence
+    ASSERT_FALSE(result);
+}
+
+/******
+ * Test Case: wasm_check_utf8_str_Valid4ByteSequenceF0_ReturnsTrue
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5039-5059
+ * Target Lines: 5039 (4-byte condition), 5040-5044 (F0 validation), 5058 (increment)
+ * Functional Purpose: Validates that wasm_check_utf8_str() correctly accepts
+ *                     valid 4-byte UTF-8 sequences starting with 0xF0.
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_check_utf8_str_Valid4ByteSequenceF0_ReturnsTrue) {
+    // Test valid 4-byte UTF-8 sequence: 0xF0 0x90 0x80 0x80 (U+10000)
+    uint8 utf8_4byte_f0[] = {0xF0, 0x90, 0x80, 0x80};
+
+    // Test the function - should exercise lines 5039, 5040-5044, 5058
+    bool result = wasm_check_utf8_str(utf8_4byte_f0, sizeof(utf8_4byte_f0));
+
+    // Validation: Function should return true for valid 4-byte F0 sequence
+    ASSERT_TRUE(result);
+}
+
+/******
+ * Test Case: wasm_check_utf8_str_Invalid4ByteSequenceF0_ReturnsFalse
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5039-5059
+ * Target Lines: 5039 (4-byte condition), 5040-5043 (F0 validation failure), 5043 (return false)
+ * Functional Purpose: Validates that wasm_check_utf8_str() correctly rejects
+ *                     invalid 4-byte UTF-8 sequences starting with 0xF0.
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_check_utf8_str_Invalid4ByteSequenceF0_ReturnsFalse) {
+    // Test invalid 4-byte UTF-8 sequence: 0xF0 0x8F 0x80 0x80 (invalid second byte)
+    uint8 invalid_4byte_f0[] = {0xF0, 0x8F, 0x80, 0x80};
+
+    // Test the function - should exercise lines 5039, 5040-5043 (validation failure)
+    bool result = wasm_check_utf8_str(invalid_4byte_f0, sizeof(invalid_4byte_f0));
+
+    // Validation: Function should return false for invalid 4-byte F0 sequence
+    ASSERT_FALSE(result);
+}
+
+/******
+ * Test Case: wasm_check_utf8_str_Valid4ByteSequenceF1F3_ReturnsTrue
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5039-5059
+ * Target Lines: 5039 (4-byte condition), 5046-5050 (F1-F3 validation), 5058 (increment)
+ * Functional Purpose: Validates that wasm_check_utf8_str() correctly accepts
+ *                     valid 4-byte UTF-8 sequences in F1-F3 range.
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_check_utf8_str_Valid4ByteSequenceF1F3_ReturnsTrue) {
+    // Test valid 4-byte UTF-8 sequence: 0xF1 0x80 0x80 0x80 (U+40000)
+    uint8 utf8_4byte_f1f3[] = {0xF1, 0x80, 0x80, 0x80};
+
+    // Test the function - should exercise lines 5039, 5046-5050, 5058
+    bool result = wasm_check_utf8_str(utf8_4byte_f1f3, sizeof(utf8_4byte_f1f3));
+
+    // Validation: Function should return true for valid 4-byte F1-F3 sequence
+    ASSERT_TRUE(result);
+}
+
+/******
+ * Test Case: wasm_check_utf8_str_Invalid4ByteSequenceF1F3_ReturnsFalse
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5039-5059
+ * Target Lines: 5039 (4-byte condition), 5046-5049 (F1-F3 validation failure), 5049 (return false)
+ * Functional Purpose: Validates that wasm_check_utf8_str() correctly rejects
+ *                     invalid 4-byte UTF-8 sequences in F1-F3 range with bad continuation bytes.
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_check_utf8_str_Invalid4ByteSequenceF1F3_ReturnsFalse) {
+    // Test invalid 4-byte UTF-8 sequence: 0xF1 0xC0 0x80 0x80 (invalid second byte)
+    uint8 invalid_4byte_f1f3[] = {0xF1, 0xC0, 0x80, 0x80};
+
+    // Test the function - should exercise lines 5039, 5046-5049 (validation failure)
+    bool result = wasm_check_utf8_str(invalid_4byte_f1f3, sizeof(invalid_4byte_f1f3));
+
+    // Validation: Function should return false for invalid 4-byte F1-F3 sequence
+    ASSERT_FALSE(result);
+}
+
+/******
+ * Test Case: wasm_check_utf8_str_Valid4ByteSequenceF4_ReturnsTrue
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5039-5059
+ * Target Lines: 5039 (4-byte condition), 5052-5056 (F4 validation), 5058 (increment)
+ * Functional Purpose: Validates that wasm_check_utf8_str() correctly accepts
+ *                     valid 4-byte UTF-8 sequences starting with 0xF4.
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_check_utf8_str_Valid4ByteSequenceF4_ReturnsTrue) {
+    // Test valid 4-byte UTF-8 sequence: 0xF4 0x8F 0xBF 0xBF (U+10FFFF)
+    uint8 utf8_4byte_f4[] = {0xF4, 0x8F, 0xBF, 0xBF};
+
+    // Test the function - should exercise lines 5039, 5052-5056, 5058
+    bool result = wasm_check_utf8_str(utf8_4byte_f4, sizeof(utf8_4byte_f4));
+
+    // Validation: Function should return true for valid 4-byte F4 sequence
+    ASSERT_TRUE(result);
+}
+
+/******
+ * Test Case: wasm_check_utf8_str_Invalid4ByteSequenceF4_ReturnsFalse
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5039-5059
+ * Target Lines: 5039 (4-byte condition), 5052-5055 (F4 validation failure), 5055 (return false)
+ * Functional Purpose: Validates that wasm_check_utf8_str() correctly rejects
+ *                     invalid 4-byte UTF-8 sequences starting with 0xF4 (beyond Unicode range).
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_check_utf8_str_Invalid4ByteSequenceF4_ReturnsFalse) {
+    // Test invalid 4-byte UTF-8 sequence: 0xF4 0x90 0x80 0x80 (beyond Unicode range)
+    uint8 invalid_4byte_f4[] = {0xF4, 0x90, 0x80, 0x80};
+
+    // Test the function - should exercise lines 5039, 5052-5055 (validation failure)
+    bool result = wasm_check_utf8_str(invalid_4byte_f4, sizeof(invalid_4byte_f4));
+
+    // Validation: Function should return false for invalid 4-byte F4 sequence
+    ASSERT_FALSE(result);
+}
+
+/******
+ * Test Case: wasm_check_utf8_str_InvalidStartByte_ReturnsFalse
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5060-5061
+ * Target Lines: 5060 (else condition), 5061 (return false)
+ * Functional Purpose: Validates that wasm_check_utf8_str() correctly rejects
+ *                     invalid UTF-8 start bytes that don't match any valid pattern.
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_check_utf8_str_InvalidStartByte_ReturnsFalse) {
+    // Test invalid UTF-8 start byte: 0xFF (invalid start byte)
+    uint8 invalid_start[] = {0xFF};
+
+    // Test the function - should exercise lines 5060-5061
+    bool result = wasm_check_utf8_str(invalid_start, sizeof(invalid_start));
+
+    // Validation: Function should return false for invalid start byte
+    ASSERT_FALSE(result);
+}
+
+/******
+ * Test Case: wasm_check_utf8_str_TruncatedSequences_ReturnsFalse
+ * Source: core/iwasm/interpreter/wasm_runtime.c:5015-5061
+ * Target Lines: Boundary conditions when p + N >= p_end
+ * Functional Purpose: Validates that wasm_check_utf8_str() correctly rejects
+ *                     truncated UTF-8 sequences that extend beyond buffer.
+ ******/
+TEST_F(EnhancedWasmRuntimeTest, wasm_check_utf8_str_TruncatedSequences_ReturnsFalse) {
+    // Test truncated 2-byte sequence: only first byte present
+    uint8 truncated_2byte[] = {0xC2};
+    bool result1 = wasm_check_utf8_str(truncated_2byte, sizeof(truncated_2byte));
+    ASSERT_FALSE(result1);
+
+    // Test truncated 3-byte sequence: only first two bytes present
+    uint8 truncated_3byte[] = {0xE1, 0x80};
+    bool result2 = wasm_check_utf8_str(truncated_3byte, sizeof(truncated_3byte));
+    ASSERT_FALSE(result2);
+
+    // Test truncated 4-byte sequence: only first three bytes present
+    uint8 truncated_4byte[] = {0xF1, 0x80, 0x80};
+    bool result3 = wasm_check_utf8_str(truncated_4byte, sizeof(truncated_4byte));
+    ASSERT_FALSE(result3);
+}
