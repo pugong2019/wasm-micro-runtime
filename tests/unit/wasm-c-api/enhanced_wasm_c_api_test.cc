@@ -2801,3 +2801,128 @@ TEST_F(EnhancedWasmCApiTestTableSet, wasm_memory_data_size_InvalidModuleType_Ret
     wasm_runtime_free(malformed_memory);
 }
 
+/******
+ * Test Case: wasm_memory_size_ValidMemory_ReturnsPageCount
+ * Source: core/iwasm/common/wasm_c_api.c:4441-4466
+ * Target Lines: 4441 (assignment), 4443-4449 (INTERP path) or 4453-4459 (AOT path)
+ * Functional Purpose: Validates that wasm_memory_size() correctly retrieves the current
+ *                     page count from a valid memory object based on module type.
+ * Call Path: Direct public API call to wasm_memory_size()
+ * Coverage Goal: Exercise valid memory path with proper module instance
+ ******/
+TEST_F(EnhancedWasmCApiTestAotExport, wasm_memory_size_ValidMemory_ReturnsPageCount)
+{
+    wasm_byte_vec_t wasm_bytes;
+    wasm_byte_vec_new(&wasm_bytes, wasm_memory_export_only.size(),
+                      reinterpret_cast<const wasm_byte_t*>(wasm_memory_export_only.data()));
+
+    wasm_module_t* module = wasm_module_new(store, &wasm_bytes);
+    ASSERT_NE(nullptr, module);
+
+    wasm_instance_t* instance = wasm_instance_new(store, module, nullptr, nullptr);
+    ASSERT_NE(nullptr, instance);
+
+    wasm_extern_vec_t exports;
+    wasm_instance_exports(instance, &exports);
+    ASSERT_EQ(1u, exports.size);
+
+    wasm_extern_t* memory_extern = exports.data[0];
+    ASSERT_EQ(WASM_EXTERN_MEMORY, wasm_extern_kind(memory_extern));
+
+    wasm_memory_t* memory = wasm_extern_as_memory(memory_extern);
+    ASSERT_NE(nullptr, memory);
+
+    // Test wasm_memory_size - this should execute lines 4441 and active module path
+    wasm_memory_pages_t page_count = wasm_memory_size(memory);
+    ASSERT_GT(page_count, 0u);  // Should be at least 1 page as defined in WASM module
+    ASSERT_EQ(1u, page_count);  // Module defines min 1 page memory
+
+    // Clean up
+    wasm_extern_vec_delete(&exports);
+    wasm_instance_delete(instance);
+    wasm_module_delete(module);
+    wasm_byte_vec_delete(&wasm_bytes);
+}
+
+/******
+ * Test Case: wasm_memory_size_NullMemory_ReturnsZero
+ * Source: core/iwasm/common/wasm_c_api.c:4437-4439
+ * Target Lines: 4437-4439 (null memory validation)
+ * Functional Purpose: Validates that wasm_memory_size() correctly handles null memory
+ *                     parameter by returning 0 without attempting further processing.
+ * Call Path: Direct public API call to wasm_memory_size()
+ * Coverage Goal: Exercise null parameter validation path
+ ******/
+TEST_F(EnhancedWasmCApiTestAotExport, wasm_memory_size_NullMemory_ReturnsZero)
+{
+    // Test null memory parameter - should hit early return path (lines 4437-4439)
+    wasm_memory_pages_t result = wasm_memory_size(nullptr);
+    ASSERT_EQ(0u, result);
+}
+
+/******
+ * Test Case: wasm_memory_size_NullInstCommRt_ReturnsZero
+ * Source: core/iwasm/common/wasm_c_api.c:4437-4439
+ * Target Lines: 4437-4439 (null inst_comm_rt validation)
+ * Functional Purpose: Validates that wasm_memory_size() correctly handles memory object
+ *                     with null inst_comm_rt by returning 0 without attempting further processing.
+ * Call Path: Direct public API call to wasm_memory_size()
+ * Coverage Goal: Exercise null inst_comm_rt validation path
+ ******/
+TEST_F(EnhancedWasmCApiTestAotExport, wasm_memory_size_NullInstCommRt_ReturnsZero)
+{
+    // Create invalid memory object with null inst_comm_rt
+    wasm_memory_t* invalid_memory = (wasm_memory_t*)wasm_runtime_malloc(sizeof(wasm_memory_t));
+    ASSERT_NE(nullptr, invalid_memory);
+
+    // Initialize memory structure with null inst_comm_rt
+    memset(invalid_memory, 0, sizeof(wasm_memory_t));
+    invalid_memory->store = store;
+    invalid_memory->inst_comm_rt = nullptr;  // This should trigger early return
+
+    // Test null inst_comm_rt - should hit early return path (lines 4437-4439)
+    wasm_memory_pages_t result = wasm_memory_size(invalid_memory);
+    ASSERT_EQ(0u, result);
+
+    // Clean up
+    wasm_runtime_free(invalid_memory);
+}
+
+/******
+ * Test Case: wasm_memory_size_InvalidModuleType_ReturnsZero
+ * Source: core/iwasm/common/wasm_c_api.c:4441, 4462-4466
+ * Target Lines: 4441 (assignment), 4462-4466 (fallback return for wrong module type)
+ * Functional Purpose: Validates that wasm_memory_size() correctly handles memory with
+ *                     invalid/unsupported module type by returning 0 after assignment.
+ * Call Path: Direct public API call to wasm_memory_size()
+ * Coverage Goal: Exercise fallback path for unsupported module type combinations
+ ******/
+TEST_F(EnhancedWasmCApiTestAotExport, wasm_memory_size_InvalidModuleType_ReturnsZero)
+{
+    // Create malformed memory object with invalid module type
+    wasm_memory_t* malformed_memory = (wasm_memory_t*)wasm_runtime_malloc(sizeof(wasm_memory_t));
+    ASSERT_NE(nullptr, malformed_memory);
+
+    // Create mock module instance with invalid module type
+    WASMModuleInstanceCommon* mock_inst = (WASMModuleInstanceCommon*)wasm_runtime_malloc(sizeof(WASMModuleInstanceCommon));
+    ASSERT_NE(nullptr, mock_inst);
+
+    // Initialize with invalid module type (not Wasm_Module_Bytecode or Wasm_Module_AoT)
+    memset(mock_inst, 0, sizeof(WASMModuleInstanceCommon));
+    mock_inst->module_type = 99;  // Invalid module type - should hit fallback (line 4466)
+
+    // Initialize memory structure
+    memset(malformed_memory, 0, sizeof(wasm_memory_t));
+    malformed_memory->store = store;
+    malformed_memory->inst_comm_rt = mock_inst;
+    malformed_memory->memory_idx_rt = 0;
+
+    // Test invalid module type - should execute line 4441 then fallback to line 4466
+    wasm_memory_pages_t result = wasm_memory_size(malformed_memory);
+    ASSERT_EQ(0u, result);  // Should return 0 for invalid module type
+
+    // Clean up
+    wasm_runtime_free(mock_inst);
+    wasm_runtime_free(malformed_memory);
+}
+
