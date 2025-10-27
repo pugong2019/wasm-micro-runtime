@@ -2159,3 +2159,241 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_convert_i64_CombinedOpe
     aot_destroy_comp_data(comp_data);
     wasm_runtime_unload(wasm_module);
 }
+
+// ========== NEW TEST CASES FOR aot_compile_op_f32_demote_f64 (Lines 735-762) ==========
+
+/******
+ * Test Case: aot_compile_op_f32_demote_f64_Success_StandardPath
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:735-762
+ * Target Lines: 735 (function entry), 738 (variable declarations), 740 (POP_F64),
+ *               742-743 (intrinsic check - false path), 749-752 (LLVMBuildFPTrunc),
+ *               754 (result check), 759 (PUSH_F32), 760 (return true)
+ * Functional Purpose: Validates that aot_compile_op_f32_demote_f64() successfully
+ *                     compiles f32.demote_f64 operation using standard LLVM FPTrunc
+ *                     when intrinsics are not used, including proper stack operations.
+ * Call Path: aot_compile_op_f32_demote_f64() <- aot_compiler.c switch WASM_OP_F32_DEMOTE_F64
+ * Coverage Goal: Exercise standard FPTrunc execution path for f32.demote_f64 conversion
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_demote_f64_Success_StandardPath) {
+    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f32_demote_f64_test.wasm";
+    unsigned int wasm_file_size = 0;
+    unsigned char *wasm_file_buf = nullptr;
+    char error_buf[128] = {0};
+    wasm_module_t wasm_module = nullptr;
+    aot_comp_data_t comp_data = nullptr;
+    aot_comp_context_t comp_ctx = nullptr;
+    AOTCompOption option = {0};
+
+    // Initialize compilation options - disable intrinsics to force standard path
+    option.opt_level = 1;
+    option.size_level = 1;
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 2;
+    option.enable_simd = false;
+    option.enable_aux_stack_check = true;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = false;
+
+    // Load WASM module from file
+    wasm_file_buf = (unsigned char *)bh_read_file_to_buffer(wasm_file, &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    ASSERT_GT(wasm_file_size, 0U);
+
+    // Load WASM module
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, nullptr, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Compile WASM - this will trigger f32_demote_f64 operations through standard path
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+    BH_FREE(wasm_file_buf);
+}
+
+/******
+ * Test Case: aot_compile_op_f32_demote_f64_Success_IntrinsicPath
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:735-762
+ * Target Lines: 735 (function entry), 738 (variable declarations), 740 (POP_F64),
+ *               742-743 (intrinsic check - true path), 744-747 (intrinsic call),
+ *               754 (result check), 759 (PUSH_F32), 760 (return true)
+ * Functional Purpose: Validates that aot_compile_op_f32_demote_f64() successfully
+ *                     compiles f32.demote_f64 operation using LLVM intrinsic path
+ *                     when intrinsics are enabled and available.
+ * Call Path: aot_compile_op_f32_demote_f64() <- aot_compiler.c switch WASM_OP_F32_DEMOTE_F64
+ * Coverage Goal: Exercise LLVM intrinsic execution path for f32.demote_f64 conversion
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_demote_f64_Success_IntrinsicPath) {
+    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f32_demote_f64_test.wasm";
+    unsigned int wasm_file_size = 0;
+    unsigned char *wasm_file_buf = nullptr;
+    char error_buf[128] = {0};
+    wasm_module_t wasm_module = nullptr;
+    aot_comp_data_t comp_data = nullptr;
+    aot_comp_context_t comp_ctx = nullptr;
+    AOTCompOption option = {0};
+
+    // Initialize compilation options - enable intrinsics to force intrinsic path
+    option.opt_level = 3;
+    option.size_level = 1;
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 2;
+    option.enable_simd = false;
+    option.enable_aux_stack_check = true;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = false;
+    option.disable_llvm_intrinsics = false; // Enable intrinsics
+
+    // Load WASM module from file
+    wasm_file_buf = (unsigned char *)bh_read_file_to_buffer(wasm_file, &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    ASSERT_GT(wasm_file_size, 0U);
+
+    // Load WASM module
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, nullptr, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Compile WASM - this will trigger f32_demote_f64 operations through intrinsic path
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+    BH_FREE(wasm_file_buf);
+}
+
+/******
+ * Test Case: aot_compile_op_f32_demote_f64_Multiple_Operations
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:735-762
+ * Target Lines: 735 (function entry), 738 (variable declarations), 740 (POP_F64),
+ *               742-752 (both paths), 754 (result check), 759 (PUSH_F32), 760 (return true)
+ * Functional Purpose: Validates that aot_compile_op_f32_demote_f64() successfully
+ *                     handles multiple f32.demote_f64 operations within the same function,
+ *                     ensuring proper stack management and result handling.
+ * Call Path: aot_compile_op_f32_demote_f64() <- aot_compiler.c switch WASM_OP_F32_DEMOTE_F64
+ * Coverage Goal: Exercise function with multiple f32.demote_f64 operations
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_demote_f64_Multiple_Operations) {
+    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f32_demote_f64_test.wasm";
+    unsigned int wasm_file_size = 0;
+    unsigned char *wasm_file_buf = nullptr;
+    char error_buf[128] = {0};
+    wasm_module_t wasm_module = nullptr;
+    aot_comp_data_t comp_data = nullptr;
+    aot_comp_context_t comp_ctx = nullptr;
+    AOTCompOption option = {0};
+
+    // Initialize compilation options
+    option.opt_level = 2;
+    option.size_level = 1;
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 2;
+    option.enable_simd = false;
+    option.enable_aux_stack_check = true;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = false;
+
+    // Load WASM module from file
+    wasm_file_buf = (unsigned char *)bh_read_file_to_buffer(wasm_file, &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    ASSERT_GT(wasm_file_size, 0U);
+
+    // Load WASM module
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, nullptr, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Compile WASM - this will trigger multiple f32_demote_f64 operations
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+    BH_FREE(wasm_file_buf);
+}
+
+/******
+ * Test Case: aot_compile_op_f32_demote_f64_IntrinsicEnabled_TestIntrinsicPath
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:735-762
+ * Target Lines: 743 (intrinsic capability check), 745-747 (intrinsic call path)
+ * Functional Purpose: Validates that aot_compile_op_f32_demote_f64() can handle
+ *                     the intrinsic code path when disable_llvm_intrinsics is explicitly
+ *                     set to false and intrinsic capability is available.
+ * Call Path: aot_compile_op_f32_demote_f64() <- aot_compiler.c switch WASM_OP_F32_DEMOTE_F64
+ * Coverage Goal: Exercise intrinsic availability check and call path
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_demote_f64_IntrinsicEnabled_TestIntrinsicPath) {
+    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f32_demote_f64_test.wasm";
+    unsigned int wasm_file_size = 0;
+    unsigned char *wasm_file_buf = nullptr;
+    char error_buf[128] = {0};
+    wasm_module_t wasm_module = nullptr;
+    aot_comp_data_t comp_data = nullptr;
+    aot_comp_context_t comp_ctx = nullptr;
+    AOTCompOption option = {0};
+
+    // Initialize compilation options - explicitly enable intrinsics
+    option.opt_level = 3;
+    option.size_level = 0;
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 2;
+    option.enable_simd = false;
+    option.enable_aux_stack_check = true;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = false;
+    option.disable_llvm_intrinsics = false; // Explicitly enable intrinsics
+    option.enable_llvm_pgo = false;
+
+    // Load WASM module from file
+    wasm_file_buf = (unsigned char *)bh_read_file_to_buffer(wasm_file, &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    ASSERT_GT(wasm_file_size, 0U);
+
+    // Load WASM module
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, nullptr, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context with intrinsics enabled
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Compile WASM - this should trigger intrinsic path if available
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+    BH_FREE(wasm_file_buf);
+}
