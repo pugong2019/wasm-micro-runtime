@@ -443,3 +443,229 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f32_UnsignedSatur
     aot_destroy_comp_data(comp_data);
     wasm_runtime_unload(wasm_module);
 }
+
+// === New Test Cases for aot_compile_op_i32_trunc_f64 (lines 396-446) ===
+
+/******
+ * Test Case: aot_compile_op_i32_trunc_f64_SignedNonSaturating_DirectMode_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:396-446
+ * Target Lines: 396 (function entry), 399-402 (variable declaration, POP_F64),
+ *               404 (is_indirect_mode check), 424-428 (direct mode signed path),
+ *               434-435 (CHECK_LLVM_CONST), 437-440 (non-saturating trunc_float_to_int)
+ * Functional Purpose: Validates that aot_compile_op_i32_trunc_f64() successfully
+ *                     compiles i32.trunc_f64_s operation with signed non-saturating
+ *                     truncation in direct mode (non-indirect compilation context).
+ * Call Path: aot_compile_op_i32_trunc_f64() <- aot_compiler.c WASM_OP_I32_TRUNC_S_F64
+ * Coverage Goal: Exercise signed non-saturating truncation path in direct mode
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f64_SignedNonSaturating_DirectMode_ReturnsTrue) {
+    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i32_trunc_f64_test.wasm";
+    unsigned int wasm_file_size = 0;
+    unsigned char *wasm_file_buf = nullptr;
+    char error_buf[128] = {0};
+    wasm_module_t wasm_module = nullptr;
+    aot_comp_data_t comp_data = nullptr;
+    aot_comp_context_t comp_ctx = nullptr;
+    AOTCompOption option = {0};
+
+    // Initialize compilation options for direct mode (non-indirect)
+    option.opt_level = 1;
+    option.size_level = 1;
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 2;
+    option.enable_simd = false;
+    option.enable_aux_stack_check = true;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = false;
+    option.is_indirect_mode = false; // Force direct mode
+
+    // Load WASM module from file
+    wasm_file_buf = (unsigned char *)bh_read_file_to_buffer(wasm_file, &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, NULL, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Compile WASM - this will trigger aot_compile_op_i32_trunc_f64 for i32.trunc_f64_s
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+}
+
+/******
+ * Test Case: aot_compile_op_i32_trunc_f64_UnsignedNonSaturating_DirectMode_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:396-446
+ * Target Lines: 396 (function entry), 399-402 (variable declaration, POP_F64),
+ *               404 (is_indirect_mode check), 428-432 (direct mode unsigned path),
+ *               434-435 (CHECK_LLVM_CONST), 437-440 (non-saturating trunc_float_to_int)
+ * Functional Purpose: Validates that aot_compile_op_i32_trunc_f64() successfully
+ *                     compiles i32.trunc_f64_u operation with unsigned non-saturating
+ *                     truncation in direct mode (non-indirect compilation context).
+ * Call Path: aot_compile_op_i32_trunc_f64() <- aot_compiler.c WASM_OP_I32_TRUNC_U_F64
+ * Coverage Goal: Exercise unsigned non-saturating truncation path in direct mode
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f64_UnsignedNonSaturating_DirectMode_ReturnsTrue) {
+    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i32_trunc_f64_test.wasm";
+    unsigned int wasm_file_size = 0;
+    unsigned char *wasm_file_buf = nullptr;
+    char error_buf[128] = {0};
+    wasm_module_t wasm_module = nullptr;
+    aot_comp_data_t comp_data = nullptr;
+    aot_comp_context_t comp_ctx = nullptr;
+    AOTCompOption option = {0};
+
+    // Initialize compilation options for direct mode (non-indirect)
+    option.opt_level = 1;
+    option.size_level = 1;
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 2;
+    option.enable_simd = false;
+    option.enable_aux_stack_check = true;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = false;
+    option.is_indirect_mode = false; // Force direct mode
+
+    // Load WASM module from file
+    wasm_file_buf = (unsigned char *)bh_read_file_to_buffer(wasm_file, &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, NULL, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Compile WASM - this will trigger aot_compile_op_i32_trunc_f64 for i32.trunc_f64_u
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+}
+
+/******
+ * Test Case: aot_compile_op_i32_trunc_f64_SignedSaturating_DirectMode_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:396-446
+ * Target Lines: 396 (function entry), 399-402 (variable declaration, POP_F64),
+ *               404 (is_indirect_mode check), 424-428 (direct mode signed path),
+ *               434-435 (CHECK_LLVM_CONST), 441-444 (saturating trunc_sat_float_to_int)
+ * Functional Purpose: Validates that aot_compile_op_i32_trunc_f64() successfully
+ *                     compiles i32.trunc_sat_f64_s operation with signed saturating
+ *                     truncation in direct mode (non-indirect compilation context).
+ * Call Path: aot_compile_op_i32_trunc_f64() <- aot_compiler.c WASM_OP_I32_TRUNC_SAT_S_F64
+ * Coverage Goal: Exercise signed saturating truncation path in direct mode
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f64_SignedSaturating_DirectMode_ReturnsTrue) {
+    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i32_trunc_f64_test.wasm";
+    unsigned int wasm_file_size = 0;
+    unsigned char *wasm_file_buf = nullptr;
+    char error_buf[128] = {0};
+    wasm_module_t wasm_module = nullptr;
+    aot_comp_data_t comp_data = nullptr;
+    aot_comp_context_t comp_ctx = nullptr;
+    AOTCompOption option = {0};
+
+    // Initialize compilation options for direct mode (non-indirect)
+    option.opt_level = 2;
+    option.size_level = 1;
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 1;
+    option.enable_simd = false;
+    option.enable_aux_stack_check = false;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = false;
+    option.is_indirect_mode = false; // Force direct mode
+
+    // Load WASM module from file
+    wasm_file_buf = (unsigned char *)bh_read_file_to_buffer(wasm_file, &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, NULL, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Compile WASM - this will trigger aot_compile_op_i32_trunc_f64 for i32.trunc_sat_f64_s
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+}
+
+/******
+ * Test Case: aot_compile_op_i32_trunc_f64_UnsignedSaturating_DirectMode_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:396-446
+ * Target Lines: 396 (function entry), 399-402 (variable declaration, POP_F64),
+ *               404 (is_indirect_mode check), 428-432 (direct mode unsigned path),
+ *               434-435 (CHECK_LLVM_CONST), 441-444 (saturating trunc_sat_float_to_int)
+ * Functional Purpose: Validates that aot_compile_op_i32_trunc_f64() successfully
+ *                     compiles i32.trunc_sat_f64_u operation with unsigned saturating
+ *                     truncation in direct mode (non-indirect compilation context).
+ * Call Path: aot_compile_op_i32_trunc_f64() <- aot_compiler.c WASM_OP_I32_TRUNC_SAT_U_F64
+ * Coverage Goal: Exercise unsigned saturating truncation path in direct mode
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f64_UnsignedSaturating_DirectMode_ReturnsTrue) {
+    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i32_trunc_f64_test.wasm";
+    unsigned int wasm_file_size = 0;
+    unsigned char *wasm_file_buf = nullptr;
+    char error_buf[128] = {0};
+    wasm_module_t wasm_module = nullptr;
+    aot_comp_data_t comp_data = nullptr;
+    aot_comp_context_t comp_ctx = nullptr;
+    AOTCompOption option = {0};
+
+    // Initialize compilation options for direct mode (non-indirect)
+    option.opt_level = 2;
+    option.size_level = 2;
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 1;
+    option.enable_simd = true;
+    option.enable_aux_stack_check = false;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = false;
+    option.is_indirect_mode = false; // Force direct mode
+
+    // Load WASM module from file
+    wasm_file_buf = (unsigned char *)bh_read_file_to_buffer(wasm_file, &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, NULL, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Compile WASM - this will trigger aot_compile_op_i32_trunc_f64 for i32.trunc_sat_f64_u
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+}
