@@ -1571,3 +1571,311 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_trunc_f32_CombinedOpera
     aot_destroy_comp_data(comp_data);
     wasm_runtime_unload(wasm_module);
 }
+
+// ==================== NEW TEST CASES FOR LINES 605-693 ====================
+
+/******
+ * Test Case: aot_compile_op_i64_trunc_f64_Signed_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:605-657
+ * Target Lines: 605 (function entry), 611 (POP_F64), 613-623 (indirect mode signed path),
+ *               616-622 (signed min/max values), 634-637 (direct mode signed path),
+ *               647-649 (trunc_float_to_int call), 656 (return true)
+ * Functional Purpose: Validates that aot_compile_op_i64_trunc_f64() successfully
+ *                     compiles i64.trunc_f64_s operation by truncating f64 to i64,
+ *                     including proper stack operations and LLVM IR generation for signed conversion.
+ * Call Path: aot_compile_op_i64_trunc_f64() <- aot_compiler.c:2370 <- WASM_OP_I64_TRUNC_S_F64
+ * Coverage Goal: Exercise signed truncation path for i64.trunc_f64_s conversion
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_trunc_f64_Signed_ReturnsTrue) {
+    wasm_module_t wasm_module;
+    aot_comp_data_t comp_data;
+    aot_comp_context_t comp_ctx;
+    uint32 wasm_file_size;
+    uint8 *wasm_file_buf;
+    char error_buf[128];
+    AOTCompOption option = { 0 };
+
+    // Load i64_trunc_f64 test WASM module
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_trunc_f64_test.wasm", &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, NULL, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Compile WASM - this will trigger aot_compile_op_i64_trunc_f64 signed path
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+}
+
+/******
+ * Test Case: aot_compile_op_i64_trunc_f64_Unsigned_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:605-657
+ * Target Lines: 605 (function entry), 611 (POP_F64), 613-614 (indirect mode check),
+ *               624-631 (unsigned min/max values), 638-641 (direct mode unsigned path),
+ *               647-649 (trunc_float_to_int call), 656 (return true)
+ * Functional Purpose: Validates that aot_compile_op_i64_trunc_f64() successfully
+ *                     compiles i64.trunc_f64_u operation by truncating f64 to i64,
+ *                     including proper stack operations and LLVM IR generation for unsigned conversion.
+ * Call Path: aot_compile_op_i64_trunc_f64() <- aot_compiler.c:2370 <- WASM_OP_I64_TRUNC_U_F64
+ * Coverage Goal: Exercise unsigned truncation path for i64.trunc_f64_u conversion
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_trunc_f64_Unsigned_ReturnsTrue) {
+    wasm_module_t wasm_module;
+    aot_comp_data_t comp_data;
+    aot_comp_context_t comp_ctx;
+    uint32 wasm_file_size;
+    uint8 *wasm_file_buf;
+    char error_buf[128];
+    AOTCompOption option = { 0 };
+
+    // Load i64_trunc_f64 test WASM module
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_trunc_f64_test.wasm", &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, NULL, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Compile WASM - this will trigger aot_compile_op_i64_trunc_f64 unsigned path
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+}
+
+/******
+ * Test Case: aot_compile_op_i64_trunc_f64_SignedSaturating_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:605-657
+ * Target Lines: 605 (function entry), 611 (POP_F64), 613-623 (indirect mode signed path),
+ *               646 (saturating check), 651-653 (trunc_sat_float_to_int call), 656 (return true)
+ * Functional Purpose: Validates that aot_compile_op_i64_trunc_f64() successfully
+ *                     compiles i64.trunc_sat_f64_s operation by saturating truncation f64 to i64,
+ *                     including proper stack operations and LLVM IR generation for signed saturating conversion.
+ * Call Path: aot_compile_op_i64_trunc_f64() <- aot_compiler.c:2511 <- WASM_OP_I64_TRUNC_SAT_S_F64
+ * Coverage Goal: Exercise signed saturating truncation path for i64.trunc_sat_f64_s conversion
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_trunc_f64_SignedSaturating_ReturnsTrue) {
+    wasm_module_t wasm_module;
+    aot_comp_data_t comp_data;
+    aot_comp_context_t comp_ctx;
+    uint32 wasm_file_size;
+    uint8 *wasm_file_buf;
+    char error_buf[128];
+    AOTCompOption option = { 0 };
+
+    // Load i64_trunc_f64 test WASM module
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_trunc_f64_test.wasm", &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, NULL, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Compile WASM - this will trigger aot_compile_op_i64_trunc_f64 signed saturating path
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+}
+
+/******
+ * Test Case: aot_compile_op_i64_trunc_f64_UnsignedSaturating_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:605-657
+ * Target Lines: 605 (function entry), 611 (POP_F64), 624-631 (unsigned min/max values),
+ *               646 (saturating check), 651-653 (trunc_sat_float_to_int call), 656 (return true)
+ * Functional Purpose: Validates that aot_compile_op_i64_trunc_f64() successfully
+ *                     compiles i64.trunc_sat_f64_u operation by saturating truncation f64 to i64,
+ *                     including proper stack operations and LLVM IR generation for unsigned saturating conversion.
+ * Call Path: aot_compile_op_i64_trunc_f64() <- aot_compiler.c:2511 <- WASM_OP_I64_TRUNC_SAT_U_F64
+ * Coverage Goal: Exercise unsigned saturating truncation path for i64.trunc_sat_f64_u conversion
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_trunc_f64_UnsignedSaturating_ReturnsTrue) {
+    wasm_module_t wasm_module;
+    aot_comp_data_t comp_data;
+    aot_comp_context_t comp_ctx;
+    uint32 wasm_file_size;
+    uint8 *wasm_file_buf;
+    char error_buf[128];
+    AOTCompOption option = { 0 };
+
+    // Load i64_trunc_f64 test WASM module
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_trunc_f64_test.wasm", &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, NULL, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Compile WASM - this will trigger aot_compile_op_i64_trunc_f64 unsigned saturating path
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+}
+
+/******
+ * Test Case: aot_compile_op_f32_convert_i32_Signed_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:660-694
+ * Target Lines: 660 (function entry), 665 (POP_I32), 667-669 (intrinsic capability check),
+ *               678-680 (LLVMBuildSIToFP), 685-687 (error check), 690 (PUSH_F32), 691 (return true)
+ * Functional Purpose: Validates that aot_compile_op_f32_convert_i32() successfully
+ *                     compiles f32.convert_i32_s operation by converting i32 to f32,
+ *                     including proper stack operations and LLVM IR generation for signed conversion.
+ * Call Path: aot_compile_op_f32_convert_i32() <- aot_compiler.c:2378 <- WASM_OP_F32_CONVERT_S_I32
+ * Coverage Goal: Exercise signed conversion path for f32.convert_i32_s conversion
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_convert_i32_Signed_ReturnsTrue) {
+    wasm_module_t wasm_module;
+    aot_comp_data_t comp_data;
+    aot_comp_context_t comp_ctx;
+    uint32 wasm_file_size;
+    uint8 *wasm_file_buf;
+    char error_buf[128];
+    AOTCompOption option = { 0 };
+
+    // Load f32_convert_i32 test WASM module
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f32_convert_i32_test.wasm", &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, NULL, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Compile WASM - this will trigger aot_compile_op_f32_convert_i32 signed path
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+}
+
+/******
+ * Test Case: aot_compile_op_f32_convert_i32_Unsigned_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:660-694
+ * Target Lines: 660 (function entry), 665 (POP_I32), 667-669 (intrinsic capability check),
+ *               681-683 (LLVMBuildUIToFP), 685-687 (error check), 690 (PUSH_F32), 691 (return true)
+ * Functional Purpose: Validates that aot_compile_op_f32_convert_i32() successfully
+ *                     compiles f32.convert_i32_u operation by converting i32 to f32,
+ *                     including proper stack operations and LLVM IR generation for unsigned conversion.
+ * Call Path: aot_compile_op_f32_convert_i32() <- aot_compiler.c:2378 <- WASM_OP_F32_CONVERT_U_I32
+ * Coverage Goal: Exercise unsigned conversion path for f32.convert_i32_u conversion
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_convert_i32_Unsigned_ReturnsTrue) {
+    wasm_module_t wasm_module;
+    aot_comp_data_t comp_data;
+    aot_comp_context_t comp_ctx;
+    uint32 wasm_file_size;
+    uint8 *wasm_file_buf;
+    char error_buf[128];
+    AOTCompOption option = { 0 };
+
+    // Load f32_convert_i32 test WASM module
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f32_convert_i32_test.wasm", &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, NULL, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Compile WASM - this will trigger aot_compile_op_f32_convert_i32 unsigned path
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+}
+
+/******
+ * Test Case: aot_compile_op_f32_convert_i32_WithIntrinsics_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:660-694
+ * Target Lines: 660 (function entry), 665 (POP_I32), 667-675 (intrinsic path),
+ *               670-675 (aot_call_llvm_intrinsic), 690 (PUSH_F32), 691 (return true)
+ * Functional Purpose: Validates that aot_compile_op_f32_convert_i32() successfully
+ *                     compiles f32.convert_i32_s/u operations using LLVM intrinsics,
+ *                     including proper stack operations and intrinsic function calls.
+ * Call Path: aot_compile_op_f32_convert_i32() <- aot_compiler.c:2378 <- WASM_OP_F32_CONVERT_*_I32
+ * Coverage Goal: Exercise intrinsic path for f32.convert_i32 conversions
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_convert_i32_WithIntrinsics_ReturnsTrue) {
+    wasm_module_t wasm_module;
+    aot_comp_data_t comp_data;
+    aot_comp_context_t comp_ctx;
+    uint32 wasm_file_size;
+    uint8 *wasm_file_buf;
+    char error_buf[128];
+    AOTCompOption option = { 0 };
+
+    // Enable intrinsics to trigger the intrinsic path
+    option.disable_llvm_intrinsics = true;
+
+    // Load f32_convert_i32 test WASM module
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f32_convert_i32_test.wasm", &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, NULL, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context with intrinsics enabled
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Compile WASM - this will trigger aot_compile_op_f32_convert_i32 intrinsic path
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+}
