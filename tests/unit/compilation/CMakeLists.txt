@@ -79,6 +79,9 @@ add_custom_command(TARGET compilation_test POST_BUILD
   ${CMAKE_CURRENT_LIST_DIR}/i64_extend_i32_test.wasm
   ${CMAKE_CURRENT_BINARY_DIR}
   COMMAND ${CMAKE_COMMAND} -E copy
+  ${CMAKE_CURRENT_LIST_DIR}/i64_trunc_f32_test.wasm
+  ${CMAKE_CURRENT_BINARY_DIR}
+  COMMAND ${CMAKE_COMMAND} -E copy
   ${CMAKE_CURRENT_LIST_DIR}/i32_extend8s_test.wasm
   ${CMAKE_CURRENT_BINARY_DIR}
   COMMAND ${CMAKE_COMMAND} -E copy
@@ -87,7 +90,7 @@ add_custom_command(TARGET compilation_test POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy
   ${CMAKE_CURRENT_LIST_DIR}/i32_extend_combined_test.wasm
   ${CMAKE_CURRENT_BINARY_DIR}
-  COMMENT "Copy main.wasm, conversion_test.wasm, i32_trunc_f32_test.wasm, i32_trunc_f64_test.wasm, i64_extend_i32_test.wasm, i32_extend8s_test.wasm, i32_extend16s_test.wasm, and i32_extend_combined_test.wasm to the directory: build/compilation."
+  COMMENT "Copy main.wasm, conversion_test.wasm, i32_trunc_f32_test.wasm, i32_trunc_f64_test.wasm, i64_extend_i32_test.wasm, i64_trunc_f32_test.wasm, i32_extend8s_test.wasm, i32_extend16s_test.wasm, and i32_extend_combined_test.wasm to the directory: build/compilation."
 )
 
 gtest_discover_tests(compilation_test)
