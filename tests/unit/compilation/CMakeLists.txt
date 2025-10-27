@@ -69,7 +69,10 @@ add_custom_command(TARGET compilation_test POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy
   ${CMAKE_CURRENT_LIST_DIR}/conversion_test.wasm
   ${CMAKE_CURRENT_BINARY_DIR}
-  COMMENT "Copy main.wasm and conversion_test.wasm to the directory: build/compilation."
+  COMMAND ${CMAKE_COMMAND} -E copy
+  ${CMAKE_CURRENT_LIST_DIR}/i32_trunc_f32_test.wasm
+  ${CMAKE_CURRENT_BINARY_DIR}
+  COMMENT "Copy main.wasm, conversion_test.wasm, and i32_trunc_f32_test.wasm to the directory: build/compilation."
 )
 
 gtest_discover_tests(compilation_test)
