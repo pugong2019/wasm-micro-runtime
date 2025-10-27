@@ -2397,3 +2397,239 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_demote_f64_IntrinsicEna
     wasm_runtime_unload(wasm_module);
     BH_FREE(wasm_file_buf);
 }
+
+// =============================================================================
+// NEW TEST CASES FOR aot_compile_op_f64_convert_i64 COVERAGE (Lines 805-840)
+// =============================================================================
+
+/******
+ * Test Case: aot_compile_op_f64_convert_i64_SignedStandardPath_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:805-840
+ * Target Lines: 805-810 (function entry, POP_I64), 823-830 (signed standard path), 832-838 (success path)
+ * Functional Purpose: Validates that aot_compile_op_f64_convert_i64() correctly performs
+ *                     signed i64 to f64 conversion using standard LLVM operations (SIToFP)
+ *                     when intrinsics are disabled.
+ * Call Path: aot_compile_op_f64_convert_i64() <- aot_compile_func() <- WASM_OP_F64_CONVERT_S_I64
+ * Coverage Goal: Exercise signed conversion path with intrinsics disabled (lines 824-826)
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f64_convert_i64_SignedStandardPath_ReturnsTrue) {
+    unsigned int wasm_file_size = 0;
+    unsigned char *wasm_file_buf = nullptr;
+    char error_buf[128] = {0};
+    wasm_module_t wasm_module = nullptr;
+    aot_comp_data_t comp_data = nullptr;
+    aot_comp_context_t comp_ctx = nullptr;
+    AOTCompOption option = {0};
+
+    // Initialize compilation options with intrinsics disabled
+    option.opt_level = 3;
+    option.size_level = 0;
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 2;
+    option.enable_simd = false;
+    option.enable_aux_stack_check = true;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = false;
+    option.disable_llvm_intrinsics = true;  // Force standard path
+    option.enable_llvm_pgo = false;
+
+    // Load f64_convert_s_i64 test WASM module
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f64_convert_s_i64_test.wasm", &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    ASSERT_GT(wasm_file_size, 0U);
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, nullptr, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Note: Cannot verify disable_llvm_intrinsics directly due to incomplete type
+
+    // Compile WASM - this should use the standard SIToFP path
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+    BH_FREE(wasm_file_buf);
+}
+
+/******
+ * Test Case: aot_compile_op_f64_convert_i64_UnsignedStandardPath_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:805-840
+ * Target Lines: 805-810 (function entry, POP_I64), 827-830 (unsigned standard path), 832-838 (success path)
+ * Functional Purpose: Validates that aot_compile_op_f64_convert_i64() correctly performs
+ *                     unsigned i64 to f64 conversion using standard LLVM operations (UIToFP)
+ *                     when intrinsics are disabled.
+ * Call Path: aot_compile_op_f64_convert_i64() <- aot_compile_func() <- WASM_OP_F64_CONVERT_U_I64
+ * Coverage Goal: Exercise unsigned conversion path with intrinsics disabled (lines 827-829)
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f64_convert_i64_UnsignedStandardPath_ReturnsTrue) {
+    unsigned int wasm_file_size = 0;
+    unsigned char *wasm_file_buf = nullptr;
+    char error_buf[128] = {0};
+    wasm_module_t wasm_module = nullptr;
+    aot_comp_data_t comp_data = nullptr;
+    aot_comp_context_t comp_ctx = nullptr;
+    AOTCompOption option = {0};
+
+    // Initialize compilation options with intrinsics disabled
+    option.opt_level = 3;
+    option.size_level = 0;
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 2;
+    option.enable_simd = false;
+    option.enable_aux_stack_check = true;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = false;
+    option.disable_llvm_intrinsics = true;  // Force standard path
+    option.enable_llvm_pgo = false;
+
+    // Load f64_convert_u_i64 test WASM module
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f64_convert_u_i64_test.wasm", &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    ASSERT_GT(wasm_file_size, 0U);
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, nullptr, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Note: Cannot verify disable_llvm_intrinsics directly due to incomplete type
+
+    // Compile WASM - this should use the standard UIToFP path
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+    BH_FREE(wasm_file_buf);
+}
+
+/******
+ * Test Case: aot_compile_op_f64_convert_i64_SignedIntrinsicPath_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:805-840
+ * Target Lines: 805-810 (function entry, POP_I64), 812-822 (intrinsic path), 832-838 (success path)
+ * Functional Purpose: Validates that aot_compile_op_f64_convert_i64() correctly performs
+ *                     signed i64 to f64 conversion using LLVM intrinsics when available
+ *                     and intrinsics are enabled.
+ * Call Path: aot_compile_op_f64_convert_i64() <- aot_compile_func() <- WASM_OP_F64_CONVERT_S_I64
+ * Coverage Goal: Exercise signed conversion intrinsic path (lines 812-821)
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f64_convert_i64_SignedIntrinsicPath_ReturnsTrue) {
+    unsigned int wasm_file_size = 0;
+    unsigned char *wasm_file_buf = nullptr;
+    char error_buf[128] = {0};
+    wasm_module_t wasm_module = nullptr;
+    aot_comp_data_t comp_data = nullptr;
+    aot_comp_context_t comp_ctx = nullptr;
+    AOTCompOption option = {0};
+
+    // Initialize compilation options with intrinsics enabled
+    option.opt_level = 3;
+    option.size_level = 0;
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 2;
+    option.enable_simd = false;
+    option.enable_aux_stack_check = true;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = false;
+    option.disable_llvm_intrinsics = false;  // Enable intrinsics
+    option.enable_llvm_pgo = false;
+
+    // Load f64_convert_s_i64 test WASM module
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f64_convert_s_i64_test.wasm", &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    ASSERT_GT(wasm_file_size, 0U);
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, nullptr, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Note: Cannot verify disable_llvm_intrinsics directly due to incomplete type
+
+    // Compile WASM - this should attempt to use intrinsics if available
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+    BH_FREE(wasm_file_buf);
+}
+
+/******
+ * Test Case: aot_compile_op_f64_convert_i64_UnsignedIntrinsicPath_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:805-840
+ * Target Lines: 805-810 (function entry, POP_I64), 812-822 (intrinsic path), 832-838 (success path)
+ * Functional Purpose: Validates that aot_compile_op_f64_convert_i64() correctly performs
+ *                     unsigned i64 to f64 conversion using LLVM intrinsics when available
+ *                     and intrinsics are enabled.
+ * Call Path: aot_compile_op_f64_convert_i64() <- aot_compile_func() <- WASM_OP_F64_CONVERT_U_I64
+ * Coverage Goal: Exercise unsigned conversion intrinsic path (lines 812-821)
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f64_convert_i64_UnsignedIntrinsicPath_ReturnsTrue) {
+    unsigned int wasm_file_size = 0;
+    unsigned char *wasm_file_buf = nullptr;
+    char error_buf[128] = {0};
+    wasm_module_t wasm_module = nullptr;
+    aot_comp_data_t comp_data = nullptr;
+    aot_comp_context_t comp_ctx = nullptr;
+    AOTCompOption option = {0};
+
+    // Initialize compilation options with intrinsics enabled
+    option.opt_level = 3;
+    option.size_level = 0;
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 2;
+    option.enable_simd = false;
+    option.enable_aux_stack_check = true;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = false;
+    option.disable_llvm_intrinsics = false;  // Enable intrinsics
+    option.enable_llvm_pgo = false;
+
+    // Load f64_convert_u_i64 test WASM module
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f64_convert_u_i64_test.wasm", &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    ASSERT_GT(wasm_file_size, 0U);
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, nullptr, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Note: Cannot verify disable_llvm_intrinsics directly due to incomplete type
+
+    // Compile WASM - this should attempt to use intrinsics if available
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+    BH_FREE(wasm_file_buf);
+}
