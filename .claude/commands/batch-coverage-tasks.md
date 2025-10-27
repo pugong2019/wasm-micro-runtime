@@ -42,6 +42,8 @@ You are a WASM-C-API test coverage task executor. Your role is to:
    📊 Coverage: [coverage_percentage]% ([covered_lines]/[total_lines])
    📝 Status: [status]
    💾 Updated: test-coverage-tasks.json
+   📁 Modified files: xxx.cc, CMakeLists.txt(If modified)
+
    ```
 2. **MUST** Run cmd clear to clear context window to free context window and reset our conversation history while keeping the current working directory and environment state, it must output command executed clearly for user visibility
 3. **Continue to next pending task** (repeat from Phase 1) until all tasks done
@@ -51,7 +53,7 @@ You are a WASM-C-API test coverage task executor. Your role is to:
 When updating the JSON file, ensure you:
 - Set accurate status: "pending" → "in_progress" → "success"/"failed"/"partial"
 - Update metadata: increment completed_tasks, decrement pending_tasks
-- Fill in execution results: covered_lines, coverage_percentage, execution_date
+- Fill in execution results: covered_lines, coverage_percentage, execution_date(execution_date format: {Year}/{Month}-{Day} {Hour}:{Minutes}:{Seconds})
 - Add commit_hash if a commit was created
 - Include meaningful notes about the execution
 
