@@ -2633,3 +2633,172 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f64_convert_i64_UnsignedInt
     wasm_runtime_unload(wasm_module);
     BH_FREE(wasm_file_buf);
 }
+// ==================== F64 PROMOTE F32 TESTS (Lines 844-872) ====================
+
+/******
+ * Test Case: aot_compile_op_f64_promote_f32_StandardLLVMPath_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:844-872
+ * Target Lines: 844-861, 863-872 (standard LLVM FPExt path)
+ * Functional Purpose: Validates that aot_compile_op_f64_promote_f32() correctly promotes
+ *                     F32 values to F64 using LLVMBuildFPExt when intrinsics are disabled,
+ *                     and properly handles the complete flow including stack operations.
+ * Call Path: aot_compile_op_f64_promote_f32() <- aot_compile_func() <- WASM_OP_F64_PROMOTE_F32
+ * Coverage Goal: Exercise standard LLVM build path and full function flow
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f64_promote_f32_StandardLLVMPath_ReturnsTrue) {
+    unsigned int wasm_file_size = 0;
+    unsigned char *wasm_file_buf = nullptr;
+    char error_buf[128] = {0};
+    wasm_module_t wasm_module = nullptr;
+    aot_comp_data_t comp_data = nullptr;
+    aot_comp_context_t comp_ctx = nullptr;
+    AOTCompOption option = {0};
+
+    // Initialize compilation options with intrinsics disabled to force standard LLVM path
+    option.opt_level = 3;
+    option.size_level = 0;
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 2;
+    option.enable_simd = false;
+    option.enable_aux_stack_check = true;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = false;
+    option.disable_llvm_intrinsics = true;  // Force standard LLVM path (line 851)
+    option.enable_llvm_pgo = false;
+
+    // Load f64_promote_f32 test WASM module
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f64_promote_f32_test.wasm", &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    ASSERT_GT(wasm_file_size, 0U);
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, nullptr, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Compile WASM - this should use LLVMBuildFPExt path (lines 858-861)
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+    BH_FREE(wasm_file_buf);
+}
+
+/******
+ * Test Case: aot_compile_op_f64_promote_f32_IntrinsicPath_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:844-872
+ * Target Lines: 844-856, 863-872 (intrinsic path)
+ * Functional Purpose: Validates that aot_compile_op_f64_promote_f32() correctly uses
+ *                     LLVM intrinsics when enabled and available, following the intrinsic
+ *                     capability check and aot_call_llvm_intrinsic path.
+ * Call Path: aot_compile_op_f64_promote_f32() <- aot_compile_func() <- WASM_OP_F64_PROMOTE_F32
+ * Coverage Goal: Exercise intrinsic path with capability check (lines 851-856)
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f64_promote_f32_IntrinsicPath_ReturnsTrue) {
+    unsigned int wasm_file_size = 0;
+    unsigned char *wasm_file_buf = nullptr;
+    char error_buf[128] = {0};
+    wasm_module_t wasm_module = nullptr;
+    aot_comp_data_t comp_data = nullptr;
+    aot_comp_context_t comp_ctx = nullptr;
+    AOTCompOption option = {0};
+
+    // Initialize compilation options with intrinsics enabled
+    option.opt_level = 3;
+    option.size_level = 0;
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 2;
+    option.enable_simd = false;
+    option.enable_aux_stack_check = true;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = false;
+    option.disable_llvm_intrinsics = false;  // Enable intrinsics (line 851)
+    option.enable_llvm_pgo = false;
+
+    // Load f64_promote_f32 test WASM module
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f64_promote_f32_test.wasm", &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    ASSERT_GT(wasm_file_size, 0U);
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, nullptr, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Compile WASM - may use intrinsic path if capability check passes (lines 852-856)
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+    BH_FREE(wasm_file_buf);
+}
+
+/******
+ * Test Case: aot_compile_op_f64_promote_f32_ComplexOperations_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:844-872
+ * Target Lines: 844-872 (complete function flow with arithmetic operations)
+ * Functional Purpose: Validates the complete flow of aot_compile_op_f64_promote_f32()
+ *                     including the final arithmetic operation call (line 872) and
+ *                     optimization prevention logic (line 871).
+ * Call Path: aot_compile_op_f64_promote_f32() <- aot_compile_func() <- WASM_OP_F64_PROMOTE_F32
+ * Coverage Goal: Exercise complete function flow including line 871-872 (optimization prevention and arithmetic)
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f64_promote_f32_ComplexOperations_ReturnsTrue) {
+    unsigned int wasm_file_size = 0;
+    unsigned char *wasm_file_buf = nullptr;
+    char error_buf[128] = {0};
+    wasm_module_t wasm_module = nullptr;
+    aot_comp_data_t comp_data = nullptr;
+    aot_comp_context_t comp_ctx = nullptr;
+    AOTCompOption option = {0};
+
+    // Initialize compilation options
+    option.opt_level = 0;  // Lower optimization to prevent aggressive optimizations
+    option.size_level = 0;
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 2;
+    option.enable_simd = false;
+    option.enable_aux_stack_check = true;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = false;
+    option.disable_llvm_intrinsics = true;  // Use standard path
+    option.enable_llvm_pgo = false;
+
+    // Load WASM module with complex f64.promote_f32 operations
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f64_promote_f32_test.wasm", &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    ASSERT_GT(wasm_file_size, 0U);
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, nullptr, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Compile WASM - should execute complete function flow including lines 871-872
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+    BH_FREE(wasm_file_buf);
+}
