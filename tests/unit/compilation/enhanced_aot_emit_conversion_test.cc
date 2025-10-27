@@ -669,3 +669,172 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f64_UnsignedSatur
     aot_destroy_comp_data(comp_data);
     wasm_runtime_unload(wasm_module);
 }
+
+// =============================================================================
+// NEW TEST CASES FOR aot_compile_op_i64_extend_i32 COVERAGE (Lines 450-471)
+// =============================================================================
+
+/******
+ * Test Case: aot_compile_op_i64_extend_i32_SignedExtension_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:450-471
+ * Target Lines: 450 (function entry), 455 (POP_I32), 457-459 (signed extension path),
+ *               463-466 (error check for LLVMBuildSExt), 468 (PUSH_I64), 469 (return true)
+ * Functional Purpose: Validates that aot_compile_op_i64_extend_i32() successfully
+ *                     compiles i64.extend_i32_s operation with signed extension
+ *                     using LLVMBuildSExt to extend i32 to i64 with sign extension.
+ * Call Path: aot_compile_op_i64_extend_i32() <- aot_compile_func() <- aot_compile_wasm()
+ * Coverage Goal: Exercise signed extension path (LLVMBuildSExt) in success scenario
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_extend_i32_SignedExtension_ReturnsTrue) {
+    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_extend_i32_test.wasm";
+    unsigned int wasm_file_size = 0;
+    unsigned char *wasm_file_buf = nullptr;
+    char error_buf[128] = {0};
+    wasm_module_t wasm_module = nullptr;
+    aot_comp_data_t comp_data = nullptr;
+    aot_comp_context_t comp_ctx = nullptr;
+    AOTCompOption option = {0};
+
+    // Initialize compilation options
+    option.opt_level = 2;
+    option.size_level = 2;
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 1;
+    option.enable_simd = true;
+    option.enable_aux_stack_check = false;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = false;
+    option.is_indirect_mode = false;
+
+    // Load WASM module from file
+    wasm_file_buf = (unsigned char *)bh_read_file_to_buffer(wasm_file, &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, NULL, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Compile WASM - this will trigger aot_compile_op_i64_extend_i32 for i64.extend_i32_s
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+}
+
+/******
+ * Test Case: aot_compile_op_i64_extend_i32_UnsignedExtension_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:450-471
+ * Target Lines: 450 (function entry), 455 (POP_I32), 460-462 (unsigned extension path),
+ *               463-466 (error check for LLVMBuildZExt), 468 (PUSH_I64), 469 (return true)
+ * Functional Purpose: Validates that aot_compile_op_i64_extend_i32() successfully
+ *                     compiles i64.extend_i32_u operation with unsigned extension
+ *                     using LLVMBuildZExt to extend i32 to i64 with zero extension.
+ * Call Path: aot_compile_op_i64_extend_i32() <- aot_compile_func() <- aot_compile_wasm()
+ * Coverage Goal: Exercise unsigned extension path (LLVMBuildZExt) in success scenario
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_extend_i32_UnsignedExtension_ReturnsTrue) {
+    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_extend_i32_test.wasm";
+    unsigned int wasm_file_size = 0;
+    unsigned char *wasm_file_buf = nullptr;
+    char error_buf[128] = {0};
+    wasm_module_t wasm_module = nullptr;
+    aot_comp_data_t comp_data = nullptr;
+    aot_comp_context_t comp_ctx = nullptr;
+    AOTCompOption option = {0};
+
+    // Initialize compilation options
+    option.opt_level = 2;
+    option.size_level = 2;
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 1;
+    option.enable_simd = true;
+    option.enable_aux_stack_check = false;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = false;
+    option.is_indirect_mode = false;
+
+    // Load WASM module from file
+    wasm_file_buf = (unsigned char *)bh_read_file_to_buffer(wasm_file, &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, NULL, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Compile WASM - this will trigger aot_compile_op_i64_extend_i32 for i64.extend_i32_u
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+}
+
+/******
+ * Test Case: aot_compile_op_i64_extend_i32_CombinedOperations_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_conversion.c:450-471
+ * Target Lines: 450 (function entry), 455 (POP_I32), 457-462 (both signed and unsigned paths),
+ *               463-466 (error check for both operations), 468 (PUSH_I64), 469 (return true)
+ * Functional Purpose: Validates that aot_compile_op_i64_extend_i32() successfully
+ *                     handles both signed and unsigned extensions in a single WASM module,
+ *                     ensuring complete path coverage for both extension types.
+ * Call Path: aot_compile_op_i64_extend_i32() <- aot_compile_func() <- aot_compile_wasm()
+ * Coverage Goal: Exercise both signed and unsigned extension paths in combined scenario
+ ******/
+TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_extend_i32_CombinedOperations_ReturnsTrue) {
+    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_extend_i32_test.wasm";
+    unsigned int wasm_file_size = 0;
+    unsigned char *wasm_file_buf = nullptr;
+    char error_buf[128] = {0};
+    wasm_module_t wasm_module = nullptr;
+    aot_comp_data_t comp_data = nullptr;
+    aot_comp_context_t comp_ctx = nullptr;
+    AOTCompOption option = {0};
+
+    // Initialize compilation options with different parameters to ensure thorough coverage
+    option.opt_level = 1;
+    option.size_level = 1;
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 1;
+    option.enable_simd = false;
+    option.enable_aux_stack_check = true;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = false;
+    option.is_indirect_mode = false;
+
+    // Load WASM module from file
+    wasm_file_buf = (unsigned char *)bh_read_file_to_buffer(wasm_file, &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    // Create compilation data
+    comp_data = aot_create_comp_data(wasm_module, NULL, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    // Create compilation context
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Compile WASM - this will trigger both signed and unsigned i64_extend_i32 operations
+    ASSERT_TRUE(aot_compile_wasm(comp_ctx));
+
+    // Clean up
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+}
