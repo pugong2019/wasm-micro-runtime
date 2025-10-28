@@ -273,3 +273,262 @@ TEST_F(EnhancedAotRuntimeTest, aot_resolve_import_func_MultiModuleDisabled_SkipD
     // The import function should still have no linked pointer
     ASSERT_EQ(import_func.func_ptr_linked, nullptr);
 }
+
+/******
+ * Test Case: aot_resolve_symbols_WithUnlinkedFunctions_ResolutionAttempt
+ * Source: core/iwasm/aot/aot_runtime.c:5525-5531
+ * Target Lines: 5525 (function pointer access), 5526 (linked check), 5527 (resolution attempt)
+ * Functional Purpose: Validates that aot_resolve_symbols() correctly iterates through
+ *                     import functions and attempts resolution for unlinked functions.
+ * Call Path: aot_resolve_symbols() <- wasm_runtime_resolve_symbols() <- public API
+ * Coverage Goal: Exercise basic function iteration and resolution attempt logic
+ ******/
+TEST_F(EnhancedAotRuntimeTest, aot_resolve_symbols_WithUnlinkedFunctions_ResolutionAttempt) {
+    // Create a minimal AOT module with import functions
+    AOTModule test_module;
+    memset(&test_module, 0, sizeof(AOTModule));
+
+    // Create array of import functions
+    AOTImportFunc import_funcs[2];
+    memset(import_funcs, 0, sizeof(import_funcs));
+
+    // Set up first import function (unlinked)
+    import_funcs[0].module_name = (char*)"test_module1";
+    import_funcs[0].func_name = (char*)"test_function1";
+    import_funcs[0].func_ptr_linked = NULL; // Not linked
+
+    // Create minimal function type for first function
+    AOTFuncType func_type1;
+    memset(&func_type1, 0, sizeof(AOTFuncType));
+    func_type1.param_count = 0;
+    func_type1.result_count = 0;
+    import_funcs[0].func_type = &func_type1;
+
+    // Set up second import function (unlinked)
+    import_funcs[1].module_name = (char*)"test_module2";
+    import_funcs[1].func_name = (char*)"test_function2";
+    import_funcs[1].func_ptr_linked = NULL; // Not linked
+
+    // Create minimal function type for second function
+    AOTFuncType func_type2;
+    memset(&func_type2, 0, sizeof(AOTFuncType));
+    func_type2.param_count = 0;
+    func_type2.result_count = 0;
+    import_funcs[1].func_type = &func_type2;
+
+    // Configure module with import functions
+    test_module.import_funcs = import_funcs;
+    test_module.import_func_count = 2;
+
+    // Test the function - should attempt to resolve both functions
+    bool result = aot_resolve_symbols(&test_module);
+
+    // Should return false since both functions will fail to resolve
+    ASSERT_FALSE(result);
+
+    // Both functions should still be unlinked
+    ASSERT_EQ(import_funcs[0].func_ptr_linked, nullptr);
+    ASSERT_EQ(import_funcs[1].func_ptr_linked, nullptr);
+}
+
+/******
+ * Test Case: aot_resolve_symbols_WithAlreadyLinkedFunctions_SkipResolution
+ * Source: core/iwasm/aot/aot_runtime.c:5525-5531
+ * Target Lines: 5525 (function pointer access), 5526 (linked check - skip path)
+ * Functional Purpose: Validates that aot_resolve_symbols() correctly skips
+ *                     functions that are already linked (func_ptr_linked != NULL).
+ * Call Path: aot_resolve_symbols() <- wasm_runtime_resolve_symbols() <- public API
+ * Coverage Goal: Exercise the skip path for already linked functions
+ ******/
+TEST_F(EnhancedAotRuntimeTest, aot_resolve_symbols_WithAlreadyLinkedFunctions_SkipResolution) {
+    // Create a minimal AOT module with import functions
+    AOTModule test_module;
+    memset(&test_module, 0, sizeof(AOTModule));
+
+    // Create array of import functions
+    AOTImportFunc import_funcs[2];
+    memset(import_funcs, 0, sizeof(import_funcs));
+
+    // Set up first import function (already linked)
+    import_funcs[0].module_name = (char*)"linked_module1";
+    import_funcs[0].func_name = (char*)"linked_function1";
+    import_funcs[0].func_ptr_linked = (void*)0x12345678; // Already linked
+
+    // Create minimal function type for first function
+    AOTFuncType func_type1;
+    memset(&func_type1, 0, sizeof(AOTFuncType));
+    func_type1.param_count = 0;
+    func_type1.result_count = 0;
+    import_funcs[0].func_type = &func_type1;
+
+    // Set up second import function (unlinked - will fail)
+    import_funcs[1].module_name = (char*)"unlinked_module2";
+    import_funcs[1].func_name = (char*)"unlinked_function2";
+    import_funcs[1].func_ptr_linked = NULL; // Not linked
+
+    // Create minimal function type for second function
+    AOTFuncType func_type2;
+    memset(&func_type2, 0, sizeof(AOTFuncType));
+    func_type2.param_count = 0;
+    func_type2.result_count = 0;
+    import_funcs[1].func_type = &func_type2;
+
+    // Configure module with import functions
+    test_module.import_funcs = import_funcs;
+    test_module.import_func_count = 2;
+
+    // Test the function - should skip first function, fail on second
+    bool result = aot_resolve_symbols(&test_module);
+
+    // Should return false since second function will fail to resolve
+    ASSERT_FALSE(result);
+
+    // First function should remain linked
+    ASSERT_NE(import_funcs[0].func_ptr_linked, nullptr);
+    ASSERT_EQ(import_funcs[0].func_ptr_linked, (void*)0x12345678);
+
+    // Second function should still be unlinked
+    ASSERT_EQ(import_funcs[1].func_ptr_linked, nullptr);
+}
+
+/******
+ * Test Case: aot_resolve_symbols_ResolutionFailure_LogWarningAndReturnFalse
+ * Source: core/iwasm/aot/aot_runtime.c:5525-5531
+ * Target Lines: 5527 (resolution failure), 5528-5530 (LOG_WARNING), 5531 (ret = false)
+ * Functional Purpose: Validates that aot_resolve_symbols() correctly handles
+ *                     resolution failures by logging warnings and setting return value to false.
+ * Call Path: aot_resolve_symbols() <- wasm_runtime_resolve_symbols() <- public API
+ * Coverage Goal: Exercise warning logging and failure return path
+ ******/
+TEST_F(EnhancedAotRuntimeTest, aot_resolve_symbols_ResolutionFailure_LogWarningAndReturnFalse) {
+    // Create a minimal AOT module with import functions
+    AOTModule test_module;
+    memset(&test_module, 0, sizeof(AOTModule));
+
+    // Create array of import functions
+    AOTImportFunc import_funcs[1];
+    memset(import_funcs, 0, sizeof(import_funcs));
+
+    // Set up import function that will fail resolution
+    import_funcs[0].module_name = (char*)"nonexistent_module";
+    import_funcs[0].func_name = (char*)"nonexistent_function";
+    import_funcs[0].func_ptr_linked = NULL; // Not linked
+
+    // Create minimal function type
+    AOTFuncType func_type;
+    memset(&func_type, 0, sizeof(AOTFuncType));
+    func_type.param_count = 0;
+    func_type.result_count = 0;
+    import_funcs[0].func_type = &func_type;
+
+    // Configure module with import function
+    test_module.import_funcs = import_funcs;
+    test_module.import_func_count = 1;
+
+    // Test the function - should fail resolution and log warning
+    bool result = aot_resolve_symbols(&test_module);
+
+    // Should return false due to failed resolution
+    ASSERT_FALSE(result);
+
+    // Function should still be unlinked
+    ASSERT_EQ(import_funcs[0].func_ptr_linked, nullptr);
+}
+
+/******
+ * Test Case: aot_resolve_symbols_EmptyImportFuncArray_ReturnTrue
+ * Source: core/iwasm/aot/aot_runtime.c:5524-5535
+ * Target Lines: 5524 (loop condition with count=0), 5535 (return ret=true)
+ * Functional Purpose: Validates that aot_resolve_symbols() correctly handles
+ *                     modules with no import functions by returning true immediately.
+ * Call Path: aot_resolve_symbols() <- wasm_runtime_resolve_symbols() <- public API
+ * Coverage Goal: Exercise the success path when no import functions need resolution
+ ******/
+TEST_F(EnhancedAotRuntimeTest, aot_resolve_symbols_EmptyImportFuncArray_ReturnTrue) {
+    // Create a minimal AOT module with no import functions
+    AOTModule test_module;
+    memset(&test_module, 0, sizeof(AOTModule));
+
+    // Configure module with zero import functions
+    test_module.import_funcs = NULL;
+    test_module.import_func_count = 0;
+
+    // Test the function - should return true with no functions to resolve
+    bool result = aot_resolve_symbols(&test_module);
+
+    // Should return true since there are no functions to resolve
+    ASSERT_TRUE(result);
+}
+
+/******
+ * Test Case: aot_resolve_symbols_MixedLinkedUnlinked_PartialFailure
+ * Source: core/iwasm/aot/aot_runtime.c:5525-5531
+ * Target Lines: 5525-5531 (complete iteration with mixed success/failure)
+ * Functional Purpose: Validates that aot_resolve_symbols() correctly processes
+ *                     modules with mixed linked/unlinked functions and returns false
+ *                     when any unlinked function fails resolution.
+ * Call Path: aot_resolve_symbols() <- wasm_runtime_resolve_symbols() <- public API
+ * Coverage Goal: Exercise complete iteration logic with partial failures
+ ******/
+TEST_F(EnhancedAotRuntimeTest, aot_resolve_symbols_MixedLinkedUnlinked_PartialFailure) {
+    // Create a minimal AOT module with mixed import functions
+    AOTModule test_module;
+    memset(&test_module, 0, sizeof(AOTModule));
+
+    // Create array of import functions
+    AOTImportFunc import_funcs[3];
+    memset(import_funcs, 0, sizeof(import_funcs));
+
+    // Set up first import function (already linked - should be skipped)
+    import_funcs[0].module_name = (char*)"linked_module";
+    import_funcs[0].func_name = (char*)"linked_function";
+    import_funcs[0].func_ptr_linked = (void*)0xABCDEF12; // Already linked
+
+    // Create minimal function type for first function
+    AOTFuncType func_type1;
+    memset(&func_type1, 0, sizeof(AOTFuncType));
+    func_type1.param_count = 0;
+    func_type1.result_count = 0;
+    import_funcs[0].func_type = &func_type1;
+
+    // Set up second import function (unlinked - will fail)
+    import_funcs[1].module_name = (char*)"fail_module1";
+    import_funcs[1].func_name = (char*)"fail_function1";
+    import_funcs[1].func_ptr_linked = NULL; // Not linked
+
+    // Create minimal function type for second function
+    AOTFuncType func_type2;
+    memset(&func_type2, 0, sizeof(AOTFuncType));
+    func_type2.param_count = 0;
+    func_type2.result_count = 0;
+    import_funcs[1].func_type = &func_type2;
+
+    // Set up third import function (unlinked - will also fail)
+    import_funcs[2].module_name = (char*)"fail_module2";
+    import_funcs[2].func_name = (char*)"fail_function2";
+    import_funcs[2].func_ptr_linked = NULL; // Not linked
+
+    // Create minimal function type for third function
+    AOTFuncType func_type3;
+    memset(&func_type3, 0, sizeof(AOTFuncType));
+    func_type3.param_count = 0;
+    func_type3.result_count = 0;
+    import_funcs[2].func_type = &func_type3;
+
+    // Configure module with import functions
+    test_module.import_funcs = import_funcs;
+    test_module.import_func_count = 3;
+
+    // Test the function - should process all three functions
+    bool result = aot_resolve_symbols(&test_module);
+
+    // Should return false due to failed resolutions
+    ASSERT_FALSE(result);
+
+    // First function should remain linked
+    ASSERT_EQ(import_funcs[0].func_ptr_linked, (void*)0xABCDEF12);
+
+    // Second and third functions should still be unlinked
+    ASSERT_EQ(import_funcs[1].func_ptr_linked, nullptr);
+    ASSERT_EQ(import_funcs[2].func_ptr_linked, nullptr);
+}
