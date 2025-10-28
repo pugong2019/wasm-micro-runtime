@@ -417,3 +417,199 @@ TEST_F(EnhancedWasmSharedMemoryTest, AtomicWait_TimeoutOccurs_ReturnsTwo) {
     // Should be 2 (timeout) since we use very short timeout with no notification
     ASSERT_EQ(2, result);
 }
+
+/******
+ * Test Case: wasm_runtime_atomic_notify_OutOfBoundsAddress_ReturnsNegativeOne
+ * Source: core/iwasm/common/wasm_shared_memory.c:435-447
+ * Target Lines: 435-442 (bounds check), 445-447 (exception and return -1)
+ * Functional Purpose: Validates that wasm_runtime_atomic_notify correctly detects
+ *                     out-of-bounds memory addresses and returns -1 with appropriate exception.
+ * Call Path: Direct call to wasm_runtime_atomic_notify()
+ * Coverage Goal: Exercise memory bounds validation logic and error handling path
+ ******/
+TEST_F(EnhancedWasmSharedMemoryTest, AtomicNotify_OutOfBoundsAddress_ReturnsNegativeOne) {
+    ASSERT_NE(nullptr, module_inst);
+
+    WASMModuleInstance *wasm_inst = (WASMModuleInstance*)module_inst;
+    ASSERT_NE(nullptr, wasm_inst->memories);
+    ASSERT_NE(nullptr, wasm_inst->memories[0]);
+
+    WASMMemoryInstance *memory = wasm_inst->memories[0];
+    ASSERT_NE(nullptr, memory->memory_data);
+    ASSERT_NE(nullptr, memory->memory_data_end);
+
+    // Create an address that's definitely out of bounds - beyond memory_data_end
+    void *out_of_bounds_addr = (void*)((uint8*)memory->memory_data_end + 1000);
+
+    uint32 result = wasm_runtime_atomic_notify((WASMModuleInstanceCommon*)module_inst,
+                                             out_of_bounds_addr, 1);
+
+    ASSERT_EQ(-1, result);
+}
+
+/******
+ * Test Case: wasm_runtime_atomic_notify_NonSharedMemory_ReturnsZero
+ * Source: core/iwasm/common/wasm_shared_memory.c:451-454
+ * Target Lines: 451 (shared memory check), 452-454 (comment and return 0)
+ * Functional Purpose: Validates that wasm_runtime_atomic_notify returns 0 when called
+ *                     on a module instance with non-shared memory.
+ * Call Path: Direct call to wasm_runtime_atomic_notify()
+ * Coverage Goal: Exercise non-shared memory early return path
+ ******/
+TEST_F(EnhancedWasmSharedMemoryTest, AtomicNotify_NonSharedMemory_ReturnsZero) {
+    // Create a module with non-shared memory
+    uint8_t simple_wasm[] = {
+        0x00, 0x61, 0x73, 0x6d, // WASM magic
+        0x01, 0x00, 0x00, 0x00, // version
+        0x01, 0x04,             // type section
+        0x01,                   // 1 type
+        0x60, 0x00, 0x00,       // func type: ()->()
+        0x03, 0x02,             // function section
+        0x01, 0x00,             // 1 function, type 0
+        0x05, 0x03,             // memory section
+        0x01,                   // 1 memory
+        0x00, 0x01,             // non-shared memory with min 1 page
+        0x0a, 0x04,             // code section
+        0x01, 0x02,             // 1 function body
+        0x00, 0x0b              // end
+    };
+
+    WASMModuleCommon *non_shared_module = wasm_runtime_load(simple_wasm, sizeof(simple_wasm), error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, non_shared_module);
+
+    WASMModuleInstanceCommon *non_shared_inst = wasm_runtime_instantiate(non_shared_module, 8192, 8192, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, non_shared_inst);
+
+    // Get valid address within memory bounds
+    WASMModuleInstance *wasm_inst = (WASMModuleInstance*)non_shared_inst;
+    ASSERT_NE(nullptr, wasm_inst->memories);
+    ASSERT_NE(nullptr, wasm_inst->memories[0]);
+
+    void *test_address = wasm_inst->memories[0]->memory_data;
+    ASSERT_NE(nullptr, test_address);
+
+    uint32 result = wasm_runtime_atomic_notify(non_shared_inst, test_address, 1);
+
+    ASSERT_EQ(0, result);
+
+    wasm_runtime_deinstantiate(non_shared_inst);
+    wasm_runtime_unload(non_shared_module);
+}
+
+/******
+ * Test Case: wasm_runtime_atomic_notify_NoWaiters_ReturnsZero
+ * Source: core/iwasm/common/wasm_shared_memory.c:463-468
+ * Target Lines: 463 (acquire_wait_info call), 466-468 (no waiters check and return)
+ * Functional Purpose: Validates that wasm_runtime_atomic_notify returns 0 when no threads
+ *                     are waiting on the specified address.
+ * Call Path: Direct call to wasm_runtime_atomic_notify()
+ * Coverage Goal: Exercise no waiters scenario with shared memory
+ ******/
+TEST_F(EnhancedWasmSharedMemoryTest, AtomicNotify_NoWaiters_ReturnsZero) {
+    ASSERT_NE(nullptr, module_inst);
+
+    WASMModuleInstance *wasm_inst = (WASMModuleInstance*)module_inst;
+    ASSERT_NE(nullptr, wasm_inst->memories);
+    ASSERT_NE(nullptr, wasm_inst->memories[0]);
+
+    WASMMemoryInstance *memory = wasm_inst->memories[0];
+    ASSERT_NE(nullptr, memory->memory_data);
+
+    // Use valid address within shared memory
+    void *test_address = memory->memory_data;
+
+    uint32 result = wasm_runtime_atomic_notify((WASMModuleInstanceCommon*)module_inst,
+                                             test_address, 5);
+
+    // Should return 0 since no threads are waiting on this address
+    ASSERT_EQ(0, result);
+}
+
+/******
+ * Test Case: wasm_runtime_atomic_notify_ValidAddress_NormalExecution
+ * Source: core/iwasm/common/wasm_shared_memory.c:457-476
+ * Target Lines: 457 (get lock pointer), 461 (mutex lock), 472 (notify_wait_list),
+ *               474 (mutex unlock), 476 (return notify_result)
+ * Functional Purpose: Validates that wasm_runtime_atomic_notify executes the normal
+ *                     path with proper locking, wait info acquisition, and result return.
+ * Call Path: Direct call to wasm_runtime_atomic_notify()
+ * Coverage Goal: Exercise normal execution path with shared memory
+ ******/
+TEST_F(EnhancedWasmSharedMemoryTest, AtomicNotify_ValidAddress_NormalExecution) {
+    ASSERT_NE(nullptr, module_inst);
+
+    WASMModuleInstance *wasm_inst = (WASMModuleInstance*)module_inst;
+    ASSERT_NE(nullptr, wasm_inst->memories);
+    ASSERT_NE(nullptr, wasm_inst->memories[0]);
+
+    WASMMemoryInstance *memory = wasm_inst->memories[0];
+    ASSERT_NE(nullptr, memory->memory_data);
+
+    // Use valid address within shared memory bounds
+    uint32 *test_address = (uint32*)memory->memory_data;
+    *test_address = 123;  // Initialize with some value
+
+    uint32 result = wasm_runtime_atomic_notify((WASMModuleInstanceCommon*)module_inst,
+                                             test_address, 2);
+
+    // Should return 0 (no waiters) and execute full path without errors
+    ASSERT_EQ(0, result);
+}
+
+/******
+ * Test Case: wasm_runtime_atomic_notify_ZeroCount_NormalExecution
+ * Source: core/iwasm/common/wasm_shared_memory.c:472
+ * Target Lines: 472 (notify_wait_list with count parameter)
+ * Functional Purpose: Validates that wasm_runtime_atomic_notify handles zero count
+ *                     parameter correctly by passing it to notify_wait_list.
+ * Call Path: Direct call to wasm_runtime_atomic_notify()
+ * Coverage Goal: Exercise notify_wait_list call with zero count parameter
+ ******/
+TEST_F(EnhancedWasmSharedMemoryTest, AtomicNotify_ZeroCount_NormalExecution) {
+    ASSERT_NE(nullptr, module_inst);
+
+    WASMModuleInstance *wasm_inst = (WASMModuleInstance*)module_inst;
+    ASSERT_NE(nullptr, wasm_inst->memories);
+    ASSERT_NE(nullptr, wasm_inst->memories[0]);
+
+    WASMMemoryInstance *memory = wasm_inst->memories[0];
+    ASSERT_NE(nullptr, memory->memory_data);
+
+    // Use valid address within shared memory bounds
+    void *test_address = memory->memory_data;
+
+    uint32 result = wasm_runtime_atomic_notify((WASMModuleInstanceCommon*)module_inst,
+                                             test_address, 0);
+
+    // Should return 0 and execute normally with zero count
+    ASSERT_EQ(0, result);
+}
+
+/******
+ * Test Case: wasm_runtime_atomic_notify_LargeCount_NormalExecution
+ * Source: core/iwasm/common/wasm_shared_memory.c:472
+ * Target Lines: 472 (notify_wait_list with large count)
+ * Functional Purpose: Validates that wasm_runtime_atomic_notify handles large count
+ *                     values correctly by passing them to notify_wait_list function.
+ * Call Path: Direct call to wasm_runtime_atomic_notify()
+ * Coverage Goal: Exercise notify_wait_list call with large count parameter
+ ******/
+TEST_F(EnhancedWasmSharedMemoryTest, AtomicNotify_LargeCount_NormalExecution) {
+    ASSERT_NE(nullptr, module_inst);
+
+    WASMModuleInstance *wasm_inst = (WASMModuleInstance*)module_inst;
+    ASSERT_NE(nullptr, wasm_inst->memories);
+    ASSERT_NE(nullptr, wasm_inst->memories[0]);
+
+    WASMMemoryInstance *memory = wasm_inst->memories[0];
+    ASSERT_NE(nullptr, memory->memory_data);
+
+    // Use valid address within shared memory bounds
+    void *test_address = memory->memory_data;
+
+    uint32 result = wasm_runtime_atomic_notify((WASMModuleInstanceCommon*)module_inst,
+                                             test_address, UINT32_MAX);
+
+    // Should return 0 and execute normally even with large count
+    ASSERT_EQ(0, result);
+}
