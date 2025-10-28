@@ -15,7 +15,7 @@ include(../unit_common.cmake)
 # Include paths
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-# Step 6: posix_clock_test.cc, posix_sleep_test.cc, posix_time_test.cc, posix_malloc_test.cc, posix_file_test.cc, posix_socket_test.cc, and posix_blocking_op_test.cc
+# Step 6: posix_clock_test.cc, posix_sleep_test.cc, posix_time_test.cc, posix_malloc_test.cc, posix_file_test.cc, posix_socket_test.cc, posix_blocking_op_test.cc, and enhanced_posix_thread_test.cc
 set(POSIX_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/posix_clock_test.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/posix_sleep_test.cc
@@ -24,9 +24,10 @@ set(POSIX_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/posix_file_test.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/posix_socket_test.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/posix_blocking_op_test.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_posix_thread_test.cc
 )
 
-# POSIX platform sources - Step 6: posix_clock.c, posix_sleep.c, posix_time.c, posix_malloc.c, posix_file.c, posix_socket.c, and posix_blocking_op.c
+# POSIX platform sources - Step 6: posix_clock.c, posix_sleep.c, posix_time.c, posix_malloc.c, posix_file.c, posix_socket.c, posix_blocking_op.c, and posix_thread.c
 set(POSIX_PLATFORM_DIR ${WAMR_ROOT_DIR}/core/shared/platform/common/posix)
 set(POSIX_SOURCE_FILES
     ${POSIX_PLATFORM_DIR}/posix_clock.c
@@ -36,6 +37,7 @@ set(POSIX_SOURCE_FILES
     ${POSIX_PLATFORM_DIR}/posix_file.c
     ${POSIX_PLATFORM_DIR}/posix_socket.c
     ${POSIX_PLATFORM_DIR}/posix_blocking_op.c
+    ${POSIX_PLATFORM_DIR}/posix_thread.c
 )
 
 # All sources for the test executable
