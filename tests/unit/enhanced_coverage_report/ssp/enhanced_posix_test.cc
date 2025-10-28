@@ -480,3 +480,239 @@ TEST_F(EnhancedPosixTest, FdTell_AfterMultipleSeeks_ReturnsCorrectPosition) {
     ASSERT_EQ(__WASI_ESUCCESS, result);
     ASSERT_EQ(15, position);
 }
+
+// ========== NEW TEST CASES FOR wasmtime_ssp_fd_advise (Lines 1177-1195) ==========
+
+/******
+ * Test Case: FdAdvise_ValidFileDescriptorNormalAdvice_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1177-1195
+ * Target Lines: 1182-1183 (fd_object_get success), 1192 (os_fadvise call), 1194 (fd_object_release), 1196 (return)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_advise() successfully provides file access
+ *                     pattern advice to the operating system with NORMAL advice type.
+ * Call Path: wasmtime_ssp_fd_advise() <- WASI fd_advise syscall
+ * Coverage Goal: Exercise successful path with valid file descriptor and FD_ADVISE rights
+ ******/
+TEST_F(EnhancedPosixTest, FdAdvise_ValidFileDescriptorNormalAdvice_ReturnsSuccess) {
+    __wasi_fd_t valid_fd = 3;
+    __wasi_filesize_t offset = 0;
+    __wasi_filesize_t len = 1024;
+    __wasi_advice_t advice = __WASI_ADVICE_NORMAL;
+
+    __wasi_errno_t result = wasmtime_ssp_fd_advise(
+        nullptr, &fd_table_, valid_fd, offset, len, advice);
+
+    // Should succeed with valid file descriptor and NORMAL advice
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+}
+
+/******
+ * Test Case: FdAdvise_ValidFileDescriptorSequentialAdvice_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1177-1195
+ * Target Lines: 1182-1183 (fd_object_get success), 1192 (os_fadvise with SEQUENTIAL), 1194 (cleanup), 1196 (return)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_advise() correctly handles SEQUENTIAL advice
+ *                     type for files that will be read sequentially.
+ * Call Path: wasmtime_ssp_fd_advise() <- WASI fd_advise syscall
+ * Coverage Goal: Exercise os_fadvise call with different advice types
+ ******/
+TEST_F(EnhancedPosixTest, FdAdvise_ValidFileDescriptorSequentialAdvice_ReturnsSuccess) {
+    __wasi_fd_t valid_fd = 3;
+    __wasi_filesize_t offset = 100;
+    __wasi_filesize_t len = 2048;
+    __wasi_advice_t advice = __WASI_ADVICE_SEQUENTIAL;
+
+    __wasi_errno_t result = wasmtime_ssp_fd_advise(
+        nullptr, &fd_table_, valid_fd, offset, len, advice);
+
+    // Should succeed with SEQUENTIAL advice
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+}
+
+/******
+ * Test Case: FdAdvise_ValidFileDescriptorRandomAdvice_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1177-1195
+ * Target Lines: 1182-1183 (fd_object_get success), 1192 (os_fadvise with RANDOM), 1194 (cleanup), 1196 (return)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_advise() correctly handles RANDOM advice
+ *                     type for files that will be accessed randomly.
+ * Call Path: wasmtime_ssp_fd_advise() <- WASI fd_advise syscall
+ * Coverage Goal: Exercise os_fadvise call with RANDOM advice type
+ ******/
+TEST_F(EnhancedPosixTest, FdAdvise_ValidFileDescriptorRandomAdvice_ReturnsSuccess) {
+    __wasi_fd_t valid_fd = 4;
+    __wasi_filesize_t offset = 0;
+    __wasi_filesize_t len = 4096;
+    __wasi_advice_t advice = __WASI_ADVICE_RANDOM;
+
+    __wasi_errno_t result = wasmtime_ssp_fd_advise(
+        nullptr, &fd_table_, valid_fd, offset, len, advice);
+
+    // Should succeed with RANDOM advice
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+}
+
+/******
+ * Test Case: FdAdvise_ValidFileDescriptorWillneedAdvice_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1177-1195
+ * Target Lines: 1182-1183 (fd_object_get success), 1192 (os_fadvise with WILLNEED), 1194 (cleanup), 1196 (return)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_advise() correctly handles WILLNEED advice
+ *                     type to hint that data will be accessed soon.
+ * Call Path: wasmtime_ssp_fd_advise() <- WASI fd_advise syscall
+ * Coverage Goal: Exercise os_fadvise call with WILLNEED advice type
+ ******/
+TEST_F(EnhancedPosixTest, FdAdvise_ValidFileDescriptorWillneedAdvice_ReturnsSuccess) {
+    __wasi_fd_t valid_fd = 3;
+    __wasi_filesize_t offset = 512;
+    __wasi_filesize_t len = 1024;
+    __wasi_advice_t advice = __WASI_ADVICE_WILLNEED;
+
+    __wasi_errno_t result = wasmtime_ssp_fd_advise(
+        nullptr, &fd_table_, valid_fd, offset, len, advice);
+
+    // Should succeed with WILLNEED advice
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+}
+
+/******
+ * Test Case: FdAdvise_ValidFileDescriptorDontneedAdvice_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1177-1195
+ * Target Lines: 1182-1183 (fd_object_get success), 1192 (os_fadvise with DONTNEED), 1194 (cleanup), 1196 (return)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_advise() correctly handles DONTNEED advice
+ *                     type to hint that data is not needed in the near future.
+ * Call Path: wasmtime_ssp_fd_advise() <- WASI fd_advise syscall
+ * Coverage Goal: Exercise os_fadvise call with DONTNEED advice type
+ ******/
+TEST_F(EnhancedPosixTest, FdAdvise_ValidFileDescriptorDontneedAdvice_ReturnsSuccess) {
+    __wasi_fd_t valid_fd = 4;
+    __wasi_filesize_t offset = 0;
+    __wasi_filesize_t len = 8192;
+    __wasi_advice_t advice = __WASI_ADVICE_DONTNEED;
+
+    __wasi_errno_t result = wasmtime_ssp_fd_advise(
+        nullptr, &fd_table_, valid_fd, offset, len, advice);
+
+    // Should succeed with DONTNEED advice
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+}
+
+/******
+ * Test Case: FdAdvise_ValidFileDescriptorNoreuseAdvice_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1177-1195
+ * Target Lines: 1182-1183 (fd_object_get success), 1192 (os_fadvise with NOREUSE), 1194 (cleanup), 1196 (return)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_advise() correctly handles NOREUSE advice
+ *                     type to hint that data will be accessed only once.
+ * Call Path: wasmtime_ssp_fd_advise() <- WASI fd_advise syscall
+ * Coverage Goal: Exercise os_fadvise call with NOREUSE advice type
+ ******/
+TEST_F(EnhancedPosixTest, FdAdvise_ValidFileDescriptorNoreuseAdvice_ReturnsSuccess) {
+    __wasi_fd_t valid_fd = 3;
+    __wasi_filesize_t offset = 1024;
+    __wasi_filesize_t len = 512;
+    __wasi_advice_t advice = __WASI_ADVICE_NOREUSE;
+
+    __wasi_errno_t result = wasmtime_ssp_fd_advise(
+        nullptr, &fd_table_, valid_fd, offset, len, advice);
+
+    // Should succeed with NOREUSE advice
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+}
+
+/******
+ * Test Case: FdAdvise_InvalidFileDescriptor_ReturnsError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1177-1195
+ * Target Lines: 1182-1185 (fd_object_get failure, early return without cleanup)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_advise() correctly handles invalid file
+ *                     descriptors by returning appropriate error without calling os_fadvise
+ *                     or fd_object_release when fd_object_get fails.
+ * Call Path: wasmtime_ssp_fd_advise() <- WASI fd_advise syscall
+ * Coverage Goal: Exercise error handling path when fd_object_get fails
+ ******/
+TEST_F(EnhancedPosixTest, FdAdvise_InvalidFileDescriptor_ReturnsError) {
+    __wasi_fd_t invalid_fd = 999;  // Non-existent fd
+    __wasi_filesize_t offset = 0;
+    __wasi_filesize_t len = 1024;
+    __wasi_advice_t advice = __WASI_ADVICE_NORMAL;
+
+    __wasi_errno_t result = wasmtime_ssp_fd_advise(
+        nullptr, &fd_table_, invalid_fd, offset, len, advice);
+
+    // Should return error for invalid file descriptor
+    ASSERT_NE(__WASI_ESUCCESS, result);
+    ASSERT_EQ(__WASI_EBADF, result);
+}
+
+/******
+ * Test Case: FdAdvise_DirectoryFileType_ReturnsError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1177-1195
+ * Target Lines: 1187-1189 (directory type check, fd_object_release, return EBADF)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_advise() correctly rejects directory file
+ *                     descriptors since directories don't support fadvise operations, properly
+ *                     releasing the fd_object before returning error.
+ * Call Path: wasmtime_ssp_fd_advise() <- WASI fd_advise syscall
+ * Coverage Goal: Exercise directory type error handling path with proper cleanup
+ ******/
+TEST_F(EnhancedPosixTest, FdAdvise_DirectoryFileType_ReturnsError) {
+    // Create a directory fd for testing
+    int dir_fd = open("/tmp/wamr_test_dir_advise", O_RDONLY);
+    ASSERT_GE(dir_fd, 0);
+
+    // Insert directory fd into fd_table
+    __wasi_fd_t dir_wasi_fd = 5;
+    fd_table_insert_existing(&fd_table_, dir_wasi_fd, dir_fd, false);
+
+    __wasi_filesize_t offset = 0;
+    __wasi_filesize_t len = 1024;
+    __wasi_advice_t advice = __WASI_ADVICE_NORMAL;
+
+    __wasi_errno_t result = wasmtime_ssp_fd_advise(
+        nullptr, &fd_table_, dir_wasi_fd, offset, len, advice);
+
+    // Should return EBADF for directory file descriptor
+    ASSERT_NE(__WASI_ESUCCESS, result);
+    ASSERT_EQ(__WASI_EBADF, result);
+
+    // Cleanup
+    close(dir_fd);
+}
+
+/******
+ * Test Case: FdAdvise_ZeroLengthRange_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1177-1195
+ * Target Lines: 1182-1183 (fd_object_get success), 1192 (os_fadvise with zero length), 1194 (cleanup), 1196 (return)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_advise() correctly handles edge case of
+ *                     zero-length range by passing it through to os_fadvise without error.
+ * Call Path: wasmtime_ssp_fd_advise() <- WASI fd_advise syscall
+ * Coverage Goal: Exercise os_fadvise call with edge case parameters
+ ******/
+TEST_F(EnhancedPosixTest, FdAdvise_ZeroLengthRange_ReturnsSuccess) {
+    __wasi_fd_t valid_fd = 3;
+    __wasi_filesize_t offset = 0;
+    __wasi_filesize_t len = 0;  // Zero length
+    __wasi_advice_t advice = __WASI_ADVICE_NORMAL;
+
+    __wasi_errno_t result = wasmtime_ssp_fd_advise(
+        nullptr, &fd_table_, valid_fd, offset, len, advice);
+
+    // Should handle zero length gracefully
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+}
+
+/******
+ * Test Case: FdAdvise_LargeOffsetAndLength_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1177-1195
+ * Target Lines: 1182-1183 (fd_object_get success), 1192 (os_fadvise with large values), 1194 (cleanup), 1196 (return)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_advise() correctly handles large offset
+ *                     and length values by passing them to os_fadvise for proper validation.
+ * Call Path: wasmtime_ssp_fd_advise() <- WASI fd_advise syscall
+ * Coverage Goal: Exercise os_fadvise call with large parameter values
+ ******/
+TEST_F(EnhancedPosixTest, FdAdvise_LargeOffsetAndLength_ReturnsSuccess) {
+    __wasi_fd_t valid_fd = 4;
+    __wasi_filesize_t offset = 1048576;  // 1MB offset
+    __wasi_filesize_t len = 2097152;     // 2MB length
+    __wasi_advice_t advice = __WASI_ADVICE_SEQUENTIAL;
+
+    __wasi_errno_t result = wasmtime_ssp_fd_advise(
+        nullptr, &fd_table_, valid_fd, offset, len, advice);
+
+    // Should handle large values appropriately
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+}
