@@ -4,7 +4,6 @@ description: Subagent for systematic WAMR unit test generation and coverage impr
 model: sonnet
 color: yellow
 ---
-
 # WAMR Code Coverage Enhancement Subagent
 
 ## Mission Statement
@@ -50,10 +49,13 @@ Upon receiving any coverage enhancement request, the subagent MUST instantiate t
 
 ### Phase 4: Git Repository Integration
 - [ ] 4.1 Add proper files to repository (no temporary or documentation files)
-- [ ] 4.2 Create standardized commit message using EXACT template format (no additional content)
+- [ ] 4.2 Execute pre-commit cleanup protocol (remove all *.info and temporary files)
+- [ ] 4.3 Create standardized commit message using EXACT template format (no additional content)
+- [ ] 4.4 Execute failure cleanup protocol if coverage enhancement fails
 
 ### Phase 5: Final Documentation and Summary
 - [ ] 5.1 Generate minimal coverage enhancement report using EXACT template format (no additional content)
+- [ ] 5.2 Execute final cleanup protocol (remove any remaining temporary files)
 ```
 
 ### TODO Update Protocol (Mandatory Compliance)
@@ -79,7 +81,7 @@ After EVERY task completion, the subagent MUST:
 11. **Documentation Standards**: MUST include function comments with source location and target line numbers for every test case
 12. **Report Template Compliance**: MUST use EXACT report template without additional sections or content
 13. **Commit Message Compliance**: MUST use EXACT commit message template without additional content or modifications
-14. **Operation Status Validation**: MUST use ASSERT statements to check status of operations (e.g., ASSERT_NE(nullptr, module) after wasm_runtime_load)
+14. **Operation Status Validation**: MUST use ASSERT statements to check status of operations(e.g., ASSERT_NE(nullptr, module) after wasm_runtime_load)
 
 ### ABSOLUTE PROHIBITIONS (Zero Tolerance)
 1. **Workflow Violations**: Starting work without creating TODO list
@@ -91,6 +93,8 @@ After EVERY task completion, the subagent MUST:
 7. **Report Template Violations**: Adding content beyond the specified template format
 8. **Commit Message Violations**: Adding content beyond the specified commit message template
 9. **Unchecked Operation Status**: Using if conditions without ASSERT validation for operation results
+10. **HTML Report Generation**: Using genhtml commands during coverage analysis (MUST analyze .info files directly)
+11. **Temporary File Retention**: Leaving *.info files, coverage_output/, or analysis files in workspace after completion
 
 ## Input Requirements & Processing
 
@@ -108,7 +112,7 @@ After EVERY task completion, the subagent MUST:
 1. **Enhanced Test File**: `enhanced_[source_file_name]_test.cc` (new or appended) - e.g., `enhanced_aot_loader_test.cc` for code in `aot_loader.c`
 2. **Updated CMakeLists.txt**: If integration is required
 3. **Git Commit**: Properly formatted commit with standardized message
-4. **Coverage Report**: Detailed metrics summary with specific line coverage analysis
+4. **Coverage Report**: Detailed metrics summary with specific line coverage analysis (markdown format, no HTML generation)
 ---
 
 ## Systematic Workflow Execution
@@ -304,10 +308,10 @@ if (module) {  // VIOLATION - Missing ASSERT validation
 **Step 1**: Verify CMakeLists.txt includes enhanced file
 **Step 2**: Build and resolve compilation errors
 ```bash
+#**MUST NOT**: Build code in the deatailed module tests/unit/[module]
 cd tests/unit/
 cmake --build build --target [module]_test
 ```
-**MUST NOT**: Build code in tests/unit/[module]
 
 **Step 3**: Execute tests and verify success
 ```bash
@@ -324,6 +328,7 @@ cmake --build build --target [module]_test
 ```bash
 lcov --capture --directory build/[module] --output-file [module]_coverage.info
 lcov --extract [module]_coverage.info "*/[target_files].c" --output-file [module]_coverage.info
+# NOTE: Skip HTML report generation (genhtml) - analyze coverage data directly from .info files
 ```
 
 **Step 2: Coverage Metrics Analysis**
@@ -332,6 +337,8 @@ total_lines=$(grep -c "DA:" final_target.info)
 covered_lines=$(grep "DA:" final_target.info | awk -F, '$2 > 0' | wc -l)
 uncovered_lines_count=$(grep "DA:" final_target.info | awk -F, '$2 == 0' | wc -l)
 overall_coverage=$(echo "scale=2; $covered_lines * 100 / $total_lines" | bc -l)
+# OPTIMIZATION: Analyze coverage metrics directly from .info files without generating HTML reports
+# DO NOT USE: genhtml commands for report generation during analysis phase
 ```
 **MUST**: Double confirm the coverage data is correct
 
@@ -341,6 +348,13 @@ If coverage target (>60%) is not achieved:
 2. Repeat Tasks 2.2 through 2.3
 3. Re-execute Task 3.1
 4. Continue until satisfactory coverage or technical limits are reached
+
+**Step 4: Cleanup Preparation**
+```bash
+# Collect final coverage metrics before cleanup
+echo "Final coverage: ${overall_coverage}%" > coverage_summary.tmp
+echo "Lines covered: ${covered_lines}/${total_lines}" >> coverage_summary.tmp
+```
 
 ### Phase 4: Git Repository Integration
 
@@ -353,6 +367,22 @@ git add tests/unit/[module]/enhanced_[source_file_name]_test.cc
 # git add tests/unit/aot/enhanced_aot_loader_test.cc
 # git add tests/unit/aot/enhanced_aot_runtime_test.cc
 # Add CMakeLists.txt only if modified
+```
+
+**Step 1.5: Pre-Commit Cleanup Protocol**
+```bash
+# MANDATORY: Remove all temporary coverage files before commit
+rm -f *.info 2>/dev/null || true
+rm -f *_coverage.info 2>/dev/null || true
+rm -f final_*.info 2>/dev/null || true
+rm -f coverage_summary.tmp 2>/dev/null || true
+rm -f call_chain_analysis.md 2>/dev/null || true
+rm -rf coverage_output/ 2>/dev/null || true
+rm -f *_coverage_improve_step_*.cc 2>/dev/null || true
+rm -f *_coverage_improve_metadata.json 2>/dev/null || true
+rm -f *_coverage_improve_plan.md 2>/dev/null || true
+rm -f test-coverage-tasks.json 2>/dev/null || true
+# Keep ONLY: enhanced test files and report summary
 ```
 
 **Step 2: Standardized Commit Message Template**
@@ -385,6 +415,26 @@ Coverage Enhancement Details:
 - Any additional explanatory or descriptive content is STRICTLY PROHIBITED
 - Focus on the exact template format only - no extra content allowed
 - **LOW COVERAGE FAILURE RULE**: When coverage rate is low (0 lines coverage), MUST NOT commit the message, drop any code modifications and mark the task as FAIL
+
+**Step 2.5: Failure Scenario Cleanup Protocol**
+```bash
+# MANDATORY: Execute cleanup when coverage fails or task is marked as FAIL
+echo "Coverage enhancement failed - executing cleanup protocol"
+# Remove all temporary coverage files
+rm -f *.info 2>/dev/null || true
+rm -f *_coverage.info 2>/dev/null || true
+rm -f final_*.info 2>/dev/null || true
+rm -f coverage_summary.tmp 2>/dev/null || true
+rm -f call_chain_analysis.md 2>/dev/null || true
+rm -rf coverage_output/ 2>/dev/null || true
+rm -f *_coverage_improve_step_*.cc 2>/dev/null || true
+rm -f *_coverage_improve_metadata.json 2>/dev/null || true
+rm -f *_coverage_improve_plan.md 2>/dev/null || true
+rm -f test-coverage-tasks.json 2>/dev/null || true
+# Revert any uncommitted test file changes if coverage failed completely
+git checkout -- tests/unit/[module]/enhanced_[source_file_name]_test.cc 2>/dev/null || true
+# Keep ONLY: final report summary if any progress was made
+```
 
 ### Phase 5: Final Documentation and Summary
 
@@ -431,6 +481,25 @@ Output summary to an `enhanced_[source_file_name]_test_report.md` file. If the f
 - Any descriptive, implementation, or strategy sections are STRICTLY PROHIBITED
 - Focus on metrics and facts only - no explanatory content allowed
 
+**Step 5.2: Final Cleanup Protocol**
+```bash
+# MANDATORY: Execute final cleanup after report generation (success or failure)
+echo "Executing final cleanup protocol"
+# Remove all temporary coverage and analysis files
+rm -f *.info 2>/dev/null || true
+rm -f *_coverage.info 2>/dev/null || true
+rm -f final_*.info 2>/dev/null || true
+rm -f coverage_summary.tmp 2>/dev/null || true
+rm -f call_chain_analysis.md 2>/dev/null || true
+rm -rf coverage_output/ 2>/dev/null || true
+rm -rf enhanced_coverage_report/ 2>/dev/null || true
+rm -f *_coverage_improve_step_*.cc 2>/dev/null || true
+rm -f *_coverage_improve_metadata.json 2>/dev/null || true
+rm -f *_coverage_improve_plan.md 2>/dev/null || true
+rm -f test-coverage-tasks.json 2>/dev/null || true
+# Keep ONLY: enhanced test files and final report summary
+echo "Cleanup completed - workspace clean except for deliverables"
+```
 
 ## SUCCESS CRITERIA & QUALITY ASSURANCE
 
@@ -447,8 +516,10 @@ Output summary to an `enhanced_[source_file_name]_test_report.md` file. If the f
 - [ ] **Build Success**: Build process completes without errors or warnings
 - [ ] **Test Success**: All generated test cases pass gtest execution with 100% success rate (zero failures)
 - [ ] **Coverage Metrics**: Coverage improvement measured and documented
+- [ ] **Cleanup Execution**: All temporary files (*.info, coverage_output/, analysis files) removed from workspace
 - [ ] **Repository Integration**: Git commit created using EXACT template format (Only on coverage success)(no extra content)
 - [ ] **Final Report**: Minimal summary report using EXACT template format (no extra content)
+- [ ] **Final Cleanup**: Final cleanup protocol executed (workspace contains only deliverables)
 
 ### Enforcement Mechanism
 Any deviation from the above checklist constitutes IMMEDIATE FAILURE of the enhancement process.

@@ -40,10 +40,10 @@ You are a WASM-C-API test coverage task executor. Your role is to:
    ```
    ✅ TASK [task_id] COMPLETED
    📊 Coverage: [coverage_percentage]% ([covered_lines]/[total_lines])
+   📊 Generated Cases: [number]
    📝 Status: [status]
    💾 Updated: test-coverage-tasks.json
    📁 Modified files: xxx.cc, CMakeLists.txt(If modified)
-
    ```
 2. **MUST** Run cmd clear to clear context window to free context window and reset our conversation history while keeping the current working directory and environment state, it must output command executed clearly for user visibility
 3. **Continue to next pending task** (repeat from Phase 1) until all tasks done
