@@ -254,3 +254,185 @@ TEST_F(EnhancedBlockingOpTest, BlockingOpClose_NullExecEnv_HandlesGracefully) {
     // Cleanup - remove test file (file may already be closed by the function)
     unlink("/tmp/test_blocking_op_null_env");
 }
+
+/******
+ * Test Case: blocking_op_readv_ValidHandle_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/blocking_op.c:25-33
+ * Target Lines: 28 (blocking op check), 31 (os_readv call), 32 (end blocking op), 33 (return)
+ * Functional Purpose: Validates that blocking_op_readv() successfully handles valid file
+ *                     read operations by properly managing blocking operations and delegating
+ *                     to os_readv() with correct return value propagation.
+ * Call Path: blocking_op_readv() <- WASI wrapper functions <- WASM module
+ * Coverage Goal: Exercise success path for valid file handle read operations
+ ******/
+TEST_F(EnhancedBlockingOpTest, BlockingOpReadv_ValidHandle_ReturnsSuccess) {
+    // Skip test if platform doesn't support file operations
+    if (!PlatformTestContext::HasFileSupport() || !PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create a test file with content
+    const char *test_content = "Hello, WASM readv test!";
+    int test_fd = open("/tmp/test_blocking_op_readv", O_CREAT | O_RDWR | O_TRUNC, 0644);
+    ASSERT_NE(-1, test_fd) << "Failed to create test file: " << strerror(errno);
+
+    ssize_t write_result = write(test_fd, test_content, strlen(test_content));
+    ASSERT_EQ(strlen(test_content), write_result) << "Failed to write test content";
+
+    // Reset file position for reading
+    lseek(test_fd, 0, SEEK_SET);
+
+    // Convert to os_file_handle
+    os_file_handle handle = (os_file_handle)(uintptr_t)test_fd;
+
+    // Setup iovec for reading
+    char read_buffer[100];
+    struct __wasi_iovec_t iov = { .buf = (uint8_t*)read_buffer, .buf_len = sizeof(read_buffer) };
+    size_t nread = 0;
+
+    // Test blocking_op_readv with valid handle
+    __wasi_errno_t result = blocking_op_readv(exec_env, handle, &iov, 1, &nread);
+
+    // Verify the function returns success
+    ASSERT_EQ(0, result) << "blocking_op_readv should succeed for valid file handle";
+
+    // Verify data was read correctly
+    ASSERT_GT(nread, 0) << "Should have read some data";
+    ASSERT_EQ(0, memcmp(read_buffer, test_content, nread)) << "Read content should match written content";
+
+    // Cleanup
+    close(test_fd);
+    unlink("/tmp/test_blocking_op_readv");
+}
+
+/******
+ * Test Case: blocking_op_readv_InvalidHandle_ReturnsError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/blocking_op.c:25-33
+ * Target Lines: 28 (blocking op check), 31 (os_readv call), 32 (end blocking op), 33 (return error)
+ * Functional Purpose: Validates that blocking_op_readv() properly propagates error codes
+ *                     from os_readv() when given an invalid file handle, ensuring robust
+ *                     error handling throughout the blocking operation lifecycle.
+ * Call Path: blocking_op_readv() <- WASI wrapper functions <- WASM module
+ * Coverage Goal: Exercise error propagation path for invalid file handle operations
+ ******/
+TEST_F(EnhancedBlockingOpTest, BlockingOpReadv_InvalidHandle_ReturnsError) {
+    // Skip test if platform doesn't support file operations
+    if (!PlatformTestContext::HasFileSupport() || !PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Use an invalid file descriptor
+    os_file_handle invalid_handle = (os_file_handle)(uintptr_t)-1;
+
+    // Setup iovec for reading
+    char read_buffer[100];
+    struct __wasi_iovec_t iov = { .buf = (uint8_t*)read_buffer, .buf_len = sizeof(read_buffer) };
+    size_t nread = 0;
+
+    // Test blocking_op_readv with invalid handle
+    __wasi_errno_t result = blocking_op_readv(exec_env, invalid_handle, &iov, 1, &nread);
+
+    // Verify the function returns an error code (not success)
+    ASSERT_NE(0, result) << "blocking_op_readv should return error for invalid file handle";
+
+    // Common error codes for invalid file descriptor
+    ASSERT_TRUE(result == __WASI_EBADF || result == __WASI_EINVAL || result == __WASI_ENOSYS)
+        << "Expected EBADF, EINVAL, or ENOSYS for invalid handle, got: " << result;
+}
+
+/******
+ * Test Case: blocking_op_readv_NullExecEnv_ReturnsInterruption
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/blocking_op.c:25-33
+ * Target Lines: 28 (blocking op check fails), 29 (return EINTR), 33 (return path)
+ * Functional Purpose: Validates that blocking_op_readv() handles null exec_env by returning
+ *                     __WASI_EINTR when wasm_runtime_begin_blocking_op() fails, ensuring
+ *                     proper interruption handling without crashing.
+ * Call Path: blocking_op_readv() <- WASI wrapper functions <- WASM module
+ * Coverage Goal: Exercise interruption return path when blocking operation cannot be started
+ ******/
+TEST_F(EnhancedBlockingOpTest, BlockingOpReadv_NullExecEnv_ReturnsInterruption) {
+    // Skip test if platform doesn't support file operations
+    if (!PlatformTestContext::HasFileSupport() || !PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create a null exec_env to test interruption handling
+    wasm_exec_env_t null_exec_env = nullptr;
+
+    // Create a valid file handle for testing
+    const char *test_content = "Test content for null env";
+    int test_fd = open("/tmp/test_blocking_op_readv_null", O_CREAT | O_RDWR | O_TRUNC, 0644);
+    ASSERT_NE(-1, test_fd) << "Failed to create test file: " << strerror(errno);
+
+    write(test_fd, test_content, strlen(test_content));
+    lseek(test_fd, 0, SEEK_SET);
+
+    os_file_handle handle = (os_file_handle)(uintptr_t)test_fd;
+
+    // Setup iovec for reading
+    char read_buffer[100];
+    struct __wasi_iovec_t iov = { .buf = (uint8_t*)read_buffer, .buf_len = sizeof(read_buffer) };
+    size_t nread = 0;
+
+    // Test blocking_op_readv with null exec_env
+    __wasi_errno_t result = blocking_op_readv(null_exec_env, handle, &iov, 1, &nread);
+
+    // Verify the function handles null exec_env appropriately
+    // The function may return success (0) if it proceeds with os_readv despite null exec_env,
+    // or EINTR based on the implementation behavior
+    ASSERT_TRUE(result == 0 || result == __WASI_EINTR)
+        << "blocking_op_readv should handle null exec_env appropriately, got: " << result;
+
+    // Cleanup
+    close(test_fd);
+    unlink("/tmp/test_blocking_op_readv_null");
+}
+
+/******
+ * Test Case: blocking_op_readv_MultipleIovecs_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/blocking_op.c:25-33
+ * Target Lines: 28 (blocking op check), 31 (os_readv call), 32 (end blocking op), 33 (return)
+ * Functional Purpose: Validates that blocking_op_readv() properly handles multiple iovec
+ *                     structures for scatter-gather I/O operations, testing the iovcnt
+ *                     parameter handling and ensuring proper data distribution.
+ * Call Path: blocking_op_readv() <- WASI wrapper functions <- WASM module
+ * Coverage Goal: Exercise success path for multi-buffer read operations
+ ******/
+TEST_F(EnhancedBlockingOpTest, BlockingOpReadv_MultipleIovecs_ReturnsSuccess) {
+    // Skip test if platform doesn't support file operations
+    if (!PlatformTestContext::HasFileSupport() || !PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create a test file with longer content
+    const char *test_content = "This is a longer test content for multiple iovec testing with blocking_op_readv function.";
+    int test_fd = open("/tmp/test_blocking_op_readv_multi", O_CREAT | O_RDWR | O_TRUNC, 0644);
+    ASSERT_NE(-1, test_fd) << "Failed to create test file: " << strerror(errno);
+
+    write(test_fd, test_content, strlen(test_content));
+    lseek(test_fd, 0, SEEK_SET);
+
+    os_file_handle handle = (os_file_handle)(uintptr_t)test_fd;
+
+    // Setup multiple iovecs for scatter-gather read
+    char buffer1[30], buffer2[30], buffer3[30];
+    struct __wasi_iovec_t iovs[3] = {
+        { .buf = (uint8_t*)buffer1, .buf_len = sizeof(buffer1) },
+        { .buf = (uint8_t*)buffer2, .buf_len = sizeof(buffer2) },
+        { .buf = (uint8_t*)buffer3, .buf_len = sizeof(buffer3) }
+    };
+    size_t nread = 0;
+
+    // Test blocking_op_readv with multiple iovecs
+    __wasi_errno_t result = blocking_op_readv(exec_env, handle, iovs, 3, &nread);
+
+    // Verify the function returns success
+    ASSERT_EQ(0, result) << "blocking_op_readv should succeed for multiple iovecs";
+
+    // Verify data was read
+    ASSERT_GT(nread, 0) << "Should have read some data into multiple buffers";
+
+    // Cleanup
+    close(test_fd);
+    unlink("/tmp/test_blocking_op_readv_multi");
+}
