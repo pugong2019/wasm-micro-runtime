@@ -532,3 +532,229 @@ TEST_F(EnhancedAotRuntimeTest, aot_resolve_symbols_MixedLinkedUnlinked_PartialFa
     ASSERT_EQ(import_funcs[1].func_ptr_linked, nullptr);
     ASSERT_EQ(import_funcs[2].func_ptr_linked, nullptr);
 }
+
+/******
+ * Test Case: aot_const_str_set_insert_FirstInsertion_CreatesHashMapAndInsertsString
+ * Source: core/iwasm/aot/aot_runtime.c:5431-5476
+ * Target Lines: 5437-5448 (hash map creation), 5451-5453 (memory allocation),
+ *               5460-5462 (standard copy), 5469-5476 (insertion and success)
+ * Functional Purpose: Validates that aot_const_str_set_insert() correctly creates
+ *                     a new hash map when module->const_str_set is NULL and
+ *                     successfully inserts the first string.
+ * Call Path: Direct call to aot_const_str_set_insert()
+ * Coverage Goal: Exercise hash map creation and first string insertion path
+ ******/
+TEST_F(EnhancedAotRuntimeTest, aot_const_str_set_insert_FirstInsertion_CreatesHashMapAndInsertsString) {
+    // Create a minimal AOT module for testing
+    AOTModule test_module;
+    memset(&test_module, 0, sizeof(AOTModule));
+
+    // Ensure const_str_set is initially NULL to trigger creation
+    test_module.const_str_set = nullptr;
+
+    // Test string data
+    const char* test_string = "test_function_name";
+    uint32 str_len = strlen(test_string) + 1;
+    char error_buf[256];
+
+    // Call the function under test
+    char* result = aot_const_str_set_insert((const uint8*)test_string, str_len, &test_module,
+#if (WASM_ENABLE_WORD_ALIGN_READ != 0)
+                                           false,  // not word-aligned
+#endif
+                                           error_buf, sizeof(error_buf));
+
+    // Verify successful insertion
+    ASSERT_NE(nullptr, result);
+    ASSERT_STREQ(test_string, result);
+
+    // Verify hash map was created
+    ASSERT_NE(nullptr, test_module.const_str_set);
+
+    // Cleanup
+    if (test_module.const_str_set) {
+        bh_hash_map_destroy(test_module.const_str_set);
+    }
+}
+
+/******
+ * Test Case: aot_const_str_set_insert_DuplicateString_ReturnsExistingString
+ * Source: core/iwasm/aot/aot_runtime.c:5431-5476
+ * Target Lines: 5464-5467 (hash map lookup and early return)
+ * Functional Purpose: Validates that aot_const_str_set_insert() correctly finds
+ *                     existing strings in the hash map and returns them without
+ *                     creating duplicates.
+ * Call Path: Direct call to aot_const_str_set_insert() with existing string
+ * Coverage Goal: Exercise string deduplication logic
+ ******/
+TEST_F(EnhancedAotRuntimeTest, aot_const_str_set_insert_DuplicateString_ReturnsExistingString) {
+    // Create a minimal AOT module for testing
+    AOTModule test_module;
+    memset(&test_module, 0, sizeof(AOTModule));
+    test_module.const_str_set = nullptr;
+
+    // Test string data
+    const char* test_string = "duplicate_function_name";
+    uint32 str_len = strlen(test_string) + 1;
+    char error_buf[256];
+
+    // First insertion - should create new entry
+    char* first_result = aot_const_str_set_insert((const uint8*)test_string, str_len, &test_module,
+#if (WASM_ENABLE_WORD_ALIGN_READ != 0)
+                                                 false,
+#endif
+                                                 error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, first_result);
+
+    // Second insertion of same string - should return existing entry
+    char* second_result = aot_const_str_set_insert((const uint8*)test_string, str_len, &test_module,
+#if (WASM_ENABLE_WORD_ALIGN_READ != 0)
+                                                  false,
+#endif
+                                                  error_buf, sizeof(error_buf));
+
+    // Verify same pointer is returned (deduplication)
+    ASSERT_EQ(first_result, second_result);
+    ASSERT_STREQ(test_string, second_result);
+
+    // Cleanup
+    if (test_module.const_str_set) {
+        bh_hash_map_destroy(test_module.const_str_set);
+    }
+}
+
+/******
+ * Test Case: aot_const_str_set_insert_MultipleStrings_AllStoredCorrectly
+ * Source: core/iwasm/aot/aot_runtime.c:5431-5476
+ * Target Lines: 5451-5453 (memory allocation), 5460-5462 (standard copy),
+ *               5469-5476 (insertion and success return)
+ * Functional Purpose: Validates that aot_const_str_set_insert() correctly handles
+ *                     multiple different strings and stores them all in the hash map.
+ * Call Path: Multiple direct calls to aot_const_str_set_insert()
+ * Coverage Goal: Exercise standard memory copy and multiple insertions
+ ******/
+TEST_F(EnhancedAotRuntimeTest, aot_const_str_set_insert_MultipleStrings_AllStoredCorrectly) {
+    // Create a minimal AOT module for testing
+    AOTModule test_module;
+    memset(&test_module, 0, sizeof(AOTModule));
+    test_module.const_str_set = nullptr;
+
+    char error_buf[256];
+
+    // Test multiple different strings
+    const char* strings[] = {
+        "function_one",
+        "function_two",
+        "function_three",
+        "very_long_function_name_with_many_characters"
+    };
+    char* results[4];
+
+    // Insert all strings
+    for (int i = 0; i < 4; i++) {
+        uint32 str_len = strlen(strings[i]) + 1;
+        results[i] = aot_const_str_set_insert((const uint8*)strings[i], str_len, &test_module,
+#if (WASM_ENABLE_WORD_ALIGN_READ != 0)
+                                             false,
+#endif
+                                             error_buf, sizeof(error_buf));
+        ASSERT_NE(nullptr, results[i]);
+        ASSERT_STREQ(strings[i], results[i]);
+    }
+
+    // Verify all strings are different pointers
+    for (int i = 0; i < 4; i++) {
+        for (int j = i + 1; j < 4; j++) {
+            ASSERT_NE(results[i], results[j]);
+        }
+    }
+
+    // Verify hash map was created
+    ASSERT_NE(nullptr, test_module.const_str_set);
+
+    // Cleanup
+    if (test_module.const_str_set) {
+        bh_hash_map_destroy(test_module.const_str_set);
+    }
+}
+
+#if (WASM_ENABLE_WORD_ALIGN_READ != 0)
+/******
+ * Test Case: aot_const_str_set_insert_WordAlignedCopy_UsesWordAlignedMemcpy
+ * Source: core/iwasm/aot/aot_runtime.c:5431-5476
+ * Target Lines: 5454-5457 (word-aligned memory copy path)
+ * Functional Purpose: Validates that aot_const_str_set_insert() correctly uses
+ *                     word-aligned memory copy when is_vram_word_align is true.
+ * Call Path: Direct call to aot_const_str_set_insert() with word-align flag
+ * Coverage Goal: Exercise word-aligned memory copy conditional compilation path
+ ******/
+TEST_F(EnhancedAotRuntimeTest, aot_const_str_set_insert_WordAlignedCopy_UsesWordAlignedMemcpy) {
+    // Create a minimal AOT module for testing
+    AOTModule test_module;
+    memset(&test_module, 0, sizeof(AOTModule));
+    test_module.const_str_set = nullptr;
+
+    // Test string data aligned to word boundary
+    const char* test_string = "word_aligned_string";
+    uint32 str_len = strlen(test_string) + 1;
+    char error_buf[256];
+
+    // Call with word-aligned flag set to true
+    char* result = aot_const_str_set_insert((const uint8*)test_string, str_len, &test_module,
+                                           true,  // word-aligned copy
+                                           error_buf, sizeof(error_buf));
+
+    // Verify successful insertion
+    ASSERT_NE(nullptr, result);
+    ASSERT_STREQ(test_string, result);
+
+    // Verify hash map was created
+    ASSERT_NE(nullptr, test_module.const_str_set);
+
+    // Cleanup
+    if (test_module.const_str_set) {
+        bh_hash_map_destroy(test_module.const_str_set);
+    }
+}
+#endif
+
+/******
+ * Test Case: aot_const_str_set_insert_EmptyString_HandledCorrectly
+ * Source: core/iwasm/aot/aot_runtime.c:5431-5476
+ * Target Lines: 5451-5453 (memory allocation), 5460-5462 (standard copy),
+ *               5469-5476 (insertion and success)
+ * Functional Purpose: Validates that aot_const_str_set_insert() correctly handles
+ *                     empty strings and edge cases with minimal string data.
+ * Call Path: Direct call to aot_const_str_set_insert() with empty string
+ * Coverage Goal: Exercise edge case handling for minimal string data
+ ******/
+TEST_F(EnhancedAotRuntimeTest, aot_const_str_set_insert_EmptyString_HandledCorrectly) {
+    // Create a minimal AOT module for testing
+    AOTModule test_module;
+    memset(&test_module, 0, sizeof(AOTModule));
+    test_module.const_str_set = nullptr;
+
+    // Test with null-terminated empty string
+    const char* empty_string = "";
+    uint32 str_len = 1; // Just the null terminator
+    char error_buf[256];
+
+    // Call the function under test
+    char* result = aot_const_str_set_insert((const uint8*)empty_string, str_len, &test_module,
+#if (WASM_ENABLE_WORD_ALIGN_READ != 0)
+                                           false,
+#endif
+                                           error_buf, sizeof(error_buf));
+
+    // Verify successful insertion
+    ASSERT_NE(nullptr, result);
+    ASSERT_STREQ(empty_string, result);
+
+    // Verify hash map was created
+    ASSERT_NE(nullptr, test_module.const_str_set);
+
+    // Cleanup
+    if (test_module.const_str_set) {
+        bh_hash_map_destroy(test_module.const_str_set);
+    }
+}

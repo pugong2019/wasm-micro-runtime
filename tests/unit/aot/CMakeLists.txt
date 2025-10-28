@@ -33,9 +33,15 @@ include (${IWASM_DIR}/compilation/iwasm_compl.cmake)
 
 include_directories (${CMAKE_CURRENT_SOURCE_DIR})
 
-file (GLOB_RECURSE source_all ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
+file (GLOB source_all ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
 
-set (UNIT_SOURCE ${source_all})
+# Filter out build directory and only include our test files
+foreach(source ${source_all})
+    string(FIND ${source} "/build/" build_pos)
+    if(build_pos EQUAL -1)
+        list(APPEND UNIT_SOURCE ${source})
+    endif()
+endforeach()
 
 set (unit_test_sources
      ${UNIT_SOURCE}
@@ -50,10 +56,13 @@ set (unit_test_sources
      ${IWASM_COMPL_SOURCE}
     )
 
+# Include GoogleTest module for gtest_discover_tests
+include(GoogleTest)
+
 # Now simply link against gtest or gtest_main as needed. Eg
 add_executable (aot_test ${unit_test_sources})
 
-target_link_libraries (aot_test ${LLVM_AVAILABLE_LIBS} gtest_main )
+target_link_libraries (aot_test ${LLVM_AVAILABLE_LIBS} gtest_main gmock)
 
 gtest_discover_tests(aot_test)
 
