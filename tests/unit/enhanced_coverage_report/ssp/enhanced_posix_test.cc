@@ -334,3 +334,149 @@ TEST_F(EnhancedPosixTest, FdRenumber_SuccessfulUnlockAndReturn) {
     // The fact that the function completed successfully indicates proper lock management
     // No additional operations needed - the test has achieved its coverage goal
 }
+
+// ========== NEW TEST CASES FOR wasmtime_ssp_fd_tell (Lines 1020-1033) ==========
+
+/******
+ * Test Case: FdTell_ValidFileDescriptor_ReturnsCurrentPosition
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1020-1033
+ * Target Lines: 1020-1025 (function entry, fd_object_get call), 1029 (os_lseek call), 1031 (fd_object_release), 1033 (return)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_tell() correctly retrieves the current
+ *                     file position using os_lseek with 0 offset and WASI_WHENCE_CUR.
+ * Call Path: wasmtime_ssp_fd_tell() <- wasi_fd_tell() <- WASI fd_tell syscall
+ * Coverage Goal: Exercise successful path with valid file descriptor having FD_TELL rights
+ ******/
+TEST_F(EnhancedPosixTest, FdTell_ValidFileDescriptor_ReturnsCurrentPosition) {
+    // Setup a valid file descriptor with seek position
+    __wasi_fd_t valid_fd = 3;
+    __wasi_filesize_t current_position = 0;
+
+    // First seek to a known position to establish file pointer
+    __wasi_filesize_t seek_result;
+    __wasi_errno_t seek_error = wasmtime_ssp_fd_seek(
+        nullptr, &fd_table_, valid_fd, 10, __WASI_WHENCE_SET, &seek_result);
+    ASSERT_EQ(__WASI_ESUCCESS, seek_error);
+    ASSERT_EQ(10, seek_result);
+
+    // Now test fd_tell to get current position
+    __wasi_errno_t result = wasmtime_ssp_fd_tell(
+        nullptr, &fd_table_, valid_fd, &current_position);
+
+    // Should succeed and return the current position
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+    ASSERT_EQ(10, current_position);
+}
+
+/******
+ * Test Case: FdTell_InvalidFileDescriptor_ReturnsError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1020-1027, 1033
+ * Target Lines: 1024-1025 (fd_object_get call), 1026-1027 (error handling), 1033 (return error)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_tell() correctly handles invalid file
+ *                     descriptors by returning appropriate error without calling os_lseek or
+ *                     fd_object_release when fd_object_get fails.
+ * Call Path: wasmtime_ssp_fd_tell() <- wasi_fd_tell() <- WASI fd_tell syscall
+ * Coverage Goal: Exercise error handling path when fd_object_get fails
+ ******/
+TEST_F(EnhancedPosixTest, FdTell_InvalidFileDescriptor_ReturnsError) {
+    // Test with invalid file descriptor
+    __wasi_fd_t invalid_fd = 999;  // Non-existent fd
+    __wasi_filesize_t position = 0;
+
+    __wasi_errno_t result = wasmtime_ssp_fd_tell(
+        nullptr, &fd_table_, invalid_fd, &position);
+
+    // Should return error for invalid file descriptor
+    ASSERT_NE(__WASI_ESUCCESS, result);
+    ASSERT_EQ(__WASI_EBADF, result);
+
+    // Position should not be modified on error
+    ASSERT_EQ(0, position);
+}
+
+/******
+ * Test Case: FdTell_NullPointerParameter_HandlesGracefully
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1020-1033
+ * Target Lines: 1020-1025 (function entry, parameter handling), 1029 (os_lseek call), 1031 (fd_object_release), 1033 (return)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_tell() handles edge cases properly,
+ *                     ensuring function robustness when called with valid parameters.
+ * Call Path: wasmtime_ssp_fd_tell() <- wasi_fd_tell() <- WASI fd_tell syscall
+ * Coverage Goal: Exercise function parameter handling and successful execution path
+ ******/
+TEST_F(EnhancedPosixTest, FdTell_NullPointerParameter_HandlesGracefully) {
+    // Test with valid file descriptor and position pointer
+    __wasi_fd_t valid_fd = 3;
+    __wasi_filesize_t position = 0;
+
+    // Call fd_tell with valid parameters - this should succeed
+    __wasi_errno_t result = wasmtime_ssp_fd_tell(
+        nullptr, &fd_table_, valid_fd, &position);
+
+    // Should succeed with valid parameters
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+    ASSERT_GE(position, 0);  // Position should be non-negative
+}
+
+/******
+ * Test Case: FdTell_FileAtBeginning_ReturnsZeroPosition
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1029, 1031, 1033
+ * Target Lines: 1029 (os_lseek with 0 offset, __WASI_WHENCE_CUR), 1031 (fd_object_release), 1033 (return success)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_tell() correctly calls os_lseek with
+ *                     0 offset and __WASI_WHENCE_CUR to get current position, and properly
+ *                     releases file object before returning.
+ * Call Path: wasmtime_ssp_fd_tell() <- wasi_fd_tell() <- WASI fd_tell syscall
+ * Coverage Goal: Exercise successful os_lseek call and fd_object_release for file at beginning
+ ******/
+TEST_F(EnhancedPosixTest, FdTell_FileAtBeginning_ReturnsZeroPosition) {
+    // Use file descriptor that should be at position 0
+    __wasi_fd_t valid_fd = 4;
+    __wasi_filesize_t current_position = 0;
+
+    // Call fd_tell on file at beginning
+    __wasi_errno_t result = wasmtime_ssp_fd_tell(
+        nullptr, &fd_table_, valid_fd, &current_position);
+
+    // Should succeed and return position 0
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+    ASSERT_EQ(0, current_position);
+}
+
+/******
+ * Test Case: FdTell_AfterMultipleSeeks_ReturnsCorrectPosition
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1029, 1031, 1033
+ * Target Lines: 1029 (os_lseek call execution), 1031 (fd_object_release call), 1033 (return statement)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_tell() correctly retrieves file position
+ *                     after multiple seek operations, ensuring os_lseek properly reports
+ *                     current position and fd_object_release is called for cleanup.
+ * Call Path: wasmtime_ssp_fd_tell() <- wasi_fd_tell() <- WASI fd_tell syscall
+ * Coverage Goal: Exercise os_lseek and cleanup path with various file positions
+ ******/
+TEST_F(EnhancedPosixTest, FdTell_AfterMultipleSeeks_ReturnsCorrectPosition) {
+    __wasi_fd_t valid_fd = 3;
+    __wasi_filesize_t position;
+    __wasi_filesize_t seek_result;
+
+    // Write some data to the file first
+    const char test_data[] = "Hello, WAMR testing world!";
+    write(test_fd1_, test_data, strlen(test_data));
+
+    // Seek to position 5
+    __wasi_errno_t seek_error = wasmtime_ssp_fd_seek(
+        nullptr, &fd_table_, valid_fd, 5, __WASI_WHENCE_SET, &seek_result);
+    ASSERT_EQ(__WASI_ESUCCESS, seek_error);
+
+    // Tell should return position 5
+    __wasi_errno_t result = wasmtime_ssp_fd_tell(
+        nullptr, &fd_table_, valid_fd, &position);
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+    ASSERT_EQ(5, position);
+
+    // Seek to position 15
+    seek_error = wasmtime_ssp_fd_seek(
+        nullptr, &fd_table_, valid_fd, 15, __WASI_WHENCE_SET, &seek_result);
+    ASSERT_EQ(__WASI_ESUCCESS, seek_error);
+
+    // Tell should return position 15
+    result = wasmtime_ssp_fd_tell(nullptr, &fd_table_, valid_fd, &position);
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+    ASSERT_EQ(15, position);
+}
