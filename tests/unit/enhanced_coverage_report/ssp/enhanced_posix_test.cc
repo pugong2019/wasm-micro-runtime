@@ -1423,3 +1423,174 @@ TEST_F(EnhancedPosixTest, EnvironGet_ZeroSizeBuffer_ExercisesMemcpyWithZeroSize)
     free(environs);
     free(environ_buf);
 }
+
+// ========== NEW TEST CASES FOR wasmtime_ssp_args_get (Lines 2956-2966) ==========
+
+/******
+ * Test Case: wasmtime_ssp_args_get_BasicFunctionality_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2956-2966
+ * Target Lines: 2956-2966 (complete function coverage)
+ * Functional Purpose: Validates that wasmtime_ssp_args_get() correctly populates
+ *                     argv array and copies argv_buf from argv_environ structure,
+ *                     exercising the main loop, NULL termination, and memcpy operations.
+ * Call Path: wasmtime_ssp_args_get() <- libc_wasi_wrapper.c (WASI args_get implementation)
+ * Coverage Goal: Exercise all 11 lines of the function with valid arguments
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_args_get_BasicFunctionality_ReturnsSuccess) {
+    // Setup argv_environ structure with valid test data
+    struct argv_environ_values argv_environ;
+    memset(&argv_environ, 0, sizeof(argv_environ));
+
+    // Create test argument buffer with two arguments
+    const char test_args[] = "arg1\0arg2\0";
+    char argv_buf_source[32];
+    memcpy(argv_buf_source, test_args, sizeof(test_args));
+
+    // Setup argv_list pointing into the buffer
+    char *argv_list[2];
+    argv_list[0] = argv_buf_source;
+    argv_list[1] = argv_buf_source + 5; // After "arg1\0"
+
+    // Initialize argv_environ structure
+    argv_environ.argv_buf = argv_buf_source;
+    argv_environ.argv_buf_size = sizeof(test_args);
+    argv_environ.argv_list = argv_list;
+    argv_environ.argc = 2;
+
+    // Allocate output arrays
+    char **argv = (char**)malloc(sizeof(char*) * 3); // argc + 1 for NULL termination
+    ASSERT_NE(nullptr, argv);
+    char *argv_buf = (char*)malloc(argv_environ.argv_buf_size);
+    ASSERT_NE(nullptr, argv_buf);
+
+    // Call wasmtime_ssp_args_get - targets lines 2956-2966
+    __wasi_errno_t result = wasmtime_ssp_args_get(&argv_environ, argv, argv_buf);
+
+    // Verify successful return (line 2966)
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+
+    // Verify argv array population (lines 2959-2962)
+    // Line 2959: for loop initialization with argc access
+    // Lines 2960-2961: pointer arithmetic calculation within loop
+    ASSERT_NE(nullptr, argv[0]);
+    ASSERT_NE(nullptr, argv[1]);
+
+    // Verify NULL termination (line 2963)
+    ASSERT_EQ(nullptr, argv[2]);
+
+    // Verify argv_buf copy (lines 2964-2965: bh_memcpy_s call)
+    ASSERT_EQ(0, memcmp(argv_buf, test_args, sizeof(test_args)));
+
+    // Verify correct pointer calculations
+    ASSERT_STREQ("arg1", argv[0]);
+    ASSERT_STREQ("arg2", argv[1]);
+
+    // Cleanup
+    free(argv);
+    free(argv_buf);
+}
+
+/******
+ * Test Case: wasmtime_ssp_args_get_EmptyArguments_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2956-2966
+ * Target Lines: 2963-2966 (NULL termination and memcpy with zero argc)
+ * Functional Purpose: Validates edge case where argc is 0, ensuring the for loop
+ *                     is skipped and only NULL termination and buffer copy occur.
+ * Call Path: wasmtime_ssp_args_get() <- libc_wasi_wrapper.c (WASI args_get implementation)
+ * Coverage Goal: Exercise lines 2963-2966 with zero argc (for loop skipped)
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_args_get_EmptyArguments_ReturnsSuccess) {
+    // Setup argv_environ structure with zero arguments
+    struct argv_environ_values argv_environ;
+    memset(&argv_environ, 0, sizeof(argv_environ));
+
+    // Empty argv_buf
+    char argv_buf_source[4] = {0};
+
+    // Initialize argv_environ structure with zero argc
+    argv_environ.argv_buf = argv_buf_source;
+    argv_environ.argv_buf_size = 1;
+    argv_environ.argv_list = nullptr; // Not accessed when argc is 0
+    argv_environ.argc = 0;  // This will skip the for loop (line 2959)
+
+    // Allocate output arrays
+    char **argv = (char**)malloc(sizeof(char*) * 1); // Only space for NULL termination
+    ASSERT_NE(nullptr, argv);
+    char *argv_buf = (char*)malloc(argv_environ.argv_buf_size);
+    ASSERT_NE(nullptr, argv_buf);
+
+    // Call wasmtime_ssp_args_get - targets lines 2956-2966
+    __wasi_errno_t result = wasmtime_ssp_args_get(&argv_environ, argv, argv_buf);
+
+    // Verify successful return (line 2966)
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+
+    // Verify NULL termination when argc is 0 (line 2963)
+    // For loop (lines 2959-2962) should be skipped entirely
+    ASSERT_EQ(nullptr, argv[0]);
+
+    // Verify argv_buf copy still occurs (lines 2964-2965: bh_memcpy_s call)
+    // Even with empty buffer, memcpy should complete successfully
+
+    // Cleanup
+    free(argv);
+    free(argv_buf);
+}
+
+/******
+ * Test Case: wasmtime_ssp_args_get_SingleArgument_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2956-2966
+ * Target Lines: 2959-2966 (single iteration loop and all operations)
+ * Functional Purpose: Validates function behavior with exactly one argument,
+ *                     ensuring the for loop executes once and all operations complete correctly.
+ * Call Path: wasmtime_ssp_args_get() <- libc_wasi_wrapper.c (WASI args_get implementation)
+ * Coverage Goal: Exercise all lines with argc=1 (single loop iteration)
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_args_get_SingleArgument_ReturnsSuccess) {
+    // Setup argv_environ structure with single argument
+    struct argv_environ_values argv_environ;
+    memset(&argv_environ, 0, sizeof(argv_environ));
+
+    // Create test argument buffer with one argument
+    const char test_args[] = "single_arg\0";
+    char argv_buf_source[16];
+    memcpy(argv_buf_source, test_args, sizeof(test_args));
+
+    // Setup argv_list pointing to the single argument
+    char *argv_list[1];
+    argv_list[0] = argv_buf_source;
+
+    // Initialize argv_environ structure
+    argv_environ.argv_buf = argv_buf_source;
+    argv_environ.argv_buf_size = sizeof(test_args);
+    argv_environ.argv_list = argv_list;
+    argv_environ.argc = 1;  // Single iteration of for loop (line 2959)
+
+    // Allocate output arrays
+    char **argv = (char**)malloc(sizeof(char*) * 2); // argc + 1 for NULL termination
+    ASSERT_NE(nullptr, argv);
+    char *argv_buf = (char*)malloc(argv_environ.argv_buf_size);
+    ASSERT_NE(nullptr, argv_buf);
+
+    // Call wasmtime_ssp_args_get - targets lines 2956-2966
+    __wasi_errno_t result = wasmtime_ssp_args_get(&argv_environ, argv, argv_buf);
+
+    // Verify successful return (line 2966)
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+
+    // Verify single argv entry populated (lines 2959-2962)
+    // Line 2959: for loop with i < 1
+    // Lines 2960-2961: pointer arithmetic for single argument
+    ASSERT_NE(nullptr, argv[0]);
+    ASSERT_STREQ("single_arg", argv[0]);
+
+    // Verify NULL termination (line 2963)
+    ASSERT_EQ(nullptr, argv[1]);
+
+    // Verify argv_buf copy (lines 2964-2965: bh_memcpy_s call)
+    ASSERT_EQ(0, memcmp(argv_buf, test_args, sizeof(test_args)));
+
+    // Cleanup
+    free(argv);
+    free(argv_buf);
+}
