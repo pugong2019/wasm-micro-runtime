@@ -1676,3 +1676,221 @@ TEST_F(EnhancedPosixTest, SockShutdown_NonSocketFd_HandlesAppropriately) {
     // Key point: all target lines 2933, 2937, 2938, 2940 should be executed
     ASSERT_TRUE(result == __WASI_ESUCCESS || result != __WASI_ESUCCESS);  // Any result is acceptable
 }
+
+// ========== NEW TEST CASES FOR wasmtime_ssp_sock_send (Lines 2864-2884) ==========
+
+/******
+ * Test Case: WasmtimeSspSockSend_InvalidSocket_ReturnsError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2864-2884
+ * Target Lines: 2872-2874 (fd_object_get error path for invalid socket)
+ * Functional Purpose: Validates that wasmtime_ssp_sock_send() correctly handles
+ *                     invalid socket file descriptor by returning appropriate error
+ *                     without accessing socket operations when fd_object_get fails.
+ * Call Path: wasmtime_ssp_sock_send() <- wasi_sock_send() <- WASI socket syscall
+ * Coverage Goal: Exercise error handling path for invalid socket descriptor (lines 2872-2874)
+ ******/
+TEST_F(EnhancedPosixTest, WasmtimeSspSockSend_InvalidSocket_ReturnsError) {
+    __wasi_fd_t invalid_sock = 999;  // Non-existent socket fd
+    const char test_data[] = "test_send_data";
+    size_t sent_len = 0;
+
+    // Execute wasmtime_ssp_sock_send with invalid socket fd
+    __wasi_errno_t result = wasmtime_ssp_sock_send(
+        nullptr, &fd_table_, invalid_sock, test_data, strlen(test_data), &sent_len);
+
+    // Should return error for invalid socket file descriptor (lines 2873-2874)
+    ASSERT_NE(__WASI_ESUCCESS, result);
+    // Lines 2872-2874: fd_object_get call should fail and return error
+    // Common error codes for invalid file descriptors
+    ASSERT_TRUE(result == __WASI_EBADF || result == __WASI_ENOTCAPABLE);
+}
+
+/******
+ * Test Case: WasmtimeSspSockSend_NonSocketFd_ReturnsError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2864-2884
+ * Target Lines: 2872-2880 (fd_object_get succeeds but os_socket_send fails on non-socket)
+ * Functional Purpose: Validates that wasmtime_ssp_sock_send() correctly handles
+ *                     regular file descriptors (non-socket) by attempting send operation
+ *                     and returning appropriate error when socket operation fails.
+ * Call Path: wasmtime_ssp_sock_send() <- wasi_sock_send() <- WASI socket syscall
+ * Coverage Goal: Exercise path with valid fd but non-socket type (lines 2877-2880)
+ ******/
+TEST_F(EnhancedPosixTest, WasmtimeSspSockSend_NonSocketFd_ReturnsError) {
+    __wasi_fd_t regular_fd = 3;  // Use test_fd1_ which is a regular file
+    const char test_data[] = "test_data_for_non_socket";
+    size_t sent_len = 0;
+
+    // Execute wasmtime_ssp_sock_send with regular file fd (not a socket)
+    __wasi_errno_t result = wasmtime_ssp_sock_send(
+        nullptr, &fd_table_, regular_fd, test_data, strlen(test_data), &sent_len);
+
+    // Lines 2872: fd_object_get should succeed for valid fd
+    // Lines 2877-2880: os_socket_send should fail for non-socket, return converted errno
+    ASSERT_NE(__WASI_ESUCCESS, result);
+    // Common error codes for non-socket file descriptors in socket operations
+    ASSERT_TRUE(result == __WASI_ENOTSOCK || result == __WASI_EINVAL ||
+                result == __WASI_ENOTCAPABLE || result == __WASI_EBADF);
+}
+
+/******
+ * Test Case: WasmtimeSspSockSend_ValidSocketSend_Success
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2864-2884
+ * Target Lines: 2872-2884 (complete success path through socket send operation)
+ * Functional Purpose: Validates that wasmtime_ssp_sock_send() executes the
+ *                     complete function flow including fd_object_get, os_socket_send,
+ *                     fd_object_release, and result handling with a real socket.
+ * Call Path: wasmtime_ssp_sock_send() <- wasi_sock_send() <- WASI socket syscall
+ * Coverage Goal: Exercise main execution path with socket (all target lines)
+ ******/
+TEST_F(EnhancedPosixTest, WasmtimeSspSockSend_ValidSocketSend_Success) {
+    // Create a socket pair for testing (connected sockets are more likely to succeed send)
+    int socket_fds[2];
+    ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, socket_fds));
+
+    // Insert the socket into fd_table with proper socket type
+    bool success = fd_table_insert_existing(&fd_table_, 10, socket_fds[0], true);  // true = socket type
+    ASSERT_TRUE(success);
+
+    const char test_data[] = "socket_send_test_data";
+    size_t sent_len = 0;
+
+    // Execute wasmtime_ssp_sock_send - this should cover all target lines
+    __wasi_errno_t result = wasmtime_ssp_sock_send(
+        nullptr, &fd_table_, 10, test_data, strlen(test_data), &sent_len);
+
+    // Lines 2872: fd_object_get should succeed
+    // Lines 2877: os_socket_send should succeed
+    // Lines 2878: fd_object_release should execute
+    // Lines 2883-2884: sent_len should be set and return success
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+    ASSERT_GT(sent_len, 0);
+    ASSERT_LE(sent_len, strlen(test_data));
+
+    // Cleanup socket resources
+    close(socket_fds[0]);
+    close(socket_fds[1]);
+}
+
+/******
+ * Test Case: WasmtimeSspSockSend_ZeroLength_Success
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2864-2884
+ * Target Lines: 2872-2884 (complete path with zero-length send)
+ * Functional Purpose: Validates that wasmtime_ssp_sock_send() correctly handles
+ *                     zero-length send operations, testing edge case behavior
+ *                     while exercising all code paths including proper cleanup.
+ * Call Path: wasmtime_ssp_sock_send() <- wasi_sock_send() <- WASI socket syscall
+ * Coverage Goal: Exercise all lines with zero-length buffer edge case
+ ******/
+TEST_F(EnhancedPosixTest, WasmtimeSspSockSend_ZeroLength_Success) {
+    // Create a socket pair for testing
+    int socket_fds[2];
+    ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, socket_fds));
+
+    // Insert the socket into fd_table
+    bool success = fd_table_insert_existing(&fd_table_, 11, socket_fds[0], true);
+    ASSERT_TRUE(success);
+
+    const char test_data[] = "";  // Zero-length data
+    size_t sent_len = 999;  // Initialize to non-zero to verify it gets set
+
+    // Execute wasmtime_ssp_sock_send with zero-length buffer
+    __wasi_errno_t result = wasmtime_ssp_sock_send(
+        nullptr, &fd_table_, 11, test_data, 0, &sent_len);
+
+    // Should execute all target lines successfully
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+    ASSERT_EQ(0, sent_len);  // Zero-length send should set sent_len to 0
+
+    // Cleanup socket resources
+    close(socket_fds[0]);
+    close(socket_fds[1]);
+}
+
+/******
+ * Test Case: WasmtimeSspSockSend_LargeBuffer_Success
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2864-2884
+ * Target Lines: 2872-2884 (complete path with large buffer send)
+ * Functional Purpose: Validates that wasmtime_ssp_sock_send() correctly handles
+ *                     large buffer send operations, testing boundary conditions
+ *                     while exercising all code paths including error handling.
+ * Call Path: wasmtime_ssp_sock_send() <- wasi_sock_send() <- WASI socket syscall
+ * Coverage Goal: Exercise all lines with large buffer size
+ ******/
+TEST_F(EnhancedPosixTest, WasmtimeSspSockSend_LargeBuffer_Success) {
+    // Create a socket pair for testing
+    int socket_fds[2];
+    ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, socket_fds));
+
+    // Insert the socket into fd_table
+    bool success = fd_table_insert_existing(&fd_table_, 12, socket_fds[0], true);
+    ASSERT_TRUE(success);
+
+    // Create a reasonably large buffer (4KB)
+    char large_buffer[4096];
+    memset(large_buffer, 'A', sizeof(large_buffer));
+    large_buffer[sizeof(large_buffer) - 1] = '\0';
+
+    size_t sent_len = 0;
+
+    // Execute wasmtime_ssp_sock_send with large buffer
+    __wasi_errno_t result = wasmtime_ssp_sock_send(
+        nullptr, &fd_table_, 12, large_buffer, sizeof(large_buffer) - 1, &sent_len);
+
+    // Should execute all target lines - result depends on system socket buffer size
+    // Lines 2872: fd_object_get should succeed
+    // Lines 2877-2884: os_socket_send, cleanup, and result handling
+    if (result == __WASI_ESUCCESS) {
+        ASSERT_GT(sent_len, 0);
+        ASSERT_LE(sent_len, sizeof(large_buffer) - 1);
+    } else {
+        // Large sends might fail due to system limits - this is acceptable
+        ASSERT_TRUE(result == __WASI_EAGAIN || result == __WASI_EMSGSIZE ||
+                    result == __WASI_ENOBUFS);
+    }
+
+    // Cleanup socket resources
+    close(socket_fds[0]);
+    close(socket_fds[1]);
+}
+
+/******
+ * Test Case: WasmtimeSspSockSend_MultipleOperations_ConsistentBehavior
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2864-2884
+ * Target Lines: 2872-2884 (repeated execution to ensure all lines coverage)
+ * Functional Purpose: Validates that wasmtime_ssp_sock_send() behaves consistently
+ *                     across multiple calls, ensuring all code paths are exercised
+ *                     and proper resource management is maintained.
+ * Call Path: wasmtime_ssp_sock_send() <- wasi_sock_send() <- WASI socket syscall
+ * Coverage Goal: Exercise all lines multiple times for thorough coverage
+ ******/
+TEST_F(EnhancedPosixTest, WasmtimeSspSockSend_MultipleOperations_ConsistentBehavior) {
+    // Create a socket pair for testing
+    int socket_fds[2];
+    ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, socket_fds));
+
+    // Insert the socket into fd_table
+    bool success = fd_table_insert_existing(&fd_table_, 13, socket_fds[0], true);
+    ASSERT_TRUE(success);
+
+    // Test multiple sends with different data sizes
+    const char* test_messages[] = {"msg1", "message2", "test_message_3"};
+    const int num_messages = sizeof(test_messages) / sizeof(test_messages[0]);
+
+    for (int i = 0; i < num_messages; i++) {
+        size_t sent_len = 0;
+        const char* msg = test_messages[i];
+
+        // Execute wasmtime_ssp_sock_send
+        __wasi_errno_t result = wasmtime_ssp_sock_send(
+            nullptr, &fd_table_, 13, msg, strlen(msg), &sent_len);
+
+        // Each call should execute all target lines consistently
+        // Lines 2872-2884: Complete function execution
+        ASSERT_EQ(__WASI_ESUCCESS, result);
+        ASSERT_EQ(strlen(msg), sent_len);
+    }
+
+    // Cleanup socket resources
+    close(socket_fds[0]);
+    close(socket_fds[1]);
+}
