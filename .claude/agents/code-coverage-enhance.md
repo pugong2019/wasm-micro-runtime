@@ -31,31 +31,31 @@ Upon receiving any coverage enhancement request, the subagent MUST instantiate t
 - [ ] 1.4 Plan test file structure using source file-based naming (enhanced_[source_file_name]_test.cc)
 - [ ] 1.5 Set coverage improvement goals and success criteria
 
-### Phase 2: Test Generation & Build Validation
-- [ ] 2.1 Generate enhanced test file with proper fixture setup
-- [ ] 2.2 Ensure CMakeLists.txt integration is correct
-- [ ] 2.3 Build tests and fix any compilation errors
-- [ ] 2.4 Run tests and verify all pass successfully
-- [ ] 2.5 Fix any runtime errors or assertion failures
-- [ ] 2.6 Resolve any test case failures
-- [ ] 2.7 Mandatory failure resolution: If gtest reports failed cases, analyze and fix until 100% success rate
+### Phase 3: Test Generation & Build Validation
+- [ ] 3.1 Generate enhanced test file with proper fixture setup
+- [ ] 3.2 Ensure CMakeLists.txt integration is correct
+- [ ] 3.3 Build tests and fix any compilation errors
+- [ ] 3.4 Run tests and verify all pass successfully
+- [ ] 3.5 Fix any runtime errors or assertion failures
+- [ ] 3.6 Resolve any test case failures
+- [ ] 3.7 Mandatory failure resolution: If gtest reports failed cases, analyze and fix until 100% success rate
 
-### Phase 3: Coverage Analysis & Iteration
-- [ ] 3.1 Analyze gap between current code coverage and target
-- [ ] 3.2 Identify remaining uncovered lines and analyze root causes
-- [ ] 3.3 Optimize generated case code or generate additional targeted test cases for gaps
-- [ ] 3.4 Rebuild and rerun coverage to measure improvement
-- [ ] 3.5 Iterate until satisfactory coverage or technical limits reached
+### Phase 4: Coverage Analysis & Iteration
+- [ ] 4.1 Analyze gap between current code coverage and target
+- [ ] 4.2 Identify remaining uncovered lines and analyze root causes
+- [ ] 4.3 Optimize generated case code or generate additional targeted test cases for gaps
+- [ ] 4.4 Rebuild and rerun coverage to measure improvement
+- [ ] 4.5 Iterate until satisfactory coverage or technical limits reached
 
-### Phase 4: Git Repository Integration
-- [ ] 4.1 Add proper files to repository (no temporary or documentation files)
-- [ ] 4.2 Execute pre-commit cleanup protocol (remove all *.info and temporary files)
-- [ ] 4.3 Create standardized commit message using EXACT template format (no additional content)
-- [ ] 4.4 Execute failure cleanup protocol if coverage enhancement fails
+### Phase 5: Git Repository Integration
+- [ ] 5.1 Add proper files to repository (no temporary or documentation files)
+- [ ] 5.2 Execute pre-commit cleanup protocol (remove all *.info and temporary files)
+- [ ] 5.3 Create standardized commit message using EXACT template format (no additional content)
+- [ ] 5.4 Execute failure cleanup protocol if coverage enhancement fails
 
-### Phase 5: Final Documentation and Summary
-- [ ] 5.1 Generate minimal coverage enhancement report using EXACT template format (no additional content)
-- [ ] 5.2 Execute final cleanup protocol (remove any remaining temporary files)
+### Phase 6: Final Documentation and Summary
+- [ ] 6.1 Generate minimal coverage enhancement report using EXACT template format (no additional content)
+- [ ] 6.2 Execute final cleanup protocol (remove any remaining temporary files)
 ```
 
 ### TODO Update Protocol (Mandatory Compliance)
@@ -168,9 +168,68 @@ grep -rn "static_function_name(" core/iwasm/[module]/*.c >> call_chain_analysis.
 - [ ] Map boundary conditions and edge cases
 - [ ] Document parameter validation requirements
 
-### Phase 2: Test Code Generation & Build Validation (Tasks 2.1-2.5)
 
-#### Task 2.1: Enhanced Test File Generation
+### Phase 2: MACRO-CONTROLLED Code Coverage Check
+
+#### Macro-Controlled Code Detection and Cross-Module Test Generation
+
+**CRITICAL REQUIREMENT**: When uncovered code is controlled by compile-time macros (e.g., `#if WASM_ENABLE_AOT != 0`) but the current target module's CMakeLists.txt has the required build flag disabled, the command MUST use the specialized `cross-module-test` skill for proper handling.
+
+**If not the case, just skip this Phase**
+
+#### Implementation Protocol
+
+**Step 1: Macro Pattern Detection**
+Scan target source code for conditional compilation directives:
+- `#if WASM_ENABLE_AOT != 0` - AOT compilation features
+- `#if WASM_ENABLE_GC != 0` - Garbage collection features
+- `#if WASM_ENABLE_SHARED_HEAP != 0` - Shared heap functionality
+- `#if WASM_ENABLE_MEMORY64 != 0` - 64-bit memory addressing
+- `#if WASM_ENABLE_THREAD_MGR != 0` - Threading management
+- Other WAMR feature macros
+
+**Step 2: Build Flag Compatibility Verification**
+1. **Check Current Module**: Examine `tests/unit/[current_module]/CMakeLists.txt` for required build flags
+2. **Detect Incompatibility**: If required flag is disabled (set to 0) or missing
+3. **Trigger Cross-Module Skill**: If incompatibility detected, invoke the `cross-module-test` skill
+
+**Step 3: Cross-Module Skill Invocation**
+When macro-controlled code requires different build flags than available in current module:
+
+```bash
+# MANDATORY: Use the cross-module-test skill for specialized handling
+INVOKE_SKILL: cross-module-test
+```
+
+**The `cross-module-test` skill will handle:**
+- Build flag compatibility analysis using WAMR flag mapping
+- Target module selection based on priority criteria
+- Cross-module test file generation with proper naming conventions
+- Enhanced documentation with cross-reference information
+- CMakeLists.txt integration in target module
+- Build validation and coverage attribution
+
+**Step 4: Skill Integration Protocol**
+- **Skill Input**: Provide macro condition, original source location, and current module context
+- **Skill Processing**: Allow skill to complete full cross-module test generation workflow
+- **Skill Output**: Receive generated cross-module test files and documentation
+- **Validation**: Verify skill completion and successful cross-module test integration
+
+#### Cross-Module Testing Enforcement
+**When cross-module-test skill is required:**
+1. **MUST**: Invoke skill when macro-controlled code is detected with incompatible flags
+2. **MUST**: Provide complete context information to the skill
+3. **MUST**: Validate skill completion before proceeding to Phase 3
+4. **MUST**: Ensure proper coverage attribution to original source files
+
+**ABSOLUTE PROHIBITIONS:**
+1. **Never**: Attempt manual cross-module handling when skill is available
+2. **Never**: Skip macro-controlled code without skill invocation
+3. **Never**: Modify original module flags instead of using cross-module approach
+
+### Phase 3: Test Code Generation & Build Validation (Tasks 3.1-3.5)
+
+#### Task 3.1: Enhanced Test File Generation
 
 **Step 1: File Existence Verification Protocol**
 **ALL test cases for functions in the same source file MUST be grouped in the same enhanced test file:**
@@ -260,7 +319,7 @@ public:
 **Step 4: CMakeLists.txt Integration Policy**  
 Modify the module's CMakeLists.txt ONLY if enhanced file is not automatically included.
 
-#### Task 2.2: Test Case Code Generation
+#### Task 3.2: Test Case Code Generation
 
 **Code Generation Policy**:
 MUST add function block comments with source code location, target lines, and functional purpose.
@@ -302,8 +361,7 @@ if (module) {  // VIOLATION - Missing ASSERT validation
 }
 ```
 
-
-#### Task 2.3: Build Validation Protocol
+#### Task 3.3: Build Validation Protocol
 
 **Step 1**: Verify CMakeLists.txt includes enhanced file
 **Step 2**: Build and resolve compilation errors
@@ -320,9 +378,9 @@ cmake --build build --target [module]_test
 **Step 4**: Fix runtime failures - ZERO tolerance for failing tests
 **Step 5**: Mandatory Test Failure Resolution - If any test cases fail after gtest execution, MUST analyze failure causes and fix them to achieve 100% test success rate
 
-### Phase 3: Coverage Analysis & Iteration (Tasks 3.1-3.5)
+### Phase 4: Coverage Analysis & Iteration (Tasks 4.1-4.5)
 
-#### Task 3.1: Coverage Gap Analysis
+#### Task 4.1: Coverage Gap Analysis
 
 **Step 1: Coverage Data Collection**
 ```bash
@@ -345,8 +403,8 @@ overall_coverage=$(echo "scale=2; $covered_lines * 100 / $total_lines" | bc -l)
 **Step 3: Iterative Enhancement Protocol**
 If coverage target (>60%) is not achieved:
 1. Analyze root causes for uncovered lines
-2. Repeat Tasks 2.2 through 2.3
-3. Re-execute Task 3.1
+2. Repeat Tasks 3.2 through 3.3
+3. Re-execute Task 4.1
 4. Continue until satisfactory coverage or technical limits are reached
 
 **Step 4: Cleanup Preparation**
@@ -356,7 +414,21 @@ echo "Final coverage: ${overall_coverage}%" > coverage_summary.tmp
 echo "Lines covered: ${covered_lines}/${total_lines}" >> coverage_summary.tmp
 ```
 
-### Phase 4: Git Repository Integration
+**Step 4: Cleanup Tempoary File Protocol**
+```bash
+# MANDATORY: Remove all temporary coverage files before commit
+rm -f *.info 2>/dev/null || true
+rm -f *_coverage.info 2>/dev/null || true
+rm -f final_*.info 2>/dev/null || true
+rm -f coverage_summary.tmp 2>/dev/null || true
+rm -f call_chain_analysis.md 2>/dev/null || true
+rm -rf coverage_output/ 2>/dev/null || true
+rm -f *_coverage_improve_step_*.cc 2>/dev/null || true
+rm -f *_coverage_improve_metadata.json 2>/dev/null || true
+# Keep ONLY: enhanced test files and report summary
+```
+
+### Phase 5: Git Repository Integration(If coverage rate achivened)
 
 **Step 1: File Addition Protocol**
 ```bash
@@ -369,22 +441,6 @@ git add tests/unit/[module]/enhanced_[source_file_name]_test.cc
 # Add CMakeLists.txt only if modified
 ```
 
-**Step 1.5: Pre-Commit Cleanup Protocol**
-```bash
-# MANDATORY: Remove all temporary coverage files before commit
-rm -f *.info 2>/dev/null || true
-rm -f *_coverage.info 2>/dev/null || true
-rm -f final_*.info 2>/dev/null || true
-rm -f coverage_summary.tmp 2>/dev/null || true
-rm -f call_chain_analysis.md 2>/dev/null || true
-rm -rf coverage_output/ 2>/dev/null || true
-rm -f *_coverage_improve_step_*.cc 2>/dev/null || true
-rm -f *_coverage_improve_metadata.json 2>/dev/null || true
-rm -f *_coverage_improve_plan.md 2>/dev/null || true
-rm -f test-coverage-tasks.json 2>/dev/null || true
-# Keep ONLY: enhanced test files and report summary
-```
-
 **Step 2: Standardized Commit Message Template**
 
 **CRITICAL REQUIREMENT: EXACT COMMIT MESSAGE FORMAT**
@@ -394,6 +450,12 @@ rm -f test-coverage-tasks.json 2>/dev/null || true
 2. **PROHIBITED CONTENT**: Do NOT add any additional details, explanations, or descriptive content
 3. **CONTENT RESTRICTION**: Only include the specified template format - nothing more
 4. **FORMATTING REQUIREMENT**: Follow the exact structure and spacing shown below
+5. **LOW COVERAGE FAILURE RULE**: When coverage rate is low (0 lines coverage), MUST NOT commit the message, drop any code modifications and mark the task as FAIL
+    ```bash
+    # Revert any uncommitted test file changes if coverage failed completely
+    git checkout -- tests/unit/[module]/enhanced_[source_file_name]_test.cc 2>/dev/null || true
+    # Keep ONLY: final report summary if any progress was made
+    ```
 
 **COMMIT MESSAGE TEMPLATE (USE EXACTLY AS SHOWN):**
 ```bash
@@ -407,36 +469,10 @@ rm -f test-coverage-tasks.json 2>/dev/null || true
 Coverage Enhancement Details:
 - Module: [module_name]
 - Target Lines: [line_numbers]
-- Enhanced Tests: N test cases
+- Enhanced Tests: [N] test cases
 ```
 
-**ENFORCEMENT POLICY:**
-- Commit messages that include content beyond this template are STRICTLY PROHIBITED
-- Any additional explanatory or descriptive content is STRICTLY PROHIBITED
-- Focus on the exact template format only - no extra content allowed
-- **LOW COVERAGE FAILURE RULE**: When coverage rate is low (0 lines coverage), MUST NOT commit the message, drop any code modifications and mark the task as FAIL
-
-**Step 2.5: Failure Scenario Cleanup Protocol**
-```bash
-# MANDATORY: Execute cleanup when coverage fails or task is marked as FAIL
-echo "Coverage enhancement failed - executing cleanup protocol"
-# Remove all temporary coverage files
-rm -f *.info 2>/dev/null || true
-rm -f *_coverage.info 2>/dev/null || true
-rm -f final_*.info 2>/dev/null || true
-rm -f coverage_summary.tmp 2>/dev/null || true
-rm -f call_chain_analysis.md 2>/dev/null || true
-rm -rf coverage_output/ 2>/dev/null || true
-rm -f *_coverage_improve_step_*.cc 2>/dev/null || true
-rm -f *_coverage_improve_metadata.json 2>/dev/null || true
-rm -f *_coverage_improve_plan.md 2>/dev/null || true
-rm -f test-coverage-tasks.json 2>/dev/null || true
-# Revert any uncommitted test file changes if coverage failed completely
-git checkout -- tests/unit/[module]/enhanced_[source_file_name]_test.cc 2>/dev/null || true
-# Keep ONLY: final report summary if any progress was made
-```
-
-### Phase 5: Final Documentation and Summary
+### Phase 6: Final Documentation and Summary
 
 **CRITICAL REQUIREMENT: STRICT TEMPLATE ADHERENCE**
 
@@ -481,29 +517,9 @@ Output summary to an `enhanced_[source_file_name]_test_report.md` file. If the f
 - Any descriptive, implementation, or strategy sections are STRICTLY PROHIBITED
 - Focus on metrics and facts only - no explanatory content allowed
 
-**Step 5.2: Final Cleanup Protocol**
-```bash
-# MANDATORY: Execute final cleanup after report generation (success or failure)
-echo "Executing final cleanup protocol"
-# Remove all temporary coverage and analysis files
-rm -f *.info 2>/dev/null || true
-rm -f *_coverage.info 2>/dev/null || true
-rm -f final_*.info 2>/dev/null || true
-rm -f coverage_summary.tmp 2>/dev/null || true
-rm -f call_chain_analysis.md 2>/dev/null || true
-rm -rf coverage_output/ 2>/dev/null || true
-rm -rf enhanced_coverage_report/ 2>/dev/null || true
-rm -f *_coverage_improve_step_*.cc 2>/dev/null || true
-rm -f *_coverage_improve_metadata.json 2>/dev/null || true
-rm -f *_coverage_improve_plan.md 2>/dev/null || true
-rm -f test-coverage-tasks.json 2>/dev/null || true
-# Keep ONLY: enhanced test files and final report summary
-echo "Cleanup completed - workspace clean except for deliverables"
-```
-
 ## SUCCESS CRITERIA & QUALITY ASSURANCE
 
-### Completion Requirements: All 5 Phases Must Be Successfully Executed
+### Completion Requirements: All 6 Phases Must Be Successfully Executed
 
 ### Final Quality Gate Checklist (Zero-Defect Standard)
 - [ ] **Task Management**: TODO list created and maintained throughout entire process
@@ -519,7 +535,6 @@ echo "Cleanup completed - workspace clean except for deliverables"
 - [ ] **Cleanup Execution**: All temporary files (*.info, coverage_output/, analysis files) removed from workspace
 - [ ] **Repository Integration**: Git commit created using EXACT template format (Only on coverage success)(no extra content)
 - [ ] **Final Report**: Minimal summary report using EXACT template format (no extra content)
-- [ ] **Final Cleanup**: Final cleanup protocol executed (workspace contains only deliverables)
 
 ### Enforcement Mechanism
 Any deviation from the above checklist constitutes IMMEDIATE FAILURE of the enhancement process.
