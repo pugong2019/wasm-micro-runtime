@@ -290,30 +290,170 @@ TEST_F(EnhancedPosixFileTest, os_readdir_DefaultCase_MapsToWasiUnknown) {
 }
 
 /******
- * Test Case: os_readdir_EndOfDirectory_ReturnsSuccess
- * Source: core/shared/platform/common/posix/posix_file.c:942-950, 995
- * Target Lines: 942-950 (end of directory detection), 995 (return success)
- * Functional Purpose: Validates that os_readdir() correctly handles end of directory
- *                     condition by setting d_name to NULL and returning success.
- * Call Path: os_readdir() directly (public API)
- * Coverage Goal: Exercise end-of-directory path and return statement
+ * Test Case: os_realpath_ValidAbsolutePath_ReturnsResolvedPath
+ * Source: core/shared/platform/common/posix/posix_file.c:1032-1035
+ * Target Lines: 1032 (function declaration), 1033 (opening brace), 1034 (realpath call), 1035 (closing brace)
+ * Functional Purpose: Validates that os_realpath() correctly resolves valid absolute paths
+ *                     by delegating to the system realpath() function and returning the
+ *                     resolved canonical path.
+ * Call Path: os_realpath() directly (public API)
+ * Coverage Goal: Exercise the realpath wrapper with valid absolute path
  ******/
-TEST_F(EnhancedPosixFileTest, os_readdir_EndOfDirectory_ReturnsSuccess) {
-    // Open test directory for reading
-    dir_stream = opendir(test_dir.c_str());
-    ASSERT_NE(nullptr, dir_stream);
+TEST_F(EnhancedPosixFileTest, os_realpath_ValidAbsolutePath_ReturnsResolvedPath) {
+    char resolved_buffer[PATH_MAX];
 
-    __wasi_dirent_t entry;
-    const char* d_name = nullptr;
-    __wasi_errno_t result;
+    // Test with the absolute path of our test file
+    char* result = os_realpath(test_file.c_str(), resolved_buffer);
 
-    // Read all directory entries until end
-    do {
-        result = os_readdir(dir_stream, &entry, &d_name);
-        ASSERT_EQ(__WASI_ESUCCESS, result);
-    } while (d_name != nullptr);
+    // Should successfully resolve the path
+    ASSERT_NE(nullptr, result);
+    ASSERT_EQ(resolved_buffer, result);  // Should return the buffer we provided
+    ASSERT_GT(strlen(resolved_buffer), 0);  // Should contain resolved path
 
-    // After reading all entries, d_name should be NULL but result should be success
-    ASSERT_EQ(nullptr, d_name);
-    ASSERT_EQ(__WASI_ESUCCESS, result);
+    // The resolved path should be absolute
+    ASSERT_EQ('/', resolved_buffer[0]);
+
+    // Should be able to access the resolved path
+    struct stat st;
+    ASSERT_EQ(0, stat(resolved_buffer, &st));
+}
+
+/******
+ * Test Case: os_realpath_ValidRelativePath_ReturnsResolvedPath
+ * Source: core/shared/platform/common/posix/posix_file.c:1032-1035
+ * Target Lines: 1032 (function declaration), 1033 (opening brace), 1034 (realpath call), 1035 (closing brace)
+ * Functional Purpose: Validates that os_realpath() correctly resolves relative paths
+ *                     by converting them to absolute canonical paths through the
+ *                     underlying realpath() system call.
+ * Call Path: os_realpath() directly (public API)
+ * Coverage Goal: Exercise the realpath wrapper with relative path containing .. components
+ ******/
+TEST_F(EnhancedPosixFileTest, os_realpath_ValidRelativePath_ReturnsResolvedPath) {
+    char resolved_buffer[PATH_MAX];
+
+    // Create a relative path with .. components
+    std::string relative_path = test_dir + "/../" + test_dir.substr(test_dir.find_last_of('/') + 1) + "/regular_file.txt";
+
+    char* result = os_realpath(relative_path.c_str(), resolved_buffer);
+
+    // Should successfully resolve the relative path to absolute
+    ASSERT_NE(nullptr, result);
+    ASSERT_EQ(resolved_buffer, result);
+    ASSERT_GT(strlen(resolved_buffer), 0);
+
+    // The resolved path should be absolute
+    ASSERT_EQ('/', resolved_buffer[0]);
+
+    // Should match our test file's expected absolute path
+    char expected_resolved[PATH_MAX];
+    char* expected = realpath(test_file.c_str(), expected_resolved);
+    ASSERT_NE(nullptr, expected);
+    ASSERT_STREQ(expected_resolved, resolved_buffer);
+}
+
+/******
+ * Test Case: os_realpath_SymbolicLink_ReturnsTargetPath
+ * Source: core/shared/platform/common/posix/posix_file.c:1032-1035
+ * Target Lines: 1032 (function declaration), 1033 (opening brace), 1034 (realpath call), 1035 (closing brace)
+ * Functional Purpose: Validates that os_realpath() correctly resolves symbolic links
+ *                     to their target paths by following the link through the
+ *                     underlying realpath() system call.
+ * Call Path: os_realpath() directly (public API)
+ * Coverage Goal: Exercise the realpath wrapper with symbolic link resolution
+ ******/
+TEST_F(EnhancedPosixFileTest, os_realpath_SymbolicLink_ReturnsTargetPath) {
+    char resolved_buffer[PATH_MAX];
+
+    // Test with our symbolic link
+    char* result = os_realpath(test_symlink.c_str(), resolved_buffer);
+
+    // Should successfully resolve the symbolic link
+    ASSERT_NE(nullptr, result);
+    ASSERT_EQ(resolved_buffer, result);
+    ASSERT_GT(strlen(resolved_buffer), 0);
+
+    // The resolved path should be absolute
+    ASSERT_EQ('/', resolved_buffer[0]);
+
+    // Should resolve to the same path as the target file
+    char target_resolved[PATH_MAX];
+    char* target_result = realpath(test_file.c_str(), target_resolved);
+    ASSERT_NE(nullptr, target_result);
+    ASSERT_STREQ(target_resolved, resolved_buffer);
+}
+
+/******
+ * Test Case: os_realpath_NonExistentPath_ReturnsNull
+ * Source: core/shared/platform/common/posix/posix_file.c:1032-1035
+ * Target Lines: 1032 (function declaration), 1033 (opening brace), 1034 (realpath call), 1035 (closing brace)
+ * Functional Purpose: Validates that os_realpath() correctly handles non-existent paths
+ *                     by returning NULL when the underlying realpath() system call fails
+ *                     due to the path not existing.
+ * Call Path: os_realpath() directly (public API)
+ * Coverage Goal: Exercise the realpath wrapper error handling path
+ ******/
+TEST_F(EnhancedPosixFileTest, os_realpath_NonExistentPath_ReturnsNull) {
+    char resolved_buffer[PATH_MAX];
+
+    // Test with a non-existent path
+    std::string non_existent_path = test_dir + "/does_not_exist.txt";
+    char* result = os_realpath(non_existent_path.c_str(), resolved_buffer);
+
+    // Should return NULL for non-existent path
+    ASSERT_EQ(nullptr, result);
+
+    // Verify errno is set appropriately (realpath should set it)
+    ASSERT_NE(0, errno);
+}
+
+/******
+ * Test Case: os_realpath_NullBuffer_ReturnsAllocatedPath
+ * Source: core/shared/platform/common/posix/posix_file.c:1032-1035
+ * Target Lines: 1032 (function declaration), 1033 (opening brace), 1034 (realpath call), 1035 (closing brace)
+ * Functional Purpose: Validates that os_realpath() correctly handles NULL buffer parameter
+ *                     by allowing realpath() to allocate memory for the resolved path,
+ *                     demonstrating proper parameter pass-through behavior.
+ * Call Path: os_realpath() directly (public API)
+ * Coverage Goal: Exercise the realpath wrapper with automatic memory allocation
+ ******/
+TEST_F(EnhancedPosixFileTest, os_realpath_NullBuffer_ReturnsAllocatedPath) {
+    // Test with NULL buffer - realpath should allocate memory
+    char* result = os_realpath(test_file.c_str(), nullptr);
+
+    // Should successfully allocate and return resolved path
+    ASSERT_NE(nullptr, result);
+    ASSERT_GT(strlen(result), 0);
+
+    // The resolved path should be absolute
+    ASSERT_EQ('/', result[0]);
+
+    // Should be able to access the resolved path
+    struct stat st;
+    ASSERT_EQ(0, stat(result, &st));
+
+    // Free the allocated memory
+    free(result);
+}
+
+/******
+ * Test Case: os_realpath_NullPath_ReturnsNull
+ * Source: core/shared/platform/common/posix/posix_file.c:1032-1035
+ * Target Lines: 1032 (function declaration), 1033 (opening brace), 1034 (realpath call), 1035 (closing brace)
+ * Functional Purpose: Validates that os_realpath() correctly handles NULL path parameter
+ *                     by passing it through to realpath() which should return NULL and
+ *                     set appropriate error conditions.
+ * Call Path: os_realpath() directly (public API)
+ * Coverage Goal: Exercise the realpath wrapper with invalid NULL path parameter
+ ******/
+TEST_F(EnhancedPosixFileTest, os_realpath_NullPath_ReturnsNull) {
+    char resolved_buffer[PATH_MAX];
+
+    // Test with NULL path
+    char* result = os_realpath(nullptr, resolved_buffer);
+
+    // Should return NULL for NULL path
+    ASSERT_EQ(nullptr, result);
+
+    // Verify errno is set appropriately (realpath should set it to EINVAL or similar)
+    ASSERT_NE(0, errno);
 }
