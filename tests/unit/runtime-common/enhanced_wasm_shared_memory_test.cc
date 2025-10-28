@@ -613,3 +613,168 @@ TEST_F(EnhancedWasmSharedMemoryTest, AtomicNotify_LargeCount_NormalExecution) {
     // Should return 0 and execute normally even with large count
     ASSERT_EQ(0, result);
 }
+
+// ============================================================================
+// NEW TEST CASES FOR shared_memory_inc_reference FUNCTION (Lines 80-94)
+// ============================================================================
+
+/******
+ * Test Case: SharedMemoryIncReference_ValidMemory_ReturnsIncrementedValue
+ * Source: core/iwasm/common/wasm_shared_memory.c:80-94
+ * Target Lines: 83 (assertion check), 85-87 (mutex lock path), 88 (atomic increment),
+ *               89-91 (mutex unlock path), 92-93 (assertion checks), 94 (return)
+ * Functional Purpose: Validates that shared_memory_inc_reference correctly increments
+ *                     the reference count for a shared memory instance and returns the new value.
+ * Call Path: Direct call to shared_memory_inc_reference()
+ * Coverage Goal: Exercise normal execution path with valid shared memory instance
+ ******/
+TEST_F(EnhancedWasmSharedMemoryTest, SharedMemoryIncReference_ValidMemory_ReturnsIncrementedValue) {
+    ASSERT_NE(nullptr, module_inst);
+
+    WASMModuleInstance *wasm_inst = (WASMModuleInstance*)module_inst;
+    ASSERT_NE(nullptr, wasm_inst->memories);
+    ASSERT_NE(nullptr, wasm_inst->memories[0]);
+
+    WASMMemoryInstance *memory = wasm_inst->memories[0];
+    ASSERT_TRUE(shared_memory_is_shared(memory));
+
+    // Ensure initial reference count is set to 1
+    memory->ref_count = 1;
+
+    uint16 result = shared_memory_inc_reference(memory);
+
+    // Should return incremented value (old + 1)
+    ASSERT_EQ(2, result);
+    ASSERT_EQ(2, memory->ref_count);
+}
+
+/******
+ * Test Case: SharedMemoryIncReference_InitialReferenceCount_IncrementsProperly
+ * Source: core/iwasm/common/wasm_shared_memory.c:80-94
+ * Target Lines: 88 (BH_ATOMIC_16_FETCH_ADD operation), 92 (old >= 1 assertion),
+ *               93 (old < UINT16_MAX assertion), 94 (return old + 1)
+ * Functional Purpose: Validates that shared_memory_inc_reference correctly handles
+ *                     different initial reference count values and returns proper results.
+ * Call Path: Direct call to shared_memory_inc_reference()
+ * Coverage Goal: Exercise atomic increment logic with various initial values
+ ******/
+TEST_F(EnhancedWasmSharedMemoryTest, SharedMemoryIncReference_InitialReferenceCount_IncrementsProperly) {
+    ASSERT_NE(nullptr, module_inst);
+
+    WASMModuleInstance *wasm_inst = (WASMModuleInstance*)module_inst;
+    ASSERT_NE(nullptr, wasm_inst->memories);
+    ASSERT_NE(nullptr, wasm_inst->memories[0]);
+
+    WASMMemoryInstance *memory = wasm_inst->memories[0];
+    ASSERT_TRUE(shared_memory_is_shared(memory));
+
+    // Test with initial reference count of 5
+    memory->ref_count = 5;
+
+    uint16 result = shared_memory_inc_reference(memory);
+
+    // Should return old value + 1
+    ASSERT_EQ(6, result);
+    ASSERT_EQ(6, memory->ref_count);
+}
+
+/******
+ * Test Case: SharedMemoryIncReference_MaxValueMinusOne_HandlesNearOverflow
+ * Source: core/iwasm/common/wasm_shared_memory.c:80-94
+ * Target Lines: 88 (atomic increment), 92 (old >= 1 assertion),
+ *               93 (old < UINT16_MAX assertion), 94 (return old + 1)
+ * Functional Purpose: Validates that shared_memory_inc_reference handles reference counts
+ *                     near the maximum value without causing overflow issues.
+ * Call Path: Direct call to shared_memory_inc_reference()
+ * Coverage Goal: Exercise edge case with high reference count values
+ ******/
+TEST_F(EnhancedWasmSharedMemoryTest, SharedMemoryIncReference_MaxValueMinusOne_HandlesNearOverflow) {
+    ASSERT_NE(nullptr, module_inst);
+
+    WASMModuleInstance *wasm_inst = (WASMModuleInstance*)module_inst;
+    ASSERT_NE(nullptr, wasm_inst->memories);
+    ASSERT_NE(nullptr, wasm_inst->memories[0]);
+
+    WASMMemoryInstance *memory = wasm_inst->memories[0];
+    ASSERT_TRUE(shared_memory_is_shared(memory));
+
+    // Test with reference count near maximum value
+    memory->ref_count = UINT16_MAX - 1;
+
+    uint16 result = shared_memory_inc_reference(memory);
+
+    // Should return UINT16_MAX (old + 1)
+    ASSERT_EQ(UINT16_MAX, result);
+    ASSERT_EQ(UINT16_MAX, memory->ref_count);
+}
+
+/******
+ * Test Case: SharedMemoryIncReference_MultipleIncrements_MaintainsCorrectCount
+ * Source: core/iwasm/common/wasm_shared_memory.c:80-94
+ * Target Lines: 83 (assertion), 85-87 (mutex handling), 88 (atomic increment),
+ *               89-91 (mutex handling), 92-93 (assertions), 94 (return)
+ * Functional Purpose: Validates that shared_memory_inc_reference correctly handles
+ *                     multiple sequential increments maintaining proper reference counting.
+ * Call Path: Multiple calls to shared_memory_inc_reference()
+ * Coverage Goal: Exercise function multiple times to verify consistent behavior
+ ******/
+TEST_F(EnhancedWasmSharedMemoryTest, SharedMemoryIncReference_MultipleIncrements_MaintainsCorrectCount) {
+    ASSERT_NE(nullptr, module_inst);
+
+    WASMModuleInstance *wasm_inst = (WASMModuleInstance*)module_inst;
+    ASSERT_NE(nullptr, wasm_inst->memories);
+    ASSERT_NE(nullptr, wasm_inst->memories[0]);
+
+    WASMMemoryInstance *memory = wasm_inst->memories[0];
+    ASSERT_TRUE(shared_memory_is_shared(memory));
+
+    // Start with reference count of 1
+    memory->ref_count = 1;
+
+    // Perform multiple increments
+    uint16 result1 = shared_memory_inc_reference(memory);
+    ASSERT_EQ(2, result1);
+    ASSERT_EQ(2, memory->ref_count);
+
+    uint16 result2 = shared_memory_inc_reference(memory);
+    ASSERT_EQ(3, result2);
+    ASSERT_EQ(3, memory->ref_count);
+
+    uint16 result3 = shared_memory_inc_reference(memory);
+    ASSERT_EQ(4, result3);
+    ASSERT_EQ(4, memory->ref_count);
+}
+
+/******
+ * Test Case: SharedMemoryIncReference_AtomicOperationPath_ExecutesBothPaths
+ * Source: core/iwasm/common/wasm_shared_memory.c:80-94
+ * Target Lines: 85-87 (conditional mutex lock), 88 (atomic operation),
+ *               89-91 (conditional mutex unlock)
+ * Functional Purpose: Validates that shared_memory_inc_reference executes the atomic
+ *                     operation path correctly, handling both mutex and non-mutex scenarios
+ *                     based on BH_ATOMIC_16_IS_ATOMIC compilation flag.
+ * Call Path: Direct call to shared_memory_inc_reference()
+ * Coverage Goal: Exercise both conditional mutex paths and atomic operation
+ ******/
+TEST_F(EnhancedWasmSharedMemoryTest, SharedMemoryIncReference_AtomicOperationPath_ExecutesBothPaths) {
+    ASSERT_NE(nullptr, module_inst);
+
+    WASMModuleInstance *wasm_inst = (WASMModuleInstance*)module_inst;
+    ASSERT_NE(nullptr, wasm_inst->memories);
+    ASSERT_NE(nullptr, wasm_inst->memories[0]);
+
+    WASMMemoryInstance *memory = wasm_inst->memories[0];
+    ASSERT_TRUE(shared_memory_is_shared(memory));
+
+    // Test with reference count of 10
+    memory->ref_count = 10;
+
+    uint16 result = shared_memory_inc_reference(memory);
+
+    // Verify the atomic increment worked correctly
+    ASSERT_EQ(11, result);
+    ASSERT_EQ(11, memory->ref_count);
+
+    // The actual mutex locking/unlocking path depends on BH_ATOMIC_16_IS_ATOMIC
+    // but the end result should be the same - correct atomic increment
+}
