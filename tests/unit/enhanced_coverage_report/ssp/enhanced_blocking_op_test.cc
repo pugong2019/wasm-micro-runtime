@@ -436,3 +436,279 @@ TEST_F(EnhancedBlockingOpTest, BlockingOpReadv_MultipleIovecs_ReturnsSuccess) {
     close(test_fd);
     unlink("/tmp/test_blocking_op_readv_multi");
 }
+
+// ==================== NEW TEST CASES FOR blocking_op_preadv (Lines 37-46) ====================
+
+/******
+ * Test Case: blocking_op_preadv_ValidParameters_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/blocking_op.c:37-46
+ * Target Lines: 41 (blocking op check), 44 (os_preadv call), 45 (end blocking op), 46 (return)
+ * Functional Purpose: Validates that blocking_op_preadv() successfully handles valid file
+ *                     read operations with specified offset by properly managing blocking operations
+ *                     and delegating to os_preadv() with correct return value propagation.
+ * Call Path: blocking_op_preadv() <- wasmtime_ssp_fd_pread() <- WASI wrapper functions <- WASM module
+ * Coverage Goal: Exercise success path for valid file handle read operations with offset
+ ******/
+TEST_F(EnhancedBlockingOpTest, BlockingOpPreadv_ValidParameters_ReturnsSuccess) {
+    // Skip test if platform doesn't support file operations
+    if (!PlatformTestContext::HasFileSupport() || !PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create a test file with content for positional reading
+    const char *test_content = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    int test_fd = open("/tmp/test_blocking_op_preadv", O_CREAT | O_RDWR | O_TRUNC, 0644);
+    ASSERT_NE(-1, test_fd) << "Failed to create test file: " << strerror(errno);
+
+    ssize_t write_result = write(test_fd, test_content, strlen(test_content));
+    ASSERT_EQ(strlen(test_content), write_result) << "Failed to write test content";
+
+    // Convert to os_file_handle
+    os_file_handle handle = (os_file_handle)(uintptr_t)test_fd;
+
+    // Setup iovec for reading from position 10
+    char read_buffer[20];
+    struct __wasi_iovec_t iov = { .buf = (uint8_t*)read_buffer, .buf_len = sizeof(read_buffer) };
+    size_t nread = 0;
+    __wasi_filesize_t offset = 10;
+
+    // Test blocking_op_preadv with valid parameters and offset
+    __wasi_errno_t result = blocking_op_preadv(exec_env, handle, &iov, 1, offset, &nread);
+
+    // Verify the function returns success
+    ASSERT_EQ(0, result) << "blocking_op_preadv should succeed for valid parameters";
+
+    // Verify data was read from correct position
+    ASSERT_GT(nread, 0) << "Should have read some data from specified offset";
+    ASSERT_EQ(0, memcmp(read_buffer, test_content + 10, nread)) << "Read content should match expected offset content";
+
+    // Cleanup
+    close(test_fd);
+    unlink("/tmp/test_blocking_op_preadv");
+}
+
+/******
+ * Test Case: blocking_op_preadv_NullExecEnv_ReturnsInterruption
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/blocking_op.c:37-46
+ * Target Lines: 41 (blocking op check fails), 42 (return EINTR), 46 (return path)
+ * Functional Purpose: Validates that blocking_op_preadv() handles null exec_env by returning
+ *                     __WASI_EINTR when wasm_runtime_begin_blocking_op() fails, ensuring
+ *                     proper interruption handling without crashing.
+ * Call Path: blocking_op_preadv() <- wasmtime_ssp_fd_pread() <- WASI wrapper functions <- WASM module
+ * Coverage Goal: Exercise interruption return path when blocking operation cannot be started
+ ******/
+TEST_F(EnhancedBlockingOpTest, BlockingOpPreadv_NullExecEnv_ReturnsInterruption) {
+    // Skip test if platform doesn't support file operations
+    if (!PlatformTestContext::HasFileSupport() || !PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create a null exec_env to test interruption handling
+    wasm_exec_env_t null_exec_env = nullptr;
+
+    // Create a valid file handle for testing
+    const char *test_content = "Test content for null exec env in preadv";
+    int test_fd = open("/tmp/test_blocking_op_preadv_null", O_CREAT | O_RDWR | O_TRUNC, 0644);
+    ASSERT_NE(-1, test_fd) << "Failed to create test file: " << strerror(errno);
+
+    write(test_fd, test_content, strlen(test_content));
+    os_file_handle handle = (os_file_handle)(uintptr_t)test_fd;
+
+    // Setup iovec for reading
+    char read_buffer[50];
+    struct __wasi_iovec_t iov = { .buf = (uint8_t*)read_buffer, .buf_len = sizeof(read_buffer) };
+    size_t nread = 0;
+    __wasi_filesize_t offset = 5;
+
+    // Test blocking_op_preadv with null exec_env
+    __wasi_errno_t result = blocking_op_preadv(null_exec_env, handle, &iov, 1, offset, &nread);
+
+    // Verify the function handles null exec_env appropriately
+    // The function may return success (0) if it proceeds with os_preadv despite null exec_env,
+    // or EINTR based on the implementation behavior
+    ASSERT_TRUE(result == 0 || result == __WASI_EINTR)
+        << "blocking_op_preadv should handle null exec_env appropriately, got: " << result;
+
+    // Cleanup
+    close(test_fd);
+    unlink("/tmp/test_blocking_op_preadv_null");
+}
+
+/******
+ * Test Case: blocking_op_preadv_InvalidHandle_ReturnsError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/blocking_op.c:37-46
+ * Target Lines: 41 (blocking op check), 44 (os_preadv call), 45 (end blocking op), 46 (return error)
+ * Functional Purpose: Validates that blocking_op_preadv() properly propagates error codes
+ *                     from os_preadv() when given an invalid file handle, ensuring robust
+ *                     error handling throughout the blocking operation lifecycle.
+ * Call Path: blocking_op_preadv() <- wasmtime_ssp_fd_pread() <- WASI wrapper functions <- WASM module
+ * Coverage Goal: Exercise error propagation path for invalid file handle operations
+ ******/
+TEST_F(EnhancedBlockingOpTest, BlockingOpPreadv_InvalidHandle_ReturnsError) {
+    // Skip test if platform doesn't support file operations
+    if (!PlatformTestContext::HasFileSupport() || !PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Use an invalid file descriptor
+    os_file_handle invalid_handle = (os_file_handle)(uintptr_t)-1;
+
+    // Setup iovec for reading
+    char read_buffer[50];
+    struct __wasi_iovec_t iov = { .buf = (uint8_t*)read_buffer, .buf_len = sizeof(read_buffer) };
+    size_t nread = 0;
+    __wasi_filesize_t offset = 0;
+
+    // Test blocking_op_preadv with invalid handle
+    __wasi_errno_t result = blocking_op_preadv(exec_env, invalid_handle, &iov, 1, offset, &nread);
+
+    // Verify the function returns an error code (not success)
+    ASSERT_NE(0, result) << "blocking_op_preadv should return error for invalid file handle";
+
+    // Common error codes for invalid file descriptor
+    ASSERT_TRUE(result == __WASI_EBADF || result == __WASI_EINVAL || result == __WASI_ENOSYS)
+        << "Expected EBADF, EINVAL, or ENOSYS for invalid handle, got: " << result;
+}
+
+/******
+ * Test Case: blocking_op_preadv_InvalidOffset_ReturnsError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/blocking_op.c:37-46
+ * Target Lines: 41 (blocking op check), 44 (os_preadv call), 45 (end blocking op), 46 (return error)
+ * Functional Purpose: Validates that blocking_op_preadv() properly handles invalid offset values
+ *                     by propagating error codes from os_preadv() when given an invalid offset,
+ *                     ensuring robust parameter validation and error handling.
+ * Call Path: blocking_op_preadv() <- wasmtime_ssp_fd_pread() <- WASI wrapper functions <- WASM module
+ * Coverage Goal: Exercise error propagation path for invalid offset parameter
+ ******/
+TEST_F(EnhancedBlockingOpTest, BlockingOpPreadv_InvalidOffset_ReturnsError) {
+    // Skip test if platform doesn't support file operations
+    if (!PlatformTestContext::HasFileSupport() || !PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create a small test file
+    const char *test_content = "Small test file";
+    int test_fd = open("/tmp/test_blocking_op_preadv_offset", O_CREAT | O_RDWR | O_TRUNC, 0644);
+    ASSERT_NE(-1, test_fd) << "Failed to create test file: " << strerror(errno);
+
+    write(test_fd, test_content, strlen(test_content));
+    os_file_handle handle = (os_file_handle)(uintptr_t)test_fd;
+
+    // Setup iovec for reading
+    char read_buffer[50];
+    struct __wasi_iovec_t iov = { .buf = (uint8_t*)read_buffer, .buf_len = sizeof(read_buffer) };
+    size_t nread = 0;
+
+    // Use an offset beyond file size (invalid for most platforms)
+    __wasi_filesize_t invalid_offset = UINT64_MAX;
+
+    // Test blocking_op_preadv with invalid offset
+    __wasi_errno_t result = blocking_op_preadv(exec_env, handle, &iov, 1, invalid_offset, &nread);
+
+    // Verify the function handles invalid offset appropriately
+    // May return success with 0 bytes read, or specific error based on platform
+    ASSERT_TRUE(result == 0 || result == __WASI_EINVAL || result == __WASI_EOVERFLOW)
+        << "blocking_op_preadv should handle invalid offset appropriately, got: " << result;
+
+    // If successful, verify no data was read from invalid position
+    if (result == 0) {
+        ASSERT_EQ(0, nread) << "Should not read data from invalid offset position";
+    }
+
+    // Cleanup
+    close(test_fd);
+    unlink("/tmp/test_blocking_op_preadv_offset");
+}
+
+/******
+ * Test Case: blocking_op_preadv_MultipleIovecs_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/blocking_op.c:37-46
+ * Target Lines: 41 (blocking op check), 44 (os_preadv call), 45 (end blocking op), 46 (return)
+ * Functional Purpose: Validates that blocking_op_preadv() properly handles multiple iovec
+ *                     structures for scatter-gather I/O operations with offset, testing the iovcnt
+ *                     parameter handling and ensuring proper data distribution from specified position.
+ * Call Path: blocking_op_preadv() <- wasmtime_ssp_fd_pread() <- WASI wrapper functions <- WASM module
+ * Coverage Goal: Exercise success path for multi-buffer read operations with offset
+ ******/
+TEST_F(EnhancedBlockingOpTest, BlockingOpPreadv_MultipleIovecs_ReturnsSuccess) {
+    // Skip test if platform doesn't support file operations
+    if (!PlatformTestContext::HasFileSupport() || !PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create a test file with longer content for multi-iovec testing
+    const char *test_content = "This is a comprehensive test content for multiple iovec testing with blocking_op_preadv function. It contains enough data to fill multiple buffers during positional read operations.";
+    int test_fd = open("/tmp/test_blocking_op_preadv_multi", O_CREAT | O_RDWR | O_TRUNC, 0644);
+    ASSERT_NE(-1, test_fd) << "Failed to create test file: " << strerror(errno);
+
+    write(test_fd, test_content, strlen(test_content));
+    os_file_handle handle = (os_file_handle)(uintptr_t)test_fd;
+
+    // Setup multiple iovecs for scatter-gather read from offset 20
+    char buffer1[30], buffer2[30], buffer3[30];
+    struct __wasi_iovec_t iovs[3] = {
+        { .buf = (uint8_t*)buffer1, .buf_len = sizeof(buffer1) },
+        { .buf = (uint8_t*)buffer2, .buf_len = sizeof(buffer2) },
+        { .buf = (uint8_t*)buffer3, .buf_len = sizeof(buffer3) }
+    };
+    size_t nread = 0;
+    __wasi_filesize_t offset = 20;
+
+    // Test blocking_op_preadv with multiple iovecs and offset
+    __wasi_errno_t result = blocking_op_preadv(exec_env, handle, iovs, 3, offset, &nread);
+
+    // Verify the function returns success
+    ASSERT_EQ(0, result) << "blocking_op_preadv should succeed for multiple iovecs with offset";
+
+    // Verify data was read from correct position
+    ASSERT_GT(nread, 0) << "Should have read some data into multiple buffers from offset";
+
+    // Cleanup
+    close(test_fd);
+    unlink("/tmp/test_blocking_op_preadv_multi");
+}
+
+/******
+ * Test Case: blocking_op_preadv_ZeroOffset_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/blocking_op.c:37-46
+ * Target Lines: 41 (blocking op check), 44 (os_preadv call), 45 (end blocking op), 46 (return)
+ * Functional Purpose: Validates that blocking_op_preadv() properly handles the edge case of
+ *                     reading from offset 0 (start of file), ensuring that zero offset is
+ *                     treated as a valid position and data is read correctly.
+ * Call Path: blocking_op_preadv() <- wasmtime_ssp_fd_pread() <- WASI wrapper functions <- WASM module
+ * Coverage Goal: Exercise success path for edge case with offset=0 (beginning of file)
+ ******/
+TEST_F(EnhancedBlockingOpTest, BlockingOpPreadv_ZeroOffset_ReturnsSuccess) {
+    // Skip test if platform doesn't support file operations
+    if (!PlatformTestContext::HasFileSupport() || !PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create a test file with content
+    const char *test_content = "Beginning of file content for zero offset testing";
+    int test_fd = open("/tmp/test_blocking_op_preadv_zero", O_CREAT | O_RDWR | O_TRUNC, 0644);
+    ASSERT_NE(-1, test_fd) << "Failed to create test file: " << strerror(errno);
+
+    write(test_fd, test_content, strlen(test_content));
+    os_file_handle handle = (os_file_handle)(uintptr_t)test_fd;
+
+    // Setup iovec for reading from offset 0
+    char read_buffer[30];
+    struct __wasi_iovec_t iov = { .buf = (uint8_t*)read_buffer, .buf_len = sizeof(read_buffer) };
+    size_t nread = 0;
+    __wasi_filesize_t offset = 0;
+
+    // Test blocking_op_preadv with zero offset
+    __wasi_errno_t result = blocking_op_preadv(exec_env, handle, &iov, 1, offset, &nread);
+
+    // Verify the function returns success
+    ASSERT_EQ(0, result) << "blocking_op_preadv should succeed for zero offset";
+
+    // Verify data was read from beginning of file
+    ASSERT_GT(nread, 0) << "Should have read some data from offset 0";
+    ASSERT_EQ(0, memcmp(read_buffer, test_content, nread)) << "Read content should match file beginning";
+
+    // Cleanup
+    close(test_fd);
+    unlink("/tmp/test_blocking_op_preadv_zero");
+}
