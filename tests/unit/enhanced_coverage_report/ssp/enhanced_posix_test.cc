@@ -1894,3 +1894,127 @@ TEST_F(EnhancedPosixTest, WasmtimeSspSockSend_MultipleOperations_ConsistentBehav
     close(socket_fds[0]);
     close(socket_fds[1]);
 }
+
+// =============================================================================
+// New test cases for wasi_ssp_sock_set_send_buf_size function (lines 2804-2820)
+// =============================================================================
+
+/******
+ * Test Case: SetSendBufSize_ValidSocket_Success
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2804-2820
+ * Target Lines: 2808 (fd_object_get call), 2813 (os_socket_set_send_buf_size call),
+ *               2815 (fd_object_release call), 2820 (return success)
+ * Functional Purpose: Validates that wasi_ssp_sock_set_send_buf_size() successfully
+ *                     sets socket send buffer size for valid socket file descriptor
+ *                     and returns success status.
+ * Call Path: wasi_ssp_sock_set_send_buf_size() [PUBLIC API]
+ * Coverage Goal: Exercise success path for socket send buffer size configuration
+ ******/
+TEST_F(EnhancedPosixTest, SetSendBufSize_ValidSocket_Success) {
+    int socket_fds[2];
+
+    // Create socket pair for testing
+    ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, socket_fds));
+
+    // Add socket to fd_table for WASI access
+    __wasi_fd_t wasi_fd = 15;
+    ASSERT_TRUE(fd_table_insert_existing(&fd_table_, wasi_fd, socket_fds[0], true));
+
+    // Test buffer sizes to validate functionality
+    __wasi_size_t test_buffer_sizes[] = {1024, 2048, 4096, 8192};
+    const int num_sizes = sizeof(test_buffer_sizes) / sizeof(test_buffer_sizes[0]);
+
+    for (int i = 0; i < num_sizes; i++) {
+        __wasi_size_t buffer_size = test_buffer_sizes[i];
+
+        // Execute wasi_ssp_sock_set_send_buf_size - targeting lines 2804-2820
+        __wasi_errno_t result = wasi_ssp_sock_set_send_buf_size(
+            nullptr, &fd_table_, wasi_fd, buffer_size);
+
+        // Validate success path execution
+        // Line 2808: fd_object_get should succeed for valid socket FD
+        // Line 2813: os_socket_set_send_buf_size should execute successfully
+        // Line 2815: fd_object_release should execute for cleanup
+        // Line 2820: Function should return __WASI_ESUCCESS
+        ASSERT_EQ(__WASI_ESUCCESS, result);
+    }
+
+    // Cleanup socket resources
+    close(socket_fds[0]);
+    close(socket_fds[1]);
+}
+
+/******
+ * Test Case: SetSendBufSize_InvalidFD_ReturnsError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2804-2820
+ * Target Lines: 2809 (fd_object_get call), 2810-2811 (error check and return)
+ * Functional Purpose: Validates that wasi_ssp_sock_set_send_buf_size() correctly
+ *                     handles invalid file descriptor by returning appropriate error
+ *                     from fd_object_get without proceeding to socket operations.
+ * Call Path: wasi_ssp_sock_set_send_buf_size() [PUBLIC API]
+ * Coverage Goal: Exercise error handling path for invalid file descriptor
+ ******/
+TEST_F(EnhancedPosixTest, SetSendBufSize_InvalidFD_ReturnsError) {
+    // Test with multiple invalid file descriptor values
+    __wasi_fd_t invalid_fds[] = {999, 1000, UINT32_MAX};
+    const int num_invalid_fds = sizeof(invalid_fds) / sizeof(invalid_fds[0]);
+
+    for (int i = 0; i < num_invalid_fds; i++) {
+        __wasi_fd_t invalid_fd = invalid_fds[i];
+        __wasi_size_t buffer_size = 1024;
+
+        // Execute wasi_ssp_sock_set_send_buf_size with invalid FD
+        __wasi_errno_t result = wasi_ssp_sock_set_send_buf_size(
+            nullptr, &fd_table_, invalid_fd, buffer_size);
+
+        // Validate error path execution
+        // Line 2809: fd_object_get should fail for invalid FD
+        // Line 2810: Error check should detect failure (error != __WASI_ESUCCESS)
+        // Line 2811: Function should return error from fd_object_get
+        // Lines 2813-2820: Should NOT be executed due to early return
+        ASSERT_NE(__WASI_ESUCCESS, result);
+        ASSERT_EQ(__WASI_EBADF, result); // Expected error for bad file descriptor
+    }
+}
+
+/******
+ * Test Case: SetSendBufSize_ClosedSocket_ReturnsError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2804-2820
+ * Target Lines: 2813 (os_socket_set_send_buf_size call), 2816-2818 (error handling)
+ * Functional Purpose: Validates that wasi_ssp_sock_set_send_buf_size() correctly
+ *                     handles socket operation failure by converting errno and
+ *                     returning appropriate error code after proper cleanup.
+ * Call Path: wasi_ssp_sock_set_send_buf_size() [PUBLIC API]
+ * Coverage Goal: Exercise socket operation failure path with errno conversion
+ ******/
+TEST_F(EnhancedPosixTest, SetSendBufSize_ClosedSocket_ReturnsError) {
+    int socket_fd;
+
+    // Create socket for testing
+    socket_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    ASSERT_NE(-1, socket_fd);
+
+    // Add socket to fd_table first
+    __wasi_fd_t wasi_fd = 16;
+    ASSERT_TRUE(fd_table_insert_existing(&fd_table_, wasi_fd, socket_fd, true));
+
+    // Close the underlying socket to force os_socket_set_send_buf_size failure
+    close(socket_fd);
+
+    __wasi_size_t buffer_size = 2048;
+
+    // Execute wasi_ssp_sock_set_send_buf_size on closed socket
+    __wasi_errno_t result = wasi_ssp_sock_set_send_buf_size(
+        nullptr, &fd_table_, wasi_fd, buffer_size);
+
+    // Validate socket operation failure path
+    // Line 2809: fd_object_get should succeed (FD exists in table)
+    // Line 2813: os_socket_set_send_buf_size should fail on closed socket
+    // Line 2815: fd_object_release should execute for cleanup
+    // Line 2816: Error check should detect os_socket_set_send_buf_size failure
+    // Line 2817: convert_errno should convert system errno to WASI errno
+    // Line 2818: Function should return converted error code
+    ASSERT_NE(__WASI_ESUCCESS, result);
+    // Specific error depends on platform, but should be a valid WASI error
+    ASSERT_GT(result, __WASI_ESUCCESS);
+}
