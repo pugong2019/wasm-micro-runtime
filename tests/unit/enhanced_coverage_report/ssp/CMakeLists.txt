@@ -215,6 +215,33 @@ else()
     add_test(NAME enhanced_blocking_op_test COMMAND enhanced_blocking_op_test)
 endif()
 
+# Enhanced POSIX Test - Core POSIX Functions
+add_executable(enhanced_posix_test enhanced_posix_test.cc ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE})
+
+# Apply same platform and feature configurations to Enhanced POSIX test
+if(WAMR_BUILD_TARGET MATCHES "X86_.*")
+    target_compile_definitions(enhanced_posix_test PRIVATE BUILD_TARGET_X86=1)
+elseif(WAMR_BUILD_TARGET MATCHES "AARCH64.*")
+    target_compile_definitions(enhanced_posix_test PRIVATE BUILD_TARGET_AARCH64=1)
+elseif(WAMR_BUILD_TARGET MATCHES "RISCV.*")
+    target_compile_definitions(enhanced_posix_test PRIVATE BUILD_TARGET_RISCV=1)
+endif()
+
+if(WAMR_BUILD_LIBC_WASI EQUAL 1)
+    target_compile_definitions(enhanced_posix_test PRIVATE WASM_ENABLE_LIBC_WASI=1)
+else()
+    target_compile_definitions(enhanced_posix_test PRIVATE WASM_ENABLE_LIBC_WASI=0)
+endif()
+
+target_link_libraries(enhanced_posix_test gtest_main)
+
+if(COMMAND gtest_discover_tests)
+    gtest_discover_tests(enhanced_posix_test)
+else()
+    add_test(NAME enhanced_posix_test COMMAND enhanced_posix_test)
+endif()
+
 message("-- SSP Enhanced tests: Created Step 1, Step 2, and Step 3 test executables")
 message("-- SSP Enhanced tests: Created Enhanced Blocking Op test executable")
+message("-- SSP Enhanced tests: Created Enhanced POSIX test executable")
 message("-- SSP Unified tests: Created single unified test executable")
