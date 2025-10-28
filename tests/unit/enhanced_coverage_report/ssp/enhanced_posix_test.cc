@@ -650,7 +650,8 @@ TEST_F(EnhancedPosixTest, FdAdvise_InvalidFileDescriptor_ReturnsError) {
  * Coverage Goal: Exercise directory type error handling path with proper cleanup
  ******/
 TEST_F(EnhancedPosixTest, FdAdvise_DirectoryFileType_ReturnsError) {
-    // Create a directory fd for testing
+    // Create a directory fd for testing - create directory first if it doesn't exist
+    mkdir("/tmp/wamr_test_dir_advise", 0755);
     int dir_fd = open("/tmp/wamr_test_dir_advise", O_RDONLY);
     ASSERT_GE(dir_fd, 0);
 
@@ -1120,4 +1121,305 @@ TEST_F(EnhancedPosixTest, SockGetIpMulticastLoop_ValidParametersStressTest_Exerc
     // Verify both calls handled error conditions appropriately
     ASSERT_TRUE(result_ipv4 == __WASI_EBADF || result_ipv4 == __WASI_ENOTSOCK || result_ipv4 == __WASI_EINVAL);
     ASSERT_TRUE(result_ipv6 == __WASI_EBADF || result_ipv6 == __WASI_ENOTSOCK || result_ipv6 == __WASI_EINVAL);
+}
+
+// ========== NEW TEST CASES FOR wasmtime_ssp_environ_get (Lines 2979-2991) ==========
+
+/******
+ * Test Case: EnvironGet_ValidEnvironmentWithMultipleVariables_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2979-2991
+ * Target Lines: 2982-2986 (for loop copying pointers), 2987 (null terminate), 2988-2990 (bh_memcpy_s), 2991 (return)
+ * Functional Purpose: Validates that wasmtime_ssp_environ_get() correctly copies environment
+ *                     variable pointers and buffer data for multiple environment variables.
+ * Call Path: wasmtime_ssp_environ_get() <- wasi_environ_get() <- WASI environ_get syscall
+ * Coverage Goal: Exercise main execution path with multiple environment variables
+ ******/
+TEST_F(EnhancedPosixTest, EnvironGet_ValidEnvironmentWithMultipleVariables_ReturnsSuccess) {
+    // Setup environment data
+    char env_buf[] = "HOME=/home/user\0PATH=/usr/bin:/bin\0USER=testuser\0";
+    char *env_list[] = {(char*)"HOME=/home/user", (char*)"PATH=/usr/bin:/bin", (char*)"USER=testuser"};
+    size_t env_count = 3;
+    size_t env_buf_size = sizeof(env_buf);
+
+    struct argv_environ_values argv_environ;
+    memset(&argv_environ, 0, sizeof(argv_environ));
+    argv_environ.environ_buf = env_buf;
+    argv_environ.environ_buf_size = env_buf_size;
+    argv_environ.environ_list = env_list;
+    argv_environ.environ_count = env_count;
+
+    // Allocate output arrays
+    char **environs = (char**)malloc(sizeof(char*) * (env_count + 1));
+    ASSERT_NE(nullptr, environs);
+    char *environ_buf = (char*)malloc(env_buf_size);
+    ASSERT_NE(nullptr, environ_buf);
+
+    // Call wasmtime_ssp_environ_get
+    __wasi_errno_t result = wasmtime_ssp_environ_get(&argv_environ, environs, environ_buf);
+
+    // Should succeed - all target lines 2982-2991 exercised
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+
+    // Verify environment pointer array (lines 2982-2986)
+    ASSERT_NE(nullptr, environs[0]);
+    ASSERT_NE(nullptr, environs[1]);
+    ASSERT_NE(nullptr, environs[2]);
+    ASSERT_EQ(nullptr, environs[3]);  // Line 2987: null terminated
+
+    // Verify environment buffer was copied (lines 2988-2990)
+    ASSERT_EQ(0, memcmp(environ_buf, env_buf, env_buf_size));
+
+    // Cleanup
+    free(environs);
+    free(environ_buf);
+}
+
+/******
+ * Test Case: EnvironGet_SingleEnvironmentVariable_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2979-2991
+ * Target Lines: 2982-2986 (for loop with single iteration), 2987 (null terminate), 2988-2990 (bh_memcpy_s), 2991 (return)
+ * Functional Purpose: Validates that wasmtime_ssp_environ_get() correctly handles single
+ *                     environment variable case, exercising the for loop with one iteration.
+ * Call Path: wasmtime_ssp_environ_get() <- wasi_environ_get() <- WASI environ_get syscall
+ * Coverage Goal: Exercise all target lines with minimal environment data
+ ******/
+TEST_F(EnhancedPosixTest, EnvironGet_SingleEnvironmentVariable_ReturnsSuccess) {
+    // Setup single environment variable
+    char env_buf[] = "TEST_VAR=test_value\0";
+    char *env_list[] = {(char*)"TEST_VAR=test_value"};
+    size_t env_count = 1;
+    size_t env_buf_size = sizeof(env_buf);
+
+    struct argv_environ_values argv_environ;
+    memset(&argv_environ, 0, sizeof(argv_environ));
+    argv_environ.environ_buf = env_buf;
+    argv_environ.environ_buf_size = env_buf_size;
+    argv_environ.environ_list = env_list;
+    argv_environ.environ_count = env_count;
+
+    // Allocate output arrays
+    char **environs = (char**)malloc(sizeof(char*) * (env_count + 1));
+    ASSERT_NE(nullptr, environs);
+    char *environ_buf = (char*)malloc(env_buf_size);
+    ASSERT_NE(nullptr, environ_buf);
+
+    // Call wasmtime_ssp_environ_get
+    __wasi_errno_t result = wasmtime_ssp_environ_get(&argv_environ, environs, environ_buf);
+
+    // Should succeed - all target lines exercised
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+
+    // Verify single environment pointer (lines 2982-2986, single iteration)
+    ASSERT_NE(nullptr, environs[0]);
+    ASSERT_EQ(nullptr, environs[1]);  // Line 2987: null terminated
+
+    // Verify environment buffer was copied (lines 2988-2990)
+    ASSERT_STREQ("TEST_VAR=test_value", environ_buf);
+
+    // Cleanup
+    free(environs);
+    free(environ_buf);
+}
+
+/******
+ * Test Case: EnvironGet_EmptyEnvironment_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2979-2991
+ * Target Lines: 2982-2986 (for loop with zero iterations), 2987 (null terminate), 2988-2990 (bh_memcpy_s empty), 2991 (return)
+ * Functional Purpose: Validates that wasmtime_ssp_environ_get() correctly handles empty
+ *                     environment case where for loop doesn't execute but null termination
+ *                     and buffer copy still occur.
+ * Call Path: wasmtime_ssp_environ_get() <- wasi_environ_get() <- WASI environ_get syscall
+ * Coverage Goal: Exercise for loop with zero iterations and empty buffer copy
+ ******/
+TEST_F(EnhancedPosixTest, EnvironGet_EmptyEnvironment_ReturnsSuccess) {
+    // Setup empty environment
+    char env_buf[] = "";
+    char **env_list = nullptr;
+    size_t env_count = 0;
+    size_t env_buf_size = 1;  // Minimum size for empty string
+
+    struct argv_environ_values argv_environ;
+    memset(&argv_environ, 0, sizeof(argv_environ));
+    argv_environ.environ_buf = env_buf;
+    argv_environ.environ_buf_size = env_buf_size;
+    argv_environ.environ_list = env_list;
+    argv_environ.environ_count = env_count;
+
+    // Allocate output arrays
+    char **environs = (char**)malloc(sizeof(char*) * (env_count + 1));
+    ASSERT_NE(nullptr, environs);
+    char *environ_buf = (char*)malloc(env_buf_size);
+    ASSERT_NE(nullptr, environ_buf);
+
+    // Call wasmtime_ssp_environ_get
+    __wasi_errno_t result = wasmtime_ssp_environ_get(&argv_environ, environs, environ_buf);
+
+    // Should succeed - all target lines exercised with empty data
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+
+    // Verify empty environment (lines 2982-2986 skipped, line 2987 executed)
+    ASSERT_EQ(nullptr, environs[0]);  // Line 2987: null terminated
+
+    // Verify empty buffer was copied (lines 2988-2990)
+    ASSERT_EQ('\0', environ_buf[0]);
+
+    // Cleanup
+    free(environs);
+    free(environ_buf);
+}
+
+/******
+ * Test Case: EnvironGet_LargeEnvironmentBuffer_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2979-2991
+ * Target Lines: 2982-2986 (for loop multiple iterations), 2987 (null terminate), 2988-2990 (bh_memcpy_s large buffer), 2991 (return)
+ * Functional Purpose: Validates that wasmtime_ssp_environ_get() correctly handles large
+ *                     environment buffer with multiple variables, testing memory copy
+ *                     performance and pointer arithmetic.
+ * Call Path: wasmtime_ssp_environ_get() <- wasi_environ_get() <- WASI environ_get syscall
+ * Coverage Goal: Exercise bh_memcpy_s with larger buffer sizes
+ ******/
+TEST_F(EnhancedPosixTest, EnvironGet_LargeEnvironmentBuffer_ReturnsSuccess) {
+    // Setup large environment with long values
+    char env_buf[] = "VERY_LONG_ENVIRONMENT_VARIABLE_NAME_1=very_long_environment_variable_value_1\0"
+                    "VERY_LONG_ENVIRONMENT_VARIABLE_NAME_2=very_long_environment_variable_value_2\0"
+                    "VERY_LONG_ENVIRONMENT_VARIABLE_NAME_3=very_long_environment_variable_value_3\0"
+                    "VERY_LONG_ENVIRONMENT_VARIABLE_NAME_4=very_long_environment_variable_value_4\0";
+    char *env_list[] = {
+        (char*)"VERY_LONG_ENVIRONMENT_VARIABLE_NAME_1=very_long_environment_variable_value_1",
+        (char*)"VERY_LONG_ENVIRONMENT_VARIABLE_NAME_2=very_long_environment_variable_value_2",
+        (char*)"VERY_LONG_ENVIRONMENT_VARIABLE_NAME_3=very_long_environment_variable_value_3",
+        (char*)"VERY_LONG_ENVIRONMENT_VARIABLE_NAME_4=very_long_environment_variable_value_4"
+    };
+    size_t env_count = 4;
+    size_t env_buf_size = sizeof(env_buf);
+
+    struct argv_environ_values argv_environ;
+    memset(&argv_environ, 0, sizeof(argv_environ));
+    argv_environ.environ_buf = env_buf;
+    argv_environ.environ_buf_size = env_buf_size;
+    argv_environ.environ_list = env_list;
+    argv_environ.environ_count = env_count;
+
+    // Allocate output arrays
+    char **environs = (char**)malloc(sizeof(char*) * (env_count + 1));
+    ASSERT_NE(nullptr, environs);
+    char *environ_buf = (char*)malloc(env_buf_size);
+    ASSERT_NE(nullptr, environ_buf);
+
+    // Call wasmtime_ssp_environ_get
+    __wasi_errno_t result = wasmtime_ssp_environ_get(&argv_environ, environs, environ_buf);
+
+    // Should succeed - all target lines exercised with large buffer
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+
+    // Verify all four environment pointers (lines 2982-2986, four iterations)
+    for (size_t i = 0; i < env_count; i++) {
+        ASSERT_NE(nullptr, environs[i]);
+    }
+    ASSERT_EQ(nullptr, environs[env_count]);  // Line 2987: null terminated
+
+    // Verify large buffer was copied correctly (lines 2988-2990)
+    ASSERT_EQ(0, memcmp(environ_buf, env_buf, env_buf_size));
+
+    // Cleanup
+    free(environs);
+    free(environ_buf);
+}
+
+/******
+ * Test Case: EnvironGet_ValidPointerArithmetic_ExercisesOffsetCalculation
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2979-2991
+ * Target Lines: 2983-2985 (pointer arithmetic: environ_buf + (environ_list[i] - environ_buf))
+ * Functional Purpose: Validates that wasmtime_ssp_environ_get() correctly calculates pointer
+ *                     offsets in lines 2983-2985 by testing the arithmetic operation that
+ *                     maps environ_list pointers to offset positions in environ_buf.
+ * Call Path: wasmtime_ssp_environ_get() <- wasi_environ_get() <- WASI environ_get syscall
+ * Coverage Goal: Exercise pointer arithmetic and offset calculation in lines 2983-2985
+ ******/
+TEST_F(EnhancedPosixTest, EnvironGet_ValidPointerArithmetic_ExercisesOffsetCalculation) {
+    // Setup environment with specific pointer layout for offset testing
+    char env_buf[] = "VAR1=value1\0VAR2=value2\0VAR3=value3\0";
+    char *env_list[3];
+    // Calculate actual pointers within env_buf
+    env_list[0] = env_buf;                    // Points to "VAR1=value1"
+    env_list[1] = env_buf + 12;               // Points to "VAR2=value2"
+    env_list[2] = env_buf + 24;               // Points to "VAR3=value3"
+    size_t env_count = 3;
+    size_t env_buf_size = sizeof(env_buf);
+
+    struct argv_environ_values argv_environ;
+    memset(&argv_environ, 0, sizeof(argv_environ));
+    argv_environ.environ_buf = env_buf;
+    argv_environ.environ_buf_size = env_buf_size;
+    argv_environ.environ_list = env_list;
+    argv_environ.environ_count = env_count;
+
+    // Allocate output arrays
+    char **environs = (char**)malloc(sizeof(char*) * (env_count + 1));
+    ASSERT_NE(nullptr, environs);
+    char *environ_buf = (char*)malloc(env_buf_size);
+    ASSERT_NE(nullptr, environ_buf);
+
+    // Call wasmtime_ssp_environ_get
+    __wasi_errno_t result = wasmtime_ssp_environ_get(&argv_environ, environs, environ_buf);
+
+    // Should succeed - target lines 2983-2985 exercised with pointer arithmetic
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+
+    // Verify pointer arithmetic worked correctly (lines 2983-2985)
+    ASSERT_STREQ("VAR1=value1", environs[0]);
+    ASSERT_STREQ("VAR2=value2", environs[1]);
+    ASSERT_STREQ("VAR3=value3", environs[2]);
+    ASSERT_EQ(nullptr, environs[3]);  // Line 2987: null terminated
+
+    // Verify buffer copy integrity (lines 2988-2990)
+    ASSERT_EQ(0, memcmp(environ_buf, env_buf, env_buf_size));
+
+    // Cleanup
+    free(environs);
+    free(environ_buf);
+}
+
+/******
+ * Test Case: EnvironGet_ZeroSizeBuffer_ExercisesMemcpyWithZeroSize
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2979-2991
+ * Target Lines: 2988-2990 (bh_memcpy_s with zero size), 2991 (return success)
+ * Functional Purpose: Validates that wasmtime_ssp_environ_get() correctly handles edge case
+ *                     of zero-sized environment buffer in bh_memcpy_s call, ensuring
+ *                     memory copy operation succeeds with zero bytes.
+ * Call Path: wasmtime_ssp_environ_get() <- wasi_environ_get() <- WASI environ_get syscall
+ * Coverage Goal: Exercise bh_memcpy_s with zero buffer size in lines 2988-2990
+ ******/
+TEST_F(EnhancedPosixTest, EnvironGet_ZeroSizeBuffer_ExercisesMemcpyWithZeroSize) {
+    // Setup with zero-sized buffer
+    char *env_buf = (char*)"";
+    char **env_list = nullptr;
+    size_t env_count = 0;
+    size_t env_buf_size = 0;  // Zero size buffer
+
+    struct argv_environ_values argv_environ;
+    memset(&argv_environ, 0, sizeof(argv_environ));
+    argv_environ.environ_buf = env_buf;
+    argv_environ.environ_buf_size = env_buf_size;
+    argv_environ.environ_list = env_list;
+    argv_environ.environ_count = env_count;
+
+    // Allocate output arrays - minimum size for safety
+    char **environs = (char**)malloc(sizeof(char*) * 1);
+    ASSERT_NE(nullptr, environs);
+    char *environ_buf = (char*)malloc(1);  // Minimum allocation
+    ASSERT_NE(nullptr, environ_buf);
+
+    // Call wasmtime_ssp_environ_get
+    __wasi_errno_t result = wasmtime_ssp_environ_get(&argv_environ, environs, environ_buf);
+
+    // Should succeed - lines 2988-2990 exercised with zero-size bh_memcpy_s
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+
+    // Verify null termination (line 2987)
+    ASSERT_EQ(nullptr, environs[0]);
+
+    // Cleanup
+    free(environs);
+    free(environ_buf);
 }
