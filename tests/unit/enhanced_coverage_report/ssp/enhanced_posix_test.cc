@@ -2782,3 +2782,133 @@ TEST_F(EnhancedPosixTest, wasmtime_ssp_sock_set_ip_add_membership_DirectCall_Cov
     close(socket_fds[0]);
     close(socket_fds[1]);
 }
+
+/******
+ * Test Case: SockSetLinger_ValidSocket_EnableLinger_Success
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:3277-3291
+ * Target Lines: 3283 (fd_object_get), 3287 (os_socket_set_linger), 3288 (fd_object_release), 3291 (success return)
+ * Functional Purpose: Validates that wasmtime_ssp_sock_set_linger() successfully enables
+ *                     socket linger option with proper resource management and cleanup.
+ * Call Path: wasmtime_ssp_sock_set_linger() -> fd_object_get() -> os_socket_set_linger() -> fd_object_release()
+ * Coverage Goal: Exercise success path for valid socket with linger enable (lines 3283, 3287, 3288, 3291)
+ ******/
+TEST_F(EnhancedPosixTest, SockSetLinger_ValidSocket_EnableLinger_Success) {
+    // Skip test if not on supported platform
+    if (!PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create a socket pair for testing
+    int socket_fds[2];
+    ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, socket_fds));
+
+    // Insert the socket into fd_table with proper socket type
+    __wasi_fd_t wasi_sock_fd = 20;
+    bool insert_success = fd_table_insert_existing(&fd_table_, wasi_sock_fd, socket_fds[0], true);  // true = socket type
+    ASSERT_TRUE(insert_success);
+
+    // Test enabling linger with 30 second timeout
+    bool is_enabled = true;
+    int linger_s = 30;
+
+    // Execute wasmtime_ssp_sock_set_linger - this should cover lines 3283, 3287, 3288, 3291
+    __wasi_errno_t result = wasmtime_ssp_sock_set_linger(nullptr, &fd_table_, wasi_sock_fd, is_enabled, linger_s);
+
+    // Verify successful linger configuration (line 3291: return __WASI_ESUCCESS)
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+
+    // Cleanup
+    close(socket_fds[0]);
+    close(socket_fds[1]);
+}
+
+/******
+ * Test Case: SockSetLinger_ValidSocket_DisableLinger_Success
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:3277-3291
+ * Target Lines: 3283 (fd_object_get), 3287 (os_socket_set_linger), 3288 (fd_object_release), 3291 (success return)
+ * Functional Purpose: Validates that wasmtime_ssp_sock_set_linger() successfully disables
+ *                     socket linger option with proper resource management.
+ * Call Path: wasmtime_ssp_sock_set_linger() -> fd_object_get() -> os_socket_set_linger() -> fd_object_release()
+ * Coverage Goal: Exercise success path for valid socket with linger disable (lines 3283, 3287, 3288, 3291)
+ ******/
+TEST_F(EnhancedPosixTest, SockSetLinger_ValidSocket_DisableLinger_Success) {
+    // Skip test if not on supported platform
+    if (!PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create a socket pair for testing
+    int socket_fds[2];
+    ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, socket_fds));
+
+    // Insert the socket into fd_table with proper socket type
+    __wasi_fd_t wasi_sock_fd = 21;
+    bool insert_success = fd_table_insert_existing(&fd_table_, wasi_sock_fd, socket_fds[0], true);  // true = socket type
+    ASSERT_TRUE(insert_success);
+
+    // Test disabling linger (is_enabled = false, linger_s = 0)
+    bool is_enabled = false;
+    int linger_s = 0;
+
+    // Execute wasmtime_ssp_sock_set_linger - this should cover lines 3283, 3287, 3288, 3291
+    __wasi_errno_t result = wasmtime_ssp_sock_set_linger(nullptr, &fd_table_, wasi_sock_fd, is_enabled, linger_s);
+
+    // Verify successful linger configuration (line 3291: return __WASI_ESUCCESS)
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+
+    // Cleanup
+    close(socket_fds[0]);
+    close(socket_fds[1]);
+}
+
+/******
+ * Test Case: SockSetLinger_InvalidFd_ReturnsError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:3277-3291
+ * Target Lines: 3283 (fd_object_get call), 3284-3285 (error check and return)
+ * Functional Purpose: Validates that wasmtime_ssp_sock_set_linger() properly handles
+ *                     invalid file descriptor by returning appropriate error code.
+ * Call Path: wasmtime_ssp_sock_set_linger() -> fd_object_get() fails
+ * Coverage Goal: Exercise error path for invalid fd (lines 3283, 3284-3285)
+ ******/
+TEST_F(EnhancedPosixTest, SockSetLinger_InvalidFd_ReturnsError) {
+    // Use non-existent fd number
+    __wasi_fd_t invalid_fd = 999;
+    bool is_enabled = true;
+    int linger_s = 30;
+
+    // Execute wasmtime_ssp_sock_set_linger with invalid fd
+    __wasi_errno_t result = wasmtime_ssp_sock_set_linger(nullptr, &fd_table_, invalid_fd, is_enabled, linger_s);
+
+    // Verify error return (lines 3284-3285: if (error != 0) return error)
+    ASSERT_NE(__WASI_ESUCCESS, result);
+    ASSERT_EQ(__WASI_EBADF, result);  // Should return bad file descriptor error
+}
+
+/******
+ * Test Case: SockSetLinger_NonSocketFd_HandlesAppropriately
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:3277-3291
+ * Target Lines: 3283 (fd_object_get), 3287 (os_socket_set_linger may fail), 3288 (fd_object_release), 3289-3290 (error path)
+ * Functional Purpose: Validates that wasmtime_ssp_sock_set_linger() handles non-socket
+ *                     file descriptors appropriately, testing the socket operation error path.
+ * Call Path: wasmtime_ssp_sock_set_linger() -> fd_object_get() -> os_socket_set_linger() fails
+ * Coverage Goal: Exercise socket operation error path (lines 3287, 3289-3290)
+ ******/
+TEST_F(EnhancedPosixTest, SockSetLinger_NonSocketFd_HandlesAppropriately) {
+    // Skip test if not on supported platform
+    if (!PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Use an existing regular file fd (not a socket) - this should be in fd_table already
+    __wasi_fd_t regular_fd = 3;  // This is a regular file fd from SetupTestFileDescriptors
+    bool is_enabled = true;
+    int linger_s = 30;
+
+    // Execute wasmtime_ssp_sock_set_linger with regular file fd
+    __wasi_errno_t result = wasmtime_ssp_sock_set_linger(nullptr, &fd_table_, regular_fd, is_enabled, linger_s);
+
+    // The os_socket_set_linger call on non-socket fd should fail
+    // Lines 3289-3290: if (BHT_OK != ret) return convert_errno(errno)
+    ASSERT_NE(__WASI_ESUCCESS, result);
+    // Result should be some error code indicating socket operation failure
+}
