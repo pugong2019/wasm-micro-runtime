@@ -121,6 +121,7 @@ After EVERY task completion, the subagent MUST:
 
 #### Task 1.1: Target Module Analysis
 **ANALYSIS CHECKLIST (Mandatory Completion):**
+- [ ] Analyze already existing test cases code to understand test framwork and purpose
 - [ ] Identify module type (aot, interpreter, runtime-common, libraries, etc.)
 - [ ] Map module source code directory structure in `core/iwasm/[module]/`
 - [ ] Locate existing test files in `tests/unit/[module]/`

@@ -1,3 +1,9 @@
+---
+name: cross-module-test
+description: Generate tests for WAMR macro-controlled code by relocating to compatible modules with required build flags
+version: "1.0.0"
+---
+
 # Cross-Module Test Generation for Macro-Controlled Code
 
 ## Skill Description
