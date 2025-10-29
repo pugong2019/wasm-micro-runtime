@@ -4816,3 +4816,209 @@ TEST_F(EnhancedPosixTest, PathRename_RenameSystemCallFailure_ProperCleanup) {
     system("rm -rf /tmp/wamr_test_rename_fail_source");
     system("rm -rf /tmp/wamr_test_rename_fail_dest");
 }
+
+/******
+ * New Test Cases for wasmtime_ssp_path_filestat_set_times Function - Lines 1980-2011
+ * Added: 2025-10-29
+ ******/
+
+/******
+ * Test Case: PathFilestatSetTimes_InvalidFstflags_ReturnsEINVAL
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1988-1998
+ * Target Lines: 1988-1991 (invalid fstflags validation), 1998 (return __WASI_EINVAL)
+ * Functional Purpose: Validates that wasmtime_ssp_path_filestat_set_times() correctly rejects
+ *                     invalid fstflags combinations with unsupported flags and returns EINVAL.
+ * Call Path: wasmtime_ssp_path_filestat_set_times() [PUBLIC API - Direct call]
+ * Coverage Goal: Exercise parameter validation path for invalid fstflags
+ ******/
+TEST_F(EnhancedPosixTest, PathFilestatSetTimes_InvalidFstflags_ReturnsEINVAL) {
+    if (!PlatformTestContext::HasFileSupport()) {
+        return;
+    }
+
+    const char *test_path = "test_file.txt";
+    size_t test_path_len = strlen(test_path);
+    __wasi_timestamp_t st_atim = 1000000000ULL;
+    __wasi_timestamp_t st_mtim = 2000000000ULL;
+
+    // Create a mock execution environment
+    wasm_exec_env_t exec_env = nullptr;  // Can be nullptr for this test
+
+    // Test invalid fstflags - flags outside allowed values
+    __wasi_fstflags_t invalid_flags = 0xFF;  // Invalid flags outside allowed range
+
+    __wasi_errno_t result = wasmtime_ssp_path_filestat_set_times(
+        exec_env, &fd_table_, 3, 0, test_path, test_path_len,
+        st_atim, st_mtim, invalid_flags);
+
+    // Should return EINVAL due to invalid fstflags validation (line 1988-1991, 1998)
+    ASSERT_EQ(__WASI_EINVAL, result);
+}
+
+/******
+ * Test Case: PathFilestatSetTimes_AtimConflict_ReturnsEINVAL
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1992-1998
+ * Target Lines: 1992-1994 (ATIM and ATIM_NOW conflict check), 1998 (return __WASI_EINVAL)
+ * Functional Purpose: Validates that wasmtime_ssp_path_filestat_set_times() correctly rejects
+ *                     conflicting ATIM and ATIM_NOW flags set simultaneously.
+ * Call Path: wasmtime_ssp_path_filestat_set_times() [PUBLIC API - Direct call]
+ * Coverage Goal: Exercise ATIM conflict validation path
+ ******/
+TEST_F(EnhancedPosixTest, PathFilestatSetTimes_AtimConflict_ReturnsEINVAL) {
+    if (!PlatformTestContext::HasFileSupport()) {
+        return;
+    }
+
+    const char *test_path = "test_file.txt";
+    size_t test_path_len = strlen(test_path);
+    __wasi_timestamp_t st_atim = 1000000000ULL;
+    __wasi_timestamp_t st_mtim = 2000000000ULL;
+
+    // Create a mock execution environment
+    wasm_exec_env_t exec_env = nullptr;  // Can be nullptr for this test
+
+    // Test ATIM and ATIM_NOW conflict - both flags set simultaneously
+    __wasi_fstflags_t conflicting_flags = __WASI_FILESTAT_SET_ATIM | __WASI_FILESTAT_SET_ATIM_NOW;
+
+    __wasi_errno_t result = wasmtime_ssp_path_filestat_set_times(
+        exec_env, &fd_table_, 3, 0, test_path, test_path_len,
+        st_atim, st_mtim, conflicting_flags);
+
+    // Should return EINVAL due to ATIM conflict validation (line 1992-1994, 1998)
+    ASSERT_EQ(__WASI_EINVAL, result);
+}
+
+/******
+ * Test Case: PathFilestatSetTimes_MtimConflict_ReturnsEINVAL
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1995-1998
+ * Target Lines: 1995-1997 (MTIM and MTIM_NOW conflict check), 1998 (return __WASI_EINVAL)
+ * Functional Purpose: Validates that wasmtime_ssp_path_filestat_set_times() correctly rejects
+ *                     conflicting MTIM and MTIM_NOW flags set simultaneously.
+ * Call Path: wasmtime_ssp_path_filestat_set_times() [PUBLIC API - Direct call]
+ * Coverage Goal: Exercise MTIM conflict validation path
+ ******/
+TEST_F(EnhancedPosixTest, PathFilestatSetTimes_MtimConflict_ReturnsEINVAL) {
+    if (!PlatformTestContext::HasFileSupport()) {
+        return;
+    }
+
+    const char *test_path = "test_file.txt";
+    size_t test_path_len = strlen(test_path);
+    __wasi_timestamp_t st_atim = 1000000000ULL;
+    __wasi_timestamp_t st_mtim = 2000000000ULL;
+
+    // Create a mock execution environment
+    wasm_exec_env_t exec_env = nullptr;  // Can be nullptr for this test
+
+    // Test MTIM and MTIM_NOW conflict - both flags set simultaneously
+    __wasi_fstflags_t conflicting_flags = __WASI_FILESTAT_SET_MTIM | __WASI_FILESTAT_SET_MTIM_NOW;
+
+    __wasi_errno_t result = wasmtime_ssp_path_filestat_set_times(
+        exec_env, &fd_table_, 3, 0, test_path, test_path_len,
+        st_atim, st_mtim, conflicting_flags);
+
+    // Should return EINVAL due to MTIM conflict validation (line 1995-1997, 1998)
+    ASSERT_EQ(__WASI_EINVAL, result);
+}
+
+/******
+ * Test Case: PathFilestatSetTimes_ValidFlags_ProcessesPath
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2000-2011
+ * Target Lines: 2000-2003 (path_get call), 2004-2005 (error check), 2007-2011 (os_utimensat and cleanup)
+ * Functional Purpose: Tests wasmtime_ssp_path_filestat_set_times() with valid fstflags,
+ *                     exercising the main execution path including path_get, os_utimensat, and path_put.
+ * Call Path: wasmtime_ssp_path_filestat_set_times() [PUBLIC API - Direct call]
+ * Coverage Goal: Exercise normal operation path with valid parameters
+ ******/
+TEST_F(EnhancedPosixTest, PathFilestatSetTimes_ValidFlags_ProcessesPath) {
+    if (!PlatformTestContext::HasFileSupport()) {
+        return;
+    }
+
+    // Create a test file for timestamp modification
+    const char *test_file_path = "/tmp/wamr_filestat_set_times_test.txt";
+    int file_fd = open(test_file_path, O_CREAT | O_WRONLY, 0644);
+    ASSERT_GE(file_fd, 0);
+    close(file_fd);
+
+    const char *relative_path = "wamr_filestat_set_times_test.txt";
+    size_t path_len = strlen(relative_path);
+    __wasi_timestamp_t st_atim = 1640995200000000000ULL;  // 2022-01-01 timestamp
+    __wasi_timestamp_t st_mtim = 1672531200000000000ULL;  // 2023-01-01 timestamp
+
+    // Create a mock execution environment - this is required for path_get
+    wasm_exec_env_t exec_env = nullptr;
+
+    // Test with valid fstflags - set both access and modification times
+    __wasi_fstflags_t valid_flags = __WASI_FILESTAT_SET_ATIM | __WASI_FILESTAT_SET_MTIM;
+
+    // Map /tmp directory to fd 3 for testing (we need proper fd setup)
+    int tmp_dir_fd = open("/tmp", O_RDONLY);
+    ASSERT_GE(tmp_dir_fd, 0);
+
+    // Insert the directory fd into our test fd_table
+    fd_table_insert_existing(&fd_table_, 5, tmp_dir_fd, false);
+
+    __wasi_errno_t result = wasmtime_ssp_path_filestat_set_times(
+        exec_env, &fd_table_, 5, 0, relative_path, path_len,
+        st_atim, st_mtim, valid_flags);
+
+    // The function should process through the main execution path:
+    // Lines 2000-2003: path_get() call
+    // Lines 2004-2005: error check (if path_get fails, return early)
+    // Lines 2007-2008: os_utimensat() call (if path_get succeeds)
+    // Lines 2010-2011: path_put() cleanup and return
+
+    // Result may be success or a legitimate OS error, but not a validation error
+    if (result != __WASI_ESUCCESS) {
+        // Should be a legitimate file system or permission error, not validation error
+        ASSERT_TRUE(result == __WASI_EACCES || result == __WASI_ENOENT ||
+                   result == __WASI_ENOTDIR || result == __WASI_EROFS ||
+                   result == __WASI_EPERM || result == __WASI_EFAULT);
+    }
+
+    // Cleanup
+    close(tmp_dir_fd);
+    unlink(test_file_path);
+}
+
+/******
+ * Test Case: PathFilestatSetTimes_InvalidFd_ReturnsError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2001-2005
+ * Target Lines: 2001-2003 (path_get call with invalid fd), 2004-2005 (error return path)
+ * Functional Purpose: Tests wasmtime_ssp_path_filestat_set_times() error handling when
+ *                     path_get fails due to invalid file descriptor.
+ * Call Path: wasmtime_ssp_path_filestat_set_times() -> path_get() [error path]
+ * Coverage Goal: Exercise path_get error handling and early return path
+ ******/
+TEST_F(EnhancedPosixTest, PathFilestatSetTimes_InvalidFd_ReturnsError) {
+    if (!PlatformTestContext::HasFileSupport()) {
+        return;
+    }
+
+    const char *test_path = "nonexistent_file.txt";
+    size_t test_path_len = strlen(test_path);
+    __wasi_timestamp_t st_atim = 1000000000ULL;
+    __wasi_timestamp_t st_mtim = 2000000000ULL;
+
+    // Create a mock execution environment
+    wasm_exec_env_t exec_env = nullptr;
+
+    // Test with valid fstflags but invalid file descriptor
+    __wasi_fstflags_t valid_flags = __WASI_FILESTAT_SET_ATIM;
+    __wasi_fd_t invalid_fd = 999;  // Non-existent fd
+
+    __wasi_errno_t result = wasmtime_ssp_path_filestat_set_times(
+        exec_env, &fd_table_, invalid_fd, 0, test_path, test_path_len,
+        st_atim, st_mtim, valid_flags);
+
+    // Should return an error from path_get() due to invalid fd (lines 2004-2005)
+    // The specific error depends on path_get implementation, but should not be EINVAL
+    // (which is reserved for parameter validation errors)
+    ASSERT_NE(__WASI_ESUCCESS, result);
+    ASSERT_NE(__WASI_EINVAL, result);  // Should not be parameter validation error
+
+    // Common errors from path_get for invalid fd: EBADF, ENOENT, EACCES
+    ASSERT_TRUE(result == __WASI_EBADF || result == __WASI_ENOENT ||
+               result == __WASI_EACCES || result == __WASI_ENOTDIR);
+}
