@@ -5666,3 +5666,240 @@ TEST_F(EnhancedPosixTest, wasmtime_ssp_path_remove_directory_NonEmptyDirectory_O
     rmdir(subdir_path);
     rmdir(temp_base_path);
 }
+
+/******
+ * Test Cases for wasmtime_ssp_sock_send_to Function - Lines 2888-2923
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2888-2923
+ * Target Coverage: wasmtime_ssp_sock_send_to function - socket send-to functionality
+ ******/
+
+/******
+ * Test Case: wasmtime_ssp_sock_send_to_InvalidAddress_ReturnsProtocolError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2888-2923
+ * Target Lines: 2900-2902 (wasi_addr_to_string failure path)
+ * Functional Purpose: Tests that wasmtime_ssp_sock_send_to correctly handles invalid
+ *                     address formats by returning __WASI_EPROTONOSUPPORT when
+ *                     wasi_addr_to_string() fails to convert the address.
+ * Call Path: wasmtime_ssp_sock_send_to() [PUBLIC API]
+ * Coverage Goal: Exercise address validation error path
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_sock_send_to_InvalidAddress_ReturnsProtocolError) {
+    // Setup invalid address (unknown address kind)
+    __wasi_addr_t invalid_addr;
+    memset(&invalid_addr, 0, sizeof(invalid_addr));
+    invalid_addr.kind = (__wasi_addr_type_t)999; // Invalid address type
+
+    const char test_data[] = "test_data";
+    size_t sent_len = 0;
+    __wasi_fd_t test_fd = 3;
+
+    // Initialize minimal addr_pool
+    struct addr_pool addr_pool = {0};
+    ASSERT_TRUE(addr_pool_init(&addr_pool));
+
+    wasm_exec_env_t exec_env = nullptr; // Can be null for testing
+
+    // Call function with invalid address
+    __wasi_errno_t result = wasmtime_ssp_sock_send_to(
+        exec_env, &fd_table_, &addr_pool, test_fd,
+        test_data, sizeof(test_data), 0, &invalid_addr, &sent_len);
+
+    // Should return EPROTONOSUPPORT due to invalid address format
+    ASSERT_EQ(__WASI_EPROTONOSUPPORT, result);
+
+    addr_pool_destroy(&addr_pool);
+}
+
+/******
+ * Test Case: wasmtime_ssp_sock_send_to_AddressNotInPool_ReturnsAccessError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2888-2923
+ * Target Lines: 2904-2906 (addr_pool_search failure path)
+ * Functional Purpose: Tests that wasmtime_ssp_sock_send_to correctly rejects addresses
+ *                     not present in the address pool by returning __WASI_EACCES when
+ *                     addr_pool_search() returns false.
+ * Call Path: wasmtime_ssp_sock_send_to() [PUBLIC API]
+ * Coverage Goal: Exercise address pool validation error path
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_sock_send_to_AddressNotInPool_ReturnsAccessError) {
+    // Setup valid IPv4 address format but not in pool
+    __wasi_addr_t valid_addr;
+    memset(&valid_addr, 0, sizeof(valid_addr));
+    valid_addr.kind = IPv4;
+    valid_addr.addr.ip4.addr.n0 = 192;
+    valid_addr.addr.ip4.addr.n1 = 168;
+    valid_addr.addr.ip4.addr.n2 = 1;
+    valid_addr.addr.ip4.addr.n3 = 100; // Address not in pool
+    valid_addr.addr.ip4.port = 8080;
+
+    const char test_data[] = "test_data";
+    size_t sent_len = 0;
+    __wasi_fd_t test_fd = 3;
+
+    // Initialize addr_pool with different address
+    struct addr_pool addr_pool = {0};
+    ASSERT_TRUE(addr_pool_init(&addr_pool));
+    ASSERT_TRUE(addr_pool_insert(&addr_pool, "127.0.0.1", 32)); // Different address
+
+    wasm_exec_env_t exec_env = nullptr; // Can be null for testing
+
+    // Call function with address not in pool
+    __wasi_errno_t result = wasmtime_ssp_sock_send_to(
+        exec_env, &fd_table_, &addr_pool, test_fd,
+        test_data, sizeof(test_data), 0, &valid_addr, &sent_len);
+
+    // Should return EACCES due to address not in pool
+    ASSERT_EQ(__WASI_EACCES, result);
+
+    addr_pool_destroy(&addr_pool);
+}
+
+/******
+ * Test Case: wasmtime_ssp_sock_send_to_InvalidFileDescriptor_ReturnsError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2888-2923
+ * Target Lines: 2908-2911 (fd_object_get failure path)
+ * Functional Purpose: Tests that wasmtime_ssp_sock_send_to correctly handles invalid
+ *                     file descriptors by returning appropriate error when fd_object_get()
+ *                     fails to retrieve a valid socket file descriptor.
+ * Call Path: wasmtime_ssp_sock_send_to() [PUBLIC API]
+ * Coverage Goal: Exercise file descriptor validation error path
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_sock_send_to_InvalidFileDescriptor_ReturnsError) {
+    // Setup valid address in pool
+    __wasi_addr_t valid_addr;
+    memset(&valid_addr, 0, sizeof(valid_addr));
+    valid_addr.kind = IPv4;
+    valid_addr.addr.ip4.addr.n0 = 127;
+    valid_addr.addr.ip4.addr.n1 = 0;
+    valid_addr.addr.ip4.addr.n2 = 0;
+    valid_addr.addr.ip4.addr.n3 = 1;
+    valid_addr.addr.ip4.port = 8080;
+
+    const char test_data[] = "test_data";
+    size_t sent_len = 0;
+    __wasi_fd_t invalid_fd = 999; // Non-existent FD
+
+    // Initialize addr_pool with matching address
+    struct addr_pool addr_pool = {0};
+    ASSERT_TRUE(addr_pool_init(&addr_pool));
+    ASSERT_TRUE(addr_pool_insert(&addr_pool, "127.0.0.1", 32));
+
+    wasm_exec_env_t exec_env = nullptr; // Can be null for testing
+
+    // Call function with invalid file descriptor
+    __wasi_errno_t result = wasmtime_ssp_sock_send_to(
+        exec_env, &fd_table_, &addr_pool, invalid_fd,
+        test_data, sizeof(test_data), 0, &valid_addr, &sent_len);
+
+    // Should return error due to invalid file descriptor (typically EBADF)
+    ASSERT_NE(__WASI_ESUCCESS, result);
+
+    addr_pool_destroy(&addr_pool);
+}
+
+/******
+ * Test Case: wasmtime_ssp_sock_send_to_SocketOperationFailure_ReturnsConvertedErrno
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2888-2923
+ * Target Lines: 2918-2920 (blocking_op_socket_send_to failure path)
+ * Functional Purpose: Tests that wasmtime_ssp_sock_send_to correctly handles socket
+ *                     operation failures by returning converted errno when
+ *                     blocking_op_socket_send_to() returns -1.
+ * Call Path: wasmtime_ssp_sock_send_to() -> blocking_op_socket_send_to() [BLOCKING OPERATION]
+ * Coverage Goal: Exercise socket send operation error handling path
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_sock_send_to_SocketOperationFailure_ReturnsConvertedErrno) {
+    // This test covers the error handling path when blocking_op_socket_send_to fails
+    // Since the function requires a valid socket FD and we're testing in unit test
+    // environment, we expect socket operations to fail appropriately
+
+    // Setup valid address in pool
+    __wasi_addr_t valid_addr;
+    memset(&valid_addr, 0, sizeof(valid_addr));
+    valid_addr.kind = IPv4;
+    valid_addr.addr.ip4.addr.n0 = 127;
+    valid_addr.addr.ip4.addr.n1 = 0;
+    valid_addr.addr.ip4.addr.n2 = 0;
+    valid_addr.addr.ip4.addr.n3 = 1;
+    valid_addr.addr.ip4.port = 8080;
+
+    const char test_data[] = "test_data";
+    size_t sent_len = 0;
+    __wasi_fd_t test_fd = 3; // Use existing test fd
+
+    // Initialize addr_pool with matching address
+    struct addr_pool addr_pool = {0};
+    ASSERT_TRUE(addr_pool_init(&addr_pool));
+    ASSERT_TRUE(addr_pool_insert(&addr_pool, "127.0.0.1", 32));
+
+    wasm_exec_env_t exec_env = nullptr; // Can be null for testing
+
+    // Call function - expect socket operation to fail in test environment
+    __wasi_errno_t result = wasmtime_ssp_sock_send_to(
+        exec_env, &fd_table_, &addr_pool, test_fd,
+        test_data, sizeof(test_data), 0, &valid_addr, &sent_len);
+
+    // Should return error due to socket operation failure (not SUCCESS or protocol errors)
+    ASSERT_NE(__WASI_ESUCCESS, result);
+    ASSERT_NE(__WASI_EPROTONOSUPPORT, result);
+    ASSERT_NE(__WASI_EACCES, result);
+
+    addr_pool_destroy(&addr_pool);
+}
+
+/******
+ * Test Case: wasmtime_ssp_sock_send_to_ValidParameters_ProcessesCorrectly
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2888-2923
+ * Target Lines: 2913, 2915-2917, 2922-2923 (success path and address conversion)
+ * Functional Purpose: Tests that wasmtime_ssp_sock_send_to correctly processes valid
+ *                     parameters through the main execution path, including address
+ *                     conversion and socket operation setup.
+ * Call Path: wasmtime_ssp_sock_send_to() -> wasi_addr_to_bh_sockaddr() -> blocking_op_socket_send_to()
+ * Coverage Goal: Exercise main execution path and success/failure handling
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_sock_send_to_ValidParameters_ProcessesCorrectly) {
+    // This test ensures the main execution path is covered, including
+    // wasi_addr_to_bh_sockaddr conversion and the blocking_op_socket_send_to call
+
+    // Setup valid IPv6 address in pool to test different address conversion
+    __wasi_addr_t valid_addr;
+    memset(&valid_addr, 0, sizeof(valid_addr));
+    valid_addr.kind = IPv6;
+    valid_addr.addr.ip6.addr.n0 = 0x2001;
+    valid_addr.addr.ip6.addr.n1 = 0x0db8;
+    valid_addr.addr.ip6.addr.n2 = 0x0000;
+    valid_addr.addr.ip6.addr.n3 = 0x0000;
+    valid_addr.addr.ip6.addr.h0 = 0x0000;
+    valid_addr.addr.ip6.addr.h1 = 0x0000;
+    valid_addr.addr.ip6.addr.h2 = 0x0000;
+    valid_addr.addr.ip6.addr.h3 = 0x0001;
+    valid_addr.addr.ip6.port = 8080;
+
+    const char test_data[] = "test_send_data";
+    size_t sent_len = 0;
+    __wasi_fd_t test_fd = 3;
+
+    // Initialize addr_pool with matching IPv6 address
+    struct addr_pool addr_pool = {0};
+    ASSERT_TRUE(addr_pool_init(&addr_pool));
+    ASSERT_TRUE(addr_pool_insert(&addr_pool, "2001:db8::1", 128));
+
+    wasm_exec_env_t exec_env = nullptr; // Can be null for testing
+
+    // Call function with valid parameters
+    __wasi_errno_t result = wasmtime_ssp_sock_send_to(
+        exec_env, &fd_table_, &addr_pool, test_fd,
+        test_data, sizeof(test_data), 0, &valid_addr, &sent_len);
+
+    // Function should process through all validation steps
+    // Result depends on socket operation success in test environment
+    // The important part is that we reach the socket operation
+    if (result == __WASI_ESUCCESS) {
+        // If successful, sent_len should be set
+        ASSERT_GT(sent_len, 0);
+    } else {
+        // If failed, should be socket operation error, not validation error
+        ASSERT_NE(__WASI_EPROTONOSUPPORT, result);
+        ASSERT_NE(__WASI_EACCES, result);
+    }
+
+    addr_pool_destroy(&addr_pool);
+}
