@@ -989,3 +989,258 @@ TEST_F(EnhancedBlockingOpTest, BlockingOpWritev_ZeroLength_ReturnsSuccess) {
     close(test_fd);
     unlink("/tmp/test_blocking_op_writev_zero");
 }
+
+/******
+ * Test Case: BlockingOpPwritev_ValidParameters_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/blocking_op.c:63-72
+ * Target Lines: 67 (begin_blocking_op success), 70 (os_pwritev call), 71 (end_blocking_op), 72 (return error)
+ * Functional Purpose: Validates that blocking_op_pwritev() successfully executes positional write
+ *                     operations when provided with valid parameters, properly manages blocking
+ *                     operation lifecycle, and returns success status with correct bytes written.
+ * Call Path: blocking_op_pwritev() <- wasmtime_ssp_fd_pwrite() <- WASI fd_pwrite implementation
+ * Coverage Goal: Exercise successful execution path for positional write operations
+ ******/
+TEST_F(EnhancedBlockingOpTest, BlockingOpPwritev_ValidParameters_ReturnsSuccess) {
+    // Skip test if platform doesn't support file operations
+    if (!PlatformTestContext::HasFileSupport() || !PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create a temporary file for testing
+    char test_file_path[] = "/tmp/wamr_pwrite_test_XXXXXX";
+    int test_fd = mkstemp(test_file_path);
+    ASSERT_NE(-1, test_fd);
+
+    // Prepare test data for positional write
+    const char* test_data = "WAMR pwritev test data";
+    size_t data_len = strlen(test_data);
+
+    struct __wasi_ciovec_t iov = {
+        .buf = (const uint8_t*)test_data,
+        .buf_len = data_len
+    };
+
+    size_t nwritten = 0;
+    __wasi_filesize_t offset = 10; // Write at offset 10
+
+    // Execute blocking_op_pwritev - target function under test
+    __wasi_errno_t result = blocking_op_pwritev(exec_env, (os_file_handle)(uintptr_t)test_fd, &iov, 1, offset, &nwritten);
+
+    // Validate successful positional write operation
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+    ASSERT_EQ(data_len, nwritten);
+
+    // Verify data was written at correct position
+    char read_buffer[64] = {0};
+    lseek(test_fd, offset, SEEK_SET);
+    ssize_t bytes_read = read(test_fd, read_buffer, data_len);
+    ASSERT_EQ((ssize_t)data_len, bytes_read);
+    ASSERT_EQ(0, memcmp(test_data, read_buffer, data_len));
+
+    // Cleanup
+    close(test_fd);
+    unlink(test_file_path);
+}
+
+/******
+ * Test Case: BlockingOpPwritev_NullExecEnv_HandlesGracefully
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/blocking_op.c:67-72
+ * Target Lines: 67 (begin_blocking_op success with null), 70 (os_pwritev call), 71 (end_blocking_op), 72 (return error)
+ * Functional Purpose: Validates that blocking_op_pwritev() handles null exec_env gracefully,
+ *                     proceeding with normal write operation when blocking operation support
+ *                     allows null exec_env processing.
+ * Call Path: blocking_op_pwritev() -> wasm_runtime_begin_blocking_op() [SUCCESS PATH WITH NULL]
+ * Coverage Goal: Exercise graceful null exec_env handling path
+ ******/
+TEST_F(EnhancedBlockingOpTest, BlockingOpPwritev_NullExecEnv_HandlesGracefully) {
+    // Skip test if platform doesn't support file operations
+    if (!PlatformTestContext::HasFileSupport() || !PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create a null exec_env to test graceful handling
+    wasm_exec_env_t null_exec_env = nullptr;
+
+    // Create a temporary file for testing
+    char test_file_path[] = "/tmp/wamr_pwrite_null_XXXXXX";
+    int test_fd = mkstemp(test_file_path);
+    ASSERT_NE(-1, test_fd);
+
+    os_file_handle handle = (os_file_handle)(uintptr_t)test_fd;
+
+    // Prepare test data
+    const char* test_data = "null env test";
+    struct __wasi_ciovec_t iov = {
+        .buf = (const uint8_t*)test_data,
+        .buf_len = strlen(test_data)
+    };
+
+    size_t nwritten = 0;
+    __wasi_filesize_t offset = 0;
+
+    // Execute with null exec_env - in current implementation this succeeds
+    __wasi_errno_t result = blocking_op_pwritev(null_exec_env, handle, &iov, 1, offset, &nwritten);
+
+    // Validate that operation succeeds with null exec_env in current implementation
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+    ASSERT_EQ(strlen(test_data), nwritten);
+
+    // Verify data was actually written
+    char read_buffer[32] = {0};
+    lseek(test_fd, 0, SEEK_SET);
+    ssize_t bytes_read = read(test_fd, read_buffer, strlen(test_data));
+    ASSERT_EQ((ssize_t)strlen(test_data), bytes_read);
+    ASSERT_EQ(0, memcmp(test_data, read_buffer, strlen(test_data)));
+
+    // Cleanup
+    close(test_fd);
+    unlink(test_file_path);
+}
+
+/******
+ * Test Case: BlockingOpPwritev_InvalidHandle_ReturnsError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/blocking_op.c:67-72
+ * Target Lines: 67 (begin_blocking_op success), 70 (os_pwritev with invalid handle), 71 (end_blocking_op), 72 (return error)
+ * Functional Purpose: Validates that blocking_op_pwritev() properly propagates error codes from
+ *                     os_pwritev() when invalid file handle is provided, while still maintaining
+ *                     proper blocking operation lifecycle management.
+ * Call Path: blocking_op_pwritev() -> os_pwritev() [ERROR PATH]
+ * Coverage Goal: Exercise error propagation path from platform layer
+ ******/
+TEST_F(EnhancedBlockingOpTest, BlockingOpPwritev_InvalidHandle_ReturnsError) {
+    // Skip test if platform doesn't support file operations
+    if (!PlatformTestContext::HasFileSupport() || !PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Prepare test data
+    const char* test_data = "error test data";
+    struct __wasi_ciovec_t iov = {
+        .buf = (const uint8_t*)test_data,
+        .buf_len = strlen(test_data)
+    };
+
+    size_t nwritten = 0;
+    __wasi_filesize_t offset = 0;
+    os_file_handle invalid_handle = (os_file_handle)(uintptr_t)(-1); // Invalid file descriptor
+
+    // Execute blocking_op_pwritev with invalid handle
+    __wasi_errno_t result = blocking_op_pwritev(exec_env, invalid_handle, &iov, 1, offset, &nwritten);
+
+    // Validate that error is properly propagated from os_pwritev
+    ASSERT_NE(__WASI_ESUCCESS, result);
+    // Common error codes for invalid file descriptors
+    ASSERT_TRUE(result == __WASI_EBADF || result == __WASI_EINVAL || result == __WASI_EIO);
+}
+
+/******
+ * Test Case: BlockingOpPwritev_MultipleIovecs_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/blocking_op.c:67-72
+ * Target Lines: 67 (begin_blocking_op success), 70 (os_pwritev with multiple iovecs), 71 (end_blocking_op), 72 (return error)
+ * Functional Purpose: Validates that blocking_op_pwritev() correctly handles vectored I/O with
+ *                     multiple iovec structures, ensuring all data is written at the specified
+ *                     offset and total bytes written is accurately reported.
+ * Call Path: blocking_op_pwritev() -> os_pwritev() [VECTORED I/O PATH]
+ * Coverage Goal: Exercise vectored I/O functionality with multiple buffers
+ ******/
+TEST_F(EnhancedBlockingOpTest, BlockingOpPwritev_MultipleIovecs_ReturnsSuccess) {
+    // Skip test if platform doesn't support file operations
+    if (!PlatformTestContext::HasFileSupport() || !PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create a temporary file for testing
+    char test_file_path[] = "/tmp/wamr_pwrite_multi_XXXXXX";
+    int test_fd = mkstemp(test_file_path);
+    ASSERT_NE(-1, test_fd);
+
+    // Prepare multiple test data buffers
+    const char* data1 = "First ";
+    const char* data2 = "Second ";
+    const char* data3 = "Third";
+
+    struct __wasi_ciovec_t iovecs[3] = {
+        {.buf = (const uint8_t*)data1, .buf_len = strlen(data1)},
+        {.buf = (const uint8_t*)data2, .buf_len = strlen(data2)},
+        {.buf = (const uint8_t*)data3, .buf_len = strlen(data3)}
+    };
+
+    size_t expected_total = strlen(data1) + strlen(data2) + strlen(data3);
+    size_t nwritten = 0;
+    __wasi_filesize_t offset = 5;
+
+    // Execute blocking_op_pwritev with multiple iovecs
+    __wasi_errno_t result = blocking_op_pwritev(exec_env, (os_file_handle)(uintptr_t)test_fd, iovecs, 3, offset, &nwritten);
+
+    // Validate successful vectored write operation
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+    ASSERT_EQ(expected_total, nwritten);
+
+    // Verify all data was written correctly at specified offset
+    char read_buffer[64] = {0};
+    lseek(test_fd, offset, SEEK_SET);
+    ssize_t bytes_read = read(test_fd, read_buffer, expected_total);
+    ASSERT_EQ((ssize_t)expected_total, bytes_read);
+
+    // Verify concatenated data matches expected result
+    const char* expected_data = "First Second Third";
+    ASSERT_EQ(0, memcmp(expected_data, read_buffer, expected_total));
+
+    // Cleanup
+    close(test_fd);
+    unlink(test_file_path);
+}
+
+/******
+ * Test Case: BlockingOpPwritev_ZeroOffset_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/blocking_op.c:67-72
+ * Target Lines: 67 (begin_blocking_op success), 70 (os_pwritev with zero offset), 71 (end_blocking_op), 72 (return error)
+ * Functional Purpose: Validates that blocking_op_pwritev() correctly handles writing at offset 0,
+ *                     ensuring data is written at the beginning of the file and proper byte count
+ *                     is returned without interfering with existing file content.
+ * Call Path: blocking_op_pwritev() -> os_pwritev() [ZERO OFFSET PATH]
+ * Coverage Goal: Exercise boundary condition with zero offset positioning
+ ******/
+TEST_F(EnhancedBlockingOpTest, BlockingOpPwritev_ZeroOffset_ReturnsSuccess) {
+    // Skip test if platform doesn't support file operations
+    if (!PlatformTestContext::HasFileSupport() || !PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create a temporary file with initial content
+    char test_file_path[] = "/tmp/wamr_pwrite_zero_XXXXXX";
+    int test_fd = mkstemp(test_file_path);
+    ASSERT_NE(-1, test_fd);
+
+    // Write initial content to file
+    const char* initial_data = "INITIAL_CONTENT";
+    write(test_fd, initial_data, strlen(initial_data));
+
+    // Prepare new data to write at offset 0
+    const char* new_data = "NEW";
+    struct __wasi_ciovec_t iov = {
+        .buf = (const uint8_t*)new_data,
+        .buf_len = strlen(new_data)
+    };
+
+    size_t nwritten = 0;
+    __wasi_filesize_t offset = 0; // Write at beginning of file
+
+    // Execute blocking_op_pwritev with zero offset
+    __wasi_errno_t result = blocking_op_pwritev(exec_env, (os_file_handle)(uintptr_t)test_fd, &iov, 1, offset, &nwritten);
+
+    // Validate successful write at offset 0
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+    ASSERT_EQ(strlen(new_data), nwritten);
+
+    // Verify data was written at beginning of file, overwriting initial content
+    char read_buffer[64] = {0};
+    lseek(test_fd, 0, SEEK_SET);
+    ssize_t bytes_read = read(test_fd, read_buffer, strlen(new_data));
+    ASSERT_EQ((ssize_t)strlen(new_data), bytes_read);
+    ASSERT_EQ(0, memcmp(new_data, read_buffer, strlen(new_data)));
+
+    // Cleanup
+    close(test_fd);
+    unlink(test_file_path);
+}
