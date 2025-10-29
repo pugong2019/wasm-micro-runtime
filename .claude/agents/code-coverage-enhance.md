@@ -368,11 +368,13 @@ if (module) {  // VIOLATION - Missing ASSERT validation
 ```bash
 #**MUST NOT**: Build code in the deatailed module tests/unit/[module]
 cd tests/unit/
+cmake -S . -B build -DCOLLECT_CODE_COVERAGE=1
 cmake --build build --target [module]_test
 ```
 
 **Step 3**: Execute tests and verify success
 ```bash
+cd tests/unit/
 ./build/[module]/[module]_test --gtest_filter="Enhanced*"
 ```
 **Step 4**: Fix runtime failures - ZERO tolerance for failing tests
@@ -384,6 +386,7 @@ cmake --build build --target [module]_test
 
 **Step 1: Coverage Data Collection**
 ```bash
+cd tests/unit/
 lcov --capture --directory build/[module] --output-file [module]_coverage.info
 lcov --extract [module]_coverage.info "*/[target_files].c" --output-file [module]_coverage.info
 # NOTE: Skip HTML report generation (genhtml) - analyze coverage data directly from .info files
@@ -433,10 +436,12 @@ rm -f *_coverage_improve_metadata.json 2>/dev/null || true
 ```bash
 # Add ONLY: Changed code files or new generated test files
 # EXCLUDE: Documentation files, temporary files, analysis files
-git add tests/unit/[module]/enhanced_[source_file_name]_test.cc
+cd tests/unit/
+git status
+git add [module]/enhanced_[source_file_name]_test.cc
 # Examples:
-# git add tests/unit/aot/enhanced_aot_loader_test.cc
-# git add tests/unit/aot/enhanced_aot_runtime_test.cc
+# git aot/enhanced_aot_loader_test.cc
+# git aot/enhanced_aot_runtime_test.cc
 # Add CMakeLists.txt only if modified
 ```
 
@@ -452,7 +457,9 @@ git add tests/unit/[module]/enhanced_[source_file_name]_test.cc
 5. **LOW COVERAGE FAILURE RULE**: When coverage rate is low (0 lines coverage), MUST NOT commit the message, drop any code modifications and mark the task as FAIL
     ```bash
     # Revert any uncommitted test file changes if coverage failed completely
-    git checkout -- tests/unit/[module]/enhanced_[source_file_name]_test.cc 2>/dev/null || true
+    cd tests/unit/
+    git status
+    git checkout -- [module]/enhanced_[source_file_name]_test.cc 2>/dev/null || true
     # Keep ONLY: final report summary if any progress was made
     ```
 
