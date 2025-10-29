@@ -5903,3 +5903,147 @@ TEST_F(EnhancedPosixTest, wasmtime_ssp_sock_send_to_ValidParameters_ProcessesCor
 
     addr_pool_destroy(&addr_pool);
 }
+
+/******
+ * Test Cases for addr_pool_insert function targeting lines 3065-3102
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:3065-3102
+ * Target Lines: 3071-3072 (NULL check), 3075-3077 (malloc fail), 3082-3087 (parse fail),
+ *               3088-3090 (IPv6 setup), 3092-3095 (IPv4 setup), 3097-3102 (list insertion)
+ * Functional Purpose: Validates addr_pool_insert() correctly handles IP address parsing,
+ *                     memory allocation, error conditions, and linked list management
+ * Call Path: addr_pool_insert() <- wasm_runtime_init_wasi() (public API)
+ * Coverage Goal: Exercise all execution paths including error handling and address types
+ ******/
+
+TEST_F(EnhancedPosixTest, AddrPoolInsert_NullPointer_ReturnsFalse) {
+    // Target lines 3071-3072: NULL pointer check
+    bool result = addr_pool_insert(nullptr, "127.0.0.1", 32);
+    ASSERT_FALSE(result);
+}
+
+TEST_F(EnhancedPosixTest, AddrPoolInsert_ValidIPv4Address_ReturnsTrue) {
+    // Target lines 3082, 3092-3095: IPv4 parsing success path
+    struct addr_pool addr_pool;
+    ASSERT_TRUE(addr_pool_init(&addr_pool));
+
+    bool result = addr_pool_insert(&addr_pool, "192.168.1.1", 24);
+    ASSERT_TRUE(result);
+
+    // Verify the address was properly inserted
+    struct addr_pool *entry = addr_pool.next;
+    ASSERT_NE(nullptr, entry);
+    ASSERT_EQ(IPv4, entry->type);
+    ASSERT_EQ(24, entry->mask);
+
+    addr_pool_destroy(&addr_pool);
+}
+
+TEST_F(EnhancedPosixTest, AddrPoolInsert_ValidIPv6Address_ReturnsTrue) {
+    // Target lines 3082-3084, 3088-3090: IPv4 parse fail -> IPv6 parse success
+    struct addr_pool addr_pool;
+    ASSERT_TRUE(addr_pool_init(&addr_pool));
+
+    bool result = addr_pool_insert(&addr_pool, "2001:db8::1", 64);
+    ASSERT_TRUE(result);
+
+    // Verify the address was properly inserted
+    struct addr_pool *entry = addr_pool.next;
+    ASSERT_NE(nullptr, entry);
+    ASSERT_EQ(IPv6, entry->type);
+    ASSERT_EQ(64, entry->mask);
+
+    addr_pool_destroy(&addr_pool);
+}
+
+TEST_F(EnhancedPosixTest, AddrPoolInsert_InvalidAddressFormat_ReturnsFalse) {
+    // Target lines 3082-3087: Both IPv4 and IPv6 parsing fail, cleanup path
+    struct addr_pool addr_pool;
+    ASSERT_TRUE(addr_pool_init(&addr_pool));
+
+    bool result = addr_pool_insert(&addr_pool, "invalid.address.format", 32);
+    ASSERT_FALSE(result);
+
+    // Verify no entry was added to the list
+    ASSERT_EQ(nullptr, addr_pool.next);
+
+    addr_pool_destroy(&addr_pool);
+}
+
+TEST_F(EnhancedPosixTest, AddrPoolInsert_MultipleEntries_InsertsAtEnd) {
+    // Target lines 3097-3102: List traversal and insertion at end
+    struct addr_pool addr_pool;
+    ASSERT_TRUE(addr_pool_init(&addr_pool));
+
+    // Insert first entry
+    ASSERT_TRUE(addr_pool_insert(&addr_pool, "127.0.0.1", 32));
+
+    // Insert second entry - should traverse list and insert at end
+    ASSERT_TRUE(addr_pool_insert(&addr_pool, "192.168.1.1", 24));
+
+    // Verify both entries are in the list
+    struct addr_pool *first_entry = addr_pool.next;
+    ASSERT_NE(nullptr, first_entry);
+    ASSERT_EQ(IPv4, first_entry->type);
+    ASSERT_EQ(32, first_entry->mask);
+
+    struct addr_pool *second_entry = first_entry->next;
+    ASSERT_NE(nullptr, second_entry);
+    ASSERT_EQ(IPv4, second_entry->type);
+    ASSERT_EQ(24, second_entry->mask);
+    ASSERT_EQ(nullptr, second_entry->next);
+
+    addr_pool_destroy(&addr_pool);
+}
+
+TEST_F(EnhancedPosixTest, AddrPoolInsert_IPv6AfterIPv4_HandlesListCorrectly) {
+    // Target lines 3097-3102: List traversal with mixed address types
+    struct addr_pool addr_pool;
+    ASSERT_TRUE(addr_pool_init(&addr_pool));
+
+    // Insert IPv4 first
+    ASSERT_TRUE(addr_pool_insert(&addr_pool, "10.0.0.1", 8));
+
+    // Insert IPv6 second - tests mixed address type list management
+    ASSERT_TRUE(addr_pool_insert(&addr_pool, "::1", 128));
+
+    // Verify both entries exist with correct types
+    struct addr_pool *ipv4_entry = addr_pool.next;
+    ASSERT_NE(nullptr, ipv4_entry);
+    ASSERT_EQ(IPv4, ipv4_entry->type);
+    ASSERT_EQ(8, ipv4_entry->mask);
+
+    struct addr_pool *ipv6_entry = ipv4_entry->next;
+    ASSERT_NE(nullptr, ipv6_entry);
+    ASSERT_EQ(IPv6, ipv6_entry->type);
+    ASSERT_EQ(128, ipv6_entry->mask);
+
+    addr_pool_destroy(&addr_pool);
+}
+
+TEST_F(EnhancedPosixTest, AddrPoolInsert_EmptyAddressString_ReturnsFalse) {
+    // Target lines 3082-3087: Test empty string handling
+    struct addr_pool addr_pool;
+    ASSERT_TRUE(addr_pool_init(&addr_pool));
+
+    bool result = addr_pool_insert(&addr_pool, "", 32);
+    ASSERT_FALSE(result);
+
+    // Verify no entry was added
+    ASSERT_EQ(nullptr, addr_pool.next);
+
+    addr_pool_destroy(&addr_pool);
+}
+
+TEST_F(EnhancedPosixTest, AddrPoolInsert_MalformedIPv6_ReturnsFalse) {
+    // Target lines 3082-3087: Test malformed IPv6 address handling
+    struct addr_pool addr_pool;
+    ASSERT_TRUE(addr_pool_init(&addr_pool));
+
+    bool result = addr_pool_insert(&addr_pool, "2001:db8::invalid::format", 64);
+    ASSERT_FALSE(result);
+
+    // Verify no entry was added
+    ASSERT_EQ(nullptr, addr_pool.next);
+
+    addr_pool_destroy(&addr_pool);
+}
