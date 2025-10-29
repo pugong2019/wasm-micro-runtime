@@ -5291,3 +5291,212 @@ TEST_F(EnhancedPosixTest, PathSymlink_OsSymlinkAtFailure_ReturnsError) {
     close(dir_fd);
     rmdir(temp_path);
 }
+
+/******
+ * Test Case: wasmtime_ssp_path_unlink_file_ValidFile_Success
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2050-2064
+ * Target Lines: 2053-2056 (path_get_nofollow success), 2060 (os_unlinkat call), 2062 (path_put), 2064 (return)
+ * Functional Purpose: Validates that wasmtime_ssp_path_unlink_file() successfully unlinks
+ *                     a valid file through proper path resolution and OS unlinkat operation.
+ * Call Path: wasmtime_ssp_path_unlink_file() <- wasi_path_unlink_file() <- WASI wrapper
+ * Coverage Goal: Exercise successful file unlink path with proper resource cleanup
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_path_unlink_file_ValidFile_Success) {
+    // Skip on platforms that may not support file operations
+    if (!PlatformTestContext::HasFileSupport()) {
+        return;
+    }
+
+    // Create temporary directory for testing
+    char temp_path[PATH_MAX];
+    snprintf(temp_path, sizeof(temp_path), "/tmp/wamr_test_unlink_%d", getpid());
+    ASSERT_EQ(0, mkdir(temp_path, 0755));
+
+    // Open directory for fd operations
+    int dir_fd = open(temp_path, O_RDONLY);
+    ASSERT_NE(-1, dir_fd);
+
+    // Add directory to prestats and fd_table
+    __wasi_fd_t wasi_fd = 11;
+
+    // Insert prestat for the directory
+    ASSERT_TRUE(fd_prestats_insert(&prestats_, temp_path, wasi_fd));
+
+    // Insert fd_table entry for directory
+    bool success = fd_table_insert_existing(&fd_table_, wasi_fd, dir_fd, false);
+    ASSERT_TRUE(success);
+
+    // Create mock execution environment
+    wasm_exec_env_t exec_env = nullptr;
+
+    // Create a test file to unlink
+    char test_file_path[PATH_MAX];
+    snprintf(test_file_path, sizeof(test_file_path), "%s/test_unlink.txt", temp_path);
+    int test_fd = open(test_file_path, O_CREAT | O_WRONLY, 0644);
+    ASSERT_NE(-1, test_fd);
+    close(test_fd);
+
+    // Verify file exists before unlink
+    ASSERT_EQ(0, access(test_file_path, F_OK));
+
+    const char *path = "test_unlink.txt";
+    size_t path_len = strlen(path);
+
+    // Test successful file unlink (lines 2053-2064)
+    __wasi_errno_t result = wasmtime_ssp_path_unlink_file(
+        exec_env, &fd_table_, wasi_fd, path, path_len);
+
+    // Should succeed on platforms with file support
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+
+    // Verify file no longer exists
+    ASSERT_NE(0, access(test_file_path, F_OK));
+
+    // Cleanup
+    close(dir_fd);
+    rmdir(temp_path);
+}
+
+/******
+ * Test Case: wasmtime_ssp_path_unlink_file_InvalidPath_PathGetFailure
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2050-2064
+ * Target Lines: 2054-2058 (path_get_nofollow failure path)
+ * Functional Purpose: Validates that wasmtime_ssp_path_unlink_file() correctly handles
+ *                     path resolution failures and returns appropriate error codes.
+ * Call Path: wasmtime_ssp_path_unlink_file() <- path_get_nofollow() failure
+ * Coverage Goal: Exercise error handling path when path_get_nofollow fails
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_path_unlink_file_InvalidPath_PathGetFailure) {
+    // Skip on platforms that may not support file operations
+    if (!PlatformTestContext::HasFileSupport()) {
+        return;
+    }
+
+    // Create mock execution environment
+    wasm_exec_env_t exec_env = nullptr;
+
+    // Use invalid fd that's not in fd_table
+    __wasi_fd_t invalid_fd = 999;
+
+    const char *path = "nonexistent_file.txt";
+    size_t path_len = strlen(path);
+
+    // Test path_get_nofollow failure path (lines 2054-2058)
+    __wasi_errno_t result = wasmtime_ssp_path_unlink_file(
+        exec_env, &fd_table_, invalid_fd, path, path_len);
+
+    // Should return EBADF for invalid file descriptor
+    ASSERT_EQ(__WASI_EBADF, result);
+}
+
+/******
+ * Test Case: wasmtime_ssp_path_unlink_file_NonexistentFile_OsUnlinkatFailure
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2050-2064
+ * Target Lines: 2060 (os_unlinkat failure), 2062 (path_put cleanup), 2064 (return error)
+ * Functional Purpose: Validates that wasmtime_ssp_path_unlink_file() handles os_unlinkat
+ *                     failures gracefully and properly cleans up resources.
+ * Call Path: wasmtime_ssp_path_unlink_file() <- os_unlinkat() failure
+ * Coverage Goal: Exercise os_unlinkat failure path with proper resource cleanup
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_path_unlink_file_NonexistentFile_OsUnlinkatFailure) {
+    // Skip on platforms that may not support file operations
+    if (!PlatformTestContext::HasFileSupport()) {
+        return;
+    }
+
+    // Create temporary directory for testing
+    char temp_path[PATH_MAX];
+    snprintf(temp_path, sizeof(temp_path), "/tmp/wamr_test_unlink_fail_%d", getpid());
+    ASSERT_EQ(0, mkdir(temp_path, 0755));
+
+    // Open directory for fd operations
+    int dir_fd = open(temp_path, O_RDONLY);
+    ASSERT_NE(-1, dir_fd);
+
+    // Add directory to prestats and fd_table
+    __wasi_fd_t wasi_fd = 12;
+
+    // Insert prestat for the directory
+    ASSERT_TRUE(fd_prestats_insert(&prestats_, temp_path, wasi_fd));
+
+    // Insert fd_table entry for directory
+    bool success = fd_table_insert_existing(&fd_table_, wasi_fd, dir_fd, false);
+    ASSERT_TRUE(success);
+
+    // Create mock execution environment
+    wasm_exec_env_t exec_env = nullptr;
+
+    // Try to unlink a file that doesn't exist
+    const char *path = "nonexistent_file.txt";
+    size_t path_len = strlen(path);
+
+    // Test os_unlinkat failure path (lines 2060-2064)
+    __wasi_errno_t result = wasmtime_ssp_path_unlink_file(
+        exec_env, &fd_table_, wasi_fd, path, path_len);
+
+    // Should return ENOENT for nonexistent file
+    ASSERT_EQ(__WASI_ENOENT, result);
+
+    // Cleanup
+    close(dir_fd);
+    rmdir(temp_path);
+}
+
+/******
+ * Test Case: wasmtime_ssp_path_unlink_file_Directory_OsUnlinkatFailure
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2050-2064
+ * Target Lines: 2060 (os_unlinkat with directory), 2062 (path_put cleanup), 2064 (return error)
+ * Functional Purpose: Validates that wasmtime_ssp_path_unlink_file() correctly fails
+ *                     when attempting to unlink a directory instead of a file.
+ * Call Path: wasmtime_ssp_path_unlink_file() <- os_unlinkat() with directory
+ * Coverage Goal: Exercise os_unlinkat failure path when target is directory
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_path_unlink_file_Directory_OsUnlinkatFailure) {
+    // Skip on platforms that may not support file operations
+    if (!PlatformTestContext::HasFileSupport()) {
+        return;
+    }
+
+    // Create temporary directory for testing
+    char temp_path[PATH_MAX];
+    snprintf(temp_path, sizeof(temp_path), "/tmp/wamr_test_unlink_dir_%d", getpid());
+    ASSERT_EQ(0, mkdir(temp_path, 0755));
+
+    // Create subdirectory to attempt unlinking
+    char subdir_path[PATH_MAX];
+    snprintf(subdir_path, sizeof(subdir_path), "%s/test_subdir", temp_path);
+    ASSERT_EQ(0, mkdir(subdir_path, 0755));
+
+    // Open directory for fd operations
+    int dir_fd = open(temp_path, O_RDONLY);
+    ASSERT_NE(-1, dir_fd);
+
+    // Add directory to prestats and fd_table
+    __wasi_fd_t wasi_fd = 13;
+
+    // Insert prestat for the directory
+    ASSERT_TRUE(fd_prestats_insert(&prestats_, temp_path, wasi_fd));
+
+    // Insert fd_table entry for directory
+    bool success = fd_table_insert_existing(&fd_table_, wasi_fd, dir_fd, false);
+    ASSERT_TRUE(success);
+
+    // Create mock execution environment
+    wasm_exec_env_t exec_env = nullptr;
+
+    // Try to unlink a directory (should fail)
+    const char *path = "test_subdir";
+    size_t path_len = strlen(path);
+
+    // Test os_unlinkat failure when target is directory (lines 2060-2064)
+    __wasi_errno_t result = wasmtime_ssp_path_unlink_file(
+        exec_env, &fd_table_, wasi_fd, path, path_len);
+
+    // Should return EISDIR when trying to unlink a directory
+    ASSERT_EQ(__WASI_EISDIR, result);
+
+    // Cleanup
+    close(dir_fd);
+    rmdir(subdir_path);
+    rmdir(temp_path);
+}
