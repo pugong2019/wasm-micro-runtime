@@ -413,17 +413,16 @@ If coverage target (>60%) is not achieved:
 echo "Final coverage: ${overall_coverage}%" > coverage_summary.tmp
 echo "Lines covered: ${covered_lines}/${total_lines}" >> coverage_summary.tmp
 ```
-
 **Step 4: Cleanup Tempoary File Protocol**
 ```bash
 # MANDATORY: Remove all temporary coverage files before commit
+cd tests/unit/[module]
 rm -f *.info 2>/dev/null || true
 rm -f *_coverage.info 2>/dev/null || true
 rm -f final_*.info 2>/dev/null || true
 rm -f coverage_summary.tmp 2>/dev/null || true
 rm -f call_chain_analysis.md 2>/dev/null || true
 rm -rf coverage_output/ 2>/dev/null || true
-rm -f *_coverage_improve_step_*.cc 2>/dev/null || true
 rm -f *_coverage_improve_metadata.json 2>/dev/null || true
 # Keep ONLY: enhanced test files and report summary
 ```
