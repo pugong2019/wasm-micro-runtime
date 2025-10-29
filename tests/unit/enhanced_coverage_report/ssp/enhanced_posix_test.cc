@@ -6047,3 +6047,104 @@ TEST_F(EnhancedPosixTest, AddrPoolInsert_MalformedIPv6_ReturnsFalse) {
 
     addr_pool_destroy(&addr_pool);
 }
+
+// ================== NEW TEST CASES FOR wasmtime_ssp_environ_sizes_get ==================
+
+/******
+ * Test Case: WasmtimeSspEnvironSizesGet_ValidEnvironData_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2995-3000
+ * Target Lines: 2995-3000 (complete function body)
+ * Functional Purpose: Validates that wasmtime_ssp_environ_sizes_get() correctly retrieves
+ *                     environment variable count and buffer size from argv_environ structure
+ * Call Path: wasmtime_ssp_environ_sizes_get() <- wasi_environ_get() <- WASI API
+ * Coverage Goal: Exercise normal operation path with valid environment data
+ ******/
+TEST_F(EnhancedPosixTest, WasmtimeSspEnvironSizesGet_ValidEnvironData_ReturnsSuccess) {
+    struct argv_environ_values argv_environ;
+    memset(&argv_environ, 0, sizeof(argv_environ));
+
+    // Set up test environment data
+    argv_environ.environ_count = 5;
+    argv_environ.environ_buf_size = 256;
+
+    size_t environ_count = 0;
+    size_t environ_buf_size = 0;
+
+    // Execute the function targeting lines 2995-3000
+    __wasi_errno_t result = wasmtime_ssp_environ_sizes_get(&argv_environ, &environ_count, &environ_buf_size);
+
+    // Verify line 2998: *environ_count = argv_environ->environ_count;
+    ASSERT_EQ(5, environ_count);
+
+    // Verify line 2999: *environ_buf_size = argv_environ->environ_buf_size;
+    ASSERT_EQ(256, environ_buf_size);
+
+    // Verify line 3000: return __WASI_ESUCCESS;
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+}
+
+/******
+ * Test Case: WasmtimeSspEnvironSizesGet_ZeroEnvironData_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2995-3000
+ * Target Lines: 2998-3000 (assignment and return paths)
+ * Functional Purpose: Validates that wasmtime_ssp_environ_sizes_get() correctly handles
+ *                     zero environment variables and buffer size
+ * Call Path: wasmtime_ssp_environ_sizes_get() <- wasi_environ_get() <- WASI API
+ * Coverage Goal: Exercise function with edge case of no environment variables
+ ******/
+TEST_F(EnhancedPosixTest, WasmtimeSspEnvironSizesGet_ZeroEnvironData_ReturnsSuccess) {
+    struct argv_environ_values argv_environ;
+    memset(&argv_environ, 0, sizeof(argv_environ));
+
+    // Set up empty environment data
+    argv_environ.environ_count = 0;
+    argv_environ.environ_buf_size = 0;
+
+    size_t environ_count = 999;  // Initialize with non-zero to verify assignment
+    size_t environ_buf_size = 999;
+
+    // Execute the function targeting lines 2995-3000
+    __wasi_errno_t result = wasmtime_ssp_environ_sizes_get(&argv_environ, &environ_count, &environ_buf_size);
+
+    // Verify line 2998: *environ_count = argv_environ->environ_count;
+    ASSERT_EQ(0, environ_count);
+
+    // Verify line 2999: *environ_buf_size = argv_environ->environ_buf_size;
+    ASSERT_EQ(0, environ_buf_size);
+
+    // Verify line 3000: return __WASI_ESUCCESS;
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+}
+
+/******
+ * Test Case: WasmtimeSspEnvironSizesGet_LargeEnvironData_ReturnsSuccess
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2995-3000
+ * Target Lines: 2998-3000 (assignment and return paths)
+ * Functional Purpose: Validates that wasmtime_ssp_environ_sizes_get() correctly handles
+ *                     large environment variable counts and buffer sizes
+ * Call Path: wasmtime_ssp_environ_sizes_get() <- wasi_environ_get() <- WASI API
+ * Coverage Goal: Exercise function with maximum realistic environment data
+ ******/
+TEST_F(EnhancedPosixTest, WasmtimeSspEnvironSizesGet_LargeEnvironData_ReturnsSuccess) {
+    struct argv_environ_values argv_environ;
+    memset(&argv_environ, 0, sizeof(argv_environ));
+
+    // Set up large environment data
+    argv_environ.environ_count = 1000;
+    argv_environ.environ_buf_size = 65536;
+
+    size_t environ_count = 0;
+    size_t environ_buf_size = 0;
+
+    // Execute the function targeting lines 2995-3000
+    __wasi_errno_t result = wasmtime_ssp_environ_sizes_get(&argv_environ, &environ_count, &environ_buf_size);
+
+    // Verify line 2998: *environ_count = argv_environ->environ_count;
+    ASSERT_EQ(1000, environ_count);
+
+    // Verify line 2999: *environ_buf_size = argv_environ->environ_buf_size;
+    ASSERT_EQ(65536, environ_buf_size);
+
+    // Verify line 3000: return __WASI_ESUCCESS;
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+}
