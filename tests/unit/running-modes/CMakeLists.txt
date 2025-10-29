@@ -36,6 +36,8 @@ include(${IWASM_DIR}/compilation/iwasm_compl.cmake)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 file(GLOB_RECURSE source_all ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
+# Remove files from build directory to avoid conflicts
+list(FILTER source_all EXCLUDE REGEX "${CMAKE_CURRENT_BINARY_DIR}/.*")
 
 set(UNIT_SOURCE ${source_all})
 
