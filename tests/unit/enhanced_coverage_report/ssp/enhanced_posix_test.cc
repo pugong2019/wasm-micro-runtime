@@ -5500,3 +5500,169 @@ TEST_F(EnhancedPosixTest, wasmtime_ssp_path_unlink_file_Directory_OsUnlinkatFail
     rmdir(subdir_path);
     rmdir(temp_path);
 }
+
+// ======================================================================
+// NEW TEST CASES FOR wasmtime_ssp_path_remove_directory (lines 2068-2083)
+// ======================================================================
+
+/******
+ * Test Case: wasmtime_ssp_path_remove_directory_ValidDirectory_Success
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2068-2083
+ * Target Lines: 2073-2075 (path_get_nofollow call), 2079 (os_unlinkat call),
+ *               2081 (path_put call), 2083 (return error)
+ * Functional Purpose: Validates that wasmtime_ssp_path_remove_directory() successfully
+ *                     removes a valid directory when all operations succeed.
+ * Call Path: wasmtime_ssp_path_remove_directory() <- wasi_path_remove_directory()
+ * Coverage Goal: Exercise successful directory removal path
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_path_remove_directory_ValidDirectory_Success) {
+    // Skip on platforms that may not support directory operations
+    if (!PlatformTestContext::HasFileSupport()) {
+        return;
+    }
+
+    // Create temporary directory for testing
+    char temp_base_path[PATH_MAX];
+    snprintf(temp_base_path, sizeof(temp_base_path), "/tmp/wamr_test_rmdir_base_%d", getpid());
+    ASSERT_EQ(0, mkdir(temp_base_path, 0755));
+
+    // Create subdirectory to remove
+    char subdir_path[PATH_MAX];
+    snprintf(subdir_path, sizeof(subdir_path), "%s/test_remove_dir", temp_base_path);
+    ASSERT_EQ(0, mkdir(subdir_path, 0755));
+
+    // Open base directory for fd operations
+    int dir_fd = open(temp_base_path, O_RDONLY);
+    ASSERT_NE(-1, dir_fd);
+
+    // Add directory to prestats and fd_table
+    __wasi_fd_t wasi_fd = 15;
+
+    // Insert prestat for the base directory
+    ASSERT_TRUE(fd_prestats_insert(&prestats_, temp_base_path, wasi_fd));
+
+    // Insert fd_table entry for base directory
+    bool success = fd_table_insert_existing(&fd_table_, wasi_fd, dir_fd, false);
+    ASSERT_TRUE(success);
+
+    // Create mock execution environment
+    wasm_exec_env_t exec_env = nullptr;
+
+    // Test successful directory removal (covers lines 2073-2075, 2079, 2081, 2083)
+    const char *path = "test_remove_dir";
+    size_t path_len = strlen(path);
+
+    __wasi_errno_t result = wasmtime_ssp_path_remove_directory(
+        exec_env, &fd_table_, wasi_fd, path, path_len);
+
+    // Should succeed
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+
+    // Verify directory was actually removed
+    struct stat st;
+    ASSERT_NE(0, stat(subdir_path, &st));  // Should fail since directory is removed
+
+    // Cleanup
+    close(dir_fd);
+    rmdir(temp_base_path);  // Should succeed since subdir was removed
+}
+
+/******
+ * Test Case: wasmtime_ssp_path_remove_directory_InvalidFd_PathGetNoFollowFails
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2068-2083
+ * Target Lines: 2073-2077 (path_get_nofollow failure path), 2083 (return error)
+ * Functional Purpose: Validates that wasmtime_ssp_path_remove_directory() correctly
+ *                     handles path_get_nofollow() failure and returns appropriate error.
+ * Call Path: wasmtime_ssp_path_remove_directory() <- wasi_path_remove_directory()
+ * Coverage Goal: Exercise error handling path when path_get_nofollow fails
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_path_remove_directory_InvalidFd_PathGetNoFollowFails) {
+    // Create mock execution environment
+    wasm_exec_env_t exec_env = nullptr;
+
+    // Use an invalid file descriptor that's not in fd_table
+    __wasi_fd_t invalid_wasi_fd = 999;
+
+    // Test path_get_nofollow failure (covers lines 2073-2077, 2083)
+    const char *path = "nonexistent_dir";
+    size_t path_len = strlen(path);
+
+    __wasi_errno_t result = wasmtime_ssp_path_remove_directory(
+        exec_env, &fd_table_, invalid_wasi_fd, path, path_len);
+
+    // Should return EBADF for invalid file descriptor
+    ASSERT_EQ(__WASI_EBADF, result);
+}
+
+/******
+ * Test Case: wasmtime_ssp_path_remove_directory_NonEmptyDirectory_OsUnlinkatFails
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2068-2083
+ * Target Lines: 2073-2075 (path_get_nofollow success), 2079 (os_unlinkat failure),
+ *               2081 (path_put cleanup), 2083 (return error)
+ * Functional Purpose: Validates that wasmtime_ssp_path_remove_directory() correctly
+ *                     handles os_unlinkat() failure when directory is not empty.
+ * Call Path: wasmtime_ssp_path_remove_directory() <- wasi_path_remove_directory()
+ * Coverage Goal: Exercise os_unlinkat failure path for non-empty directory
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_path_remove_directory_NonEmptyDirectory_OsUnlinkatFails) {
+    // Skip on platforms that may not support directory operations
+    if (!PlatformTestContext::HasFileSupport()) {
+        return;
+    }
+
+    // Create temporary directory for testing
+    char temp_base_path[PATH_MAX];
+    snprintf(temp_base_path, sizeof(temp_base_path), "/tmp/wamr_test_rmdir_nonempty_%d", getpid());
+    ASSERT_EQ(0, mkdir(temp_base_path, 0755));
+
+    // Create subdirectory with content to make it non-empty
+    char subdir_path[PATH_MAX];
+    snprintf(subdir_path, sizeof(subdir_path), "%s/nonempty_dir", temp_base_path);
+    ASSERT_EQ(0, mkdir(subdir_path, 0755));
+
+    // Create a file inside the subdirectory to make it non-empty
+    char file_path[PATH_MAX];
+    snprintf(file_path, sizeof(file_path), "%s/test_file.txt", subdir_path);
+    int test_file = open(file_path, O_CREAT | O_WRONLY, 0644);
+    ASSERT_NE(-1, test_file);
+    ASSERT_EQ(4, write(test_file, "test", 4));
+    close(test_file);
+
+    // Open base directory for fd operations
+    int dir_fd = open(temp_base_path, O_RDONLY);
+    ASSERT_NE(-1, dir_fd);
+
+    // Add directory to prestats and fd_table
+    __wasi_fd_t wasi_fd = 16;
+
+    // Insert prestat for the base directory
+    ASSERT_TRUE(fd_prestats_insert(&prestats_, temp_base_path, wasi_fd));
+
+    // Insert fd_table entry for base directory
+    bool success = fd_table_insert_existing(&fd_table_, wasi_fd, dir_fd, false);
+    ASSERT_TRUE(success);
+
+    // Create mock execution environment
+    wasm_exec_env_t exec_env = nullptr;
+
+    // Test directory removal of non-empty directory (covers lines 2073-2075, 2079, 2081, 2083)
+    const char *path = "nonempty_dir";
+    size_t path_len = strlen(path);
+
+    __wasi_errno_t result = wasmtime_ssp_path_remove_directory(
+        exec_env, &fd_table_, wasi_fd, path, path_len);
+
+    // Should fail with ENOTEMPTY for non-empty directory
+    ASSERT_EQ(__WASI_ENOTEMPTY, result);
+
+    // Verify directory still exists
+    struct stat st;
+    ASSERT_EQ(0, stat(subdir_path, &st));
+    ASSERT_TRUE(S_ISDIR(st.st_mode));
+
+    // Cleanup
+    close(dir_fd);
+    unlink(file_path);
+    rmdir(subdir_path);
+    rmdir(temp_base_path);
+}
