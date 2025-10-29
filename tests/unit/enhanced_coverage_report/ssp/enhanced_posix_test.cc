@@ -4387,3 +4387,208 @@ TEST_F(EnhancedPosixTest, WasiSspSockGetReuseAddr_ErrorConditionHandling_Execute
         ASSERT_TRUE(reuse == 0 || reuse == 1);
     }
 }
+
+// ============================================================================
+// New Test Cases for wasmtime_ssp_fd_readdir Function (Lines 1768-1822)
+// ============================================================================
+
+/******
+ * Test Case: WasmtimeSspFdReaddir_InvalidFileDescriptor_ReturnsError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1768-1822
+ * Target Lines: 1773-1777 (fd_object_get error path)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_readdir correctly handles
+ *                     invalid file descriptor by returning appropriate error
+ *                     from fd_object_get validation.
+ * Call Path: Direct API call to wasmtime_ssp_fd_readdir()
+ * Coverage Goal: Exercise fd_object_get error handling path on lines 1773-1777
+ ******/
+TEST_F(EnhancedPosixTest, WasmtimeSspFdReaddir_InvalidFileDescriptor_ReturnsError) {
+    if (!PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Use invalid file descriptor
+    __wasi_fd_t invalid_fd = 9999;
+    char buffer[1024];
+    size_t buffer_used = 0;
+    __wasi_dircookie_t cookie = __WASI_DIRCOOKIE_START;
+
+    // Call wasmtime_ssp_fd_readdir with invalid FD (lines 1768-1777)
+    __wasi_errno_t result = wasmtime_ssp_fd_readdir(
+        nullptr, &fd_table_, invalid_fd, buffer, sizeof(buffer), cookie, &buffer_used);
+
+    // Should execute target lines:
+    // Line 1768-1770: Function entry and parameter setup
+    // Line 1773-1774: fd_object_get call with WASI_RIGHT_FD_READDIR
+    // Line 1775-1777: Error return path when fd_object_get fails
+    ASSERT_NE(__WASI_ESUCCESS, result);
+    ASSERT_EQ(0, buffer_used); // No data should be written on error
+}
+
+/******
+ * Test Case: WasmtimeSspFdReaddir_RegularFileInvalidType_ReturnsError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1768-1822
+ * Target Lines: 1782-1787 (os_fdopendir error handling path)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_readdir correctly handles
+ *                     attempting to read directory on a regular file, causing
+ *                     os_fdopendir to fail and execute error cleanup path.
+ * Call Path: Direct API call to wasmtime_ssp_fd_readdir()
+ * Coverage Goal: Exercise os_fdopendir error handling and cleanup on lines 1782-1787
+ ******/
+TEST_F(EnhancedPosixTest, WasmtimeSspFdReaddir_RegularFileInvalidType_ReturnsError) {
+    if (!PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Use regular file descriptor from fixture setup (should fail os_fdopendir)
+    __wasi_fd_t regular_fd = 3; // From SetupTestFileDescriptors (first file)
+    char buffer[1024];
+    size_t buffer_used = 0;
+    __wasi_dircookie_t cookie = __WASI_DIRCOOKIE_START;
+
+    // Call wasmtime_ssp_fd_readdir on regular file (lines 1768-1787)
+    __wasi_errno_t result = wasmtime_ssp_fd_readdir(
+        nullptr, &fd_table_, regular_fd, buffer, sizeof(buffer), cookie, &buffer_used);
+
+    // Should execute target lines:
+    // Line 1768-1770: Function entry and parameter setup
+    // Line 1773-1774: fd_object_get should succeed for valid regular file FD
+    // Line 1775-1777: Skip error path (fd_object_get succeeds)
+    // Line 1780: mutex_lock on directory.lock
+    // Line 1781: os_is_dir_stream_valid check (should be false for new handle)
+    // Line 1782: os_fdopendir call (should fail on regular file)
+    // Line 1783-1787: Error handling path with mutex_unlock and fd_object_release
+    ASSERT_NE(__WASI_ESUCCESS, result);
+    ASSERT_EQ(0, buffer_used); // No data should be written on error
+}
+
+/******
+ * Test Case: WasmtimeSspFdReaddir_ValidDirectorySmallBuffer_ExecutesBufferManagement
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1768-1822
+ * Target Lines: 1801-1822 (main directory reading loop and buffer management)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_readdir correctly handles
+ *                     directory reading with small buffer, exercising the main
+ *                     reading loop and fd_readdir_put buffer management logic.
+ * Call Path: Direct API call to wasmtime_ssp_fd_readdir()
+ * Coverage Goal: Exercise directory reading loop and buffer management on lines 1801-1822
+ ******/
+TEST_F(EnhancedPosixTest, WasmtimeSspFdReaddir_ValidDirectorySmallBuffer_ExecutesBufferManagement) {
+    if (!PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create a test directory and get its file descriptor
+    const char* test_dir = "/tmp/wamr_test_readdir";
+    mkdir(test_dir, 0755);
+
+    // Clean up any existing directory first
+    system("rm -rf /tmp/wamr_test_readdir/test_file.txt 2>/dev/null");
+
+    // Create a test file in the directory
+    system("touch /tmp/wamr_test_readdir/test_file.txt");
+
+    int dir_fd = open(test_dir, O_RDONLY);
+    ASSERT_GE(dir_fd, 0);
+
+    // Add directory FD to fd_table
+    __wasi_fd_t wasi_dir_fd = 100;
+    ASSERT_TRUE(fd_table_insert_existing(&fd_table_, wasi_dir_fd, dir_fd, false));
+
+    // Use small buffer to exercise buffer management logic
+    char buffer[64]; // Small buffer to trigger partial reads
+    size_t buffer_used = 0;
+    __wasi_dircookie_t cookie = __WASI_DIRCOOKIE_START;
+
+    // Call wasmtime_ssp_fd_readdir on directory (lines 1768-1822)
+    __wasi_errno_t result = wasmtime_ssp_fd_readdir(
+        nullptr, &fd_table_, wasi_dir_fd, buffer, sizeof(buffer), cookie, &buffer_used);
+
+    // Should execute target lines:
+    // Line 1768-1770: Function entry and parameter setup
+    // Line 1773-1774: fd_object_get should succeed for directory FD
+    // Line 1780-1789: Directory handle setup and initialization
+    // Line 1793-1799: Cookie/offset handling (start position)
+    // Line 1801: Initialize bufused to 0
+    // Line 1802: Enter while loop (bufused < nbyte)
+    // Line 1804-1806: Directory entry variables initialization
+    // Line 1807: os_readdir call to read directory entry
+    // Line 1808-1813: Check if d_name is NULL (EOF handling)
+    // Line 1815: Update directory offset
+    // Line 1817-1818: fd_readdir_put calls for entry and name data
+    // Line 1820-1822: Cleanup with mutex_unlock and fd_object_release
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+    ASSERT_GT(buffer_used, 0); // Should have read some data
+
+    // Cleanup
+    close(dir_fd);
+    system("rm -rf /tmp/wamr_test_readdir");
+}
+
+/******
+ * Test Case: WasmtimeSspFdReaddir_CookieSeekOperation_ExecutesSeekLogic
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1768-1822
+ * Target Lines: 1793-1799 (directory seek logic for non-start cookie)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_readdir correctly handles
+ *                     seek operations when cookie doesn't match current offset,
+ *                     exercising both rewind and seek directory operations.
+ * Call Path: Direct API call to wasmtime_ssp_fd_readdir()
+ * Coverage Goal: Exercise directory seek operations on lines 1793-1799
+ ******/
+TEST_F(EnhancedPosixTest, WasmtimeSspFdReaddir_CookieSeekOperation_ExecutesSeekLogic) {
+    if (!PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create a test directory with multiple entries
+    const char* test_dir = "/tmp/wamr_test_readdir_seek";
+    mkdir(test_dir, 0755);
+
+    // Clean up any existing files first
+    system("rm -rf /tmp/wamr_test_readdir_seek/* 2>/dev/null");
+
+    // Create multiple test files
+    system("touch /tmp/wamr_test_readdir_seek/file1.txt");
+    system("touch /tmp/wamr_test_readdir_seek/file2.txt");
+
+    int dir_fd = open(test_dir, O_RDONLY);
+    ASSERT_GE(dir_fd, 0);
+
+    // Add directory FD to fd_table
+    __wasi_fd_t wasi_dir_fd = 101;
+    ASSERT_TRUE(fd_table_insert_existing(&fd_table_, wasi_dir_fd, dir_fd, false));
+
+    char buffer[1024];
+    size_t buffer_used = 0;
+
+    // First, test with DIRCOOKIE_START to exercise rewind path (lines 1794-1795)
+    __wasi_errno_t result = wasmtime_ssp_fd_readdir(
+        nullptr, &fd_table_, wasi_dir_fd, buffer, sizeof(buffer),
+        __WASI_DIRCOOKIE_START, &buffer_used);
+
+    // Should execute target lines:
+    // Line 1793: Check fo->directory.offset != cookie (initially different)
+    // Line 1794: Check cookie == __WASI_DIRCOOKIE_START (true)
+    // Line 1795: os_rewinddir call
+    // Line 1798: Set fo->directory.offset = cookie
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+    ASSERT_GT(buffer_used, 0);
+
+    // Second call with non-start cookie to exercise seekdir path (lines 1796-1797)
+    buffer_used = 0;
+    __wasi_dircookie_t seek_cookie = 12345; // Non-start cookie
+
+    result = wasmtime_ssp_fd_readdir(
+        nullptr, &fd_table_, wasi_dir_fd, buffer, sizeof(buffer),
+        seek_cookie, &buffer_used);
+
+    // Should execute target lines:
+    // Line 1793: Check fo->directory.offset != cookie (different from previous)
+    // Line 1794: Check cookie == __WASI_DIRCOOKIE_START (false)
+    // Line 1796-1797: os_seekdir call with seek_cookie
+    // Line 1798: Set fo->directory.offset = cookie
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+
+    // Cleanup
+    close(dir_fd);
+    system("rm -rf /tmp/wamr_test_readdir_seek");
+}
