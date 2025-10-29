@@ -6148,3 +6148,99 @@ TEST_F(EnhancedPosixTest, WasmtimeSspEnvironSizesGet_LargeEnvironData_ReturnsSuc
     // Verify line 3000: return __WASI_ESUCCESS;
     ASSERT_EQ(__WASI_ESUCCESS, result);
 }
+
+/******
+ * Test Case: ArgsSizesGet_NormalValues_ReturnsCorrectSizes
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2970-2975
+ * Target Lines: 2970-2971 (function signature), 2972-2974 (assignment operations), 2975 (return)
+ * Functional Purpose: Validates that wasmtime_ssp_args_sizes_get() correctly extracts
+ *                     argc and argv_buf_size from argv_environ_values struct and
+ *                     returns success code for normal argument scenarios.
+ * Call Path: wasmtime_ssp_args_sizes_get() <- WASI args_sizes_get syscall
+ * Coverage Goal: Exercise complete function execution with normal argument values
+ ******/
+TEST_F(EnhancedPosixTest, ArgsSizesGet_NormalValues_ReturnsCorrectSizes) {
+    // Initialize argv_environ with normal values
+    struct argv_environ_values argv_environ;
+    argv_environ.argc = 5;
+    argv_environ.argv_buf_size = 1024;
+
+    size_t argc = 0;
+    size_t argv_buf_size = 0;
+
+    // Call function to exercise lines 2970-2975
+    __wasi_errno_t result = wasmtime_ssp_args_sizes_get(&argv_environ, &argc, &argv_buf_size);
+
+    // Verify line 2973: *argc = argv_environ->argc;
+    ASSERT_EQ(5, argc);
+
+    // Verify line 2974: *argv_buf_size = argv_environ->argv_buf_size;
+    ASSERT_EQ(1024, argv_buf_size);
+
+    // Verify line 2975: return __WASI_ESUCCESS;
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+}
+
+/******
+ * Test Case: ArgsSizesGet_ZeroValues_ReturnsZeroSizes
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2970-2975
+ * Target Lines: 2970-2971 (function signature), 2972-2974 (assignment operations), 2975 (return)
+ * Functional Purpose: Validates that wasmtime_ssp_args_sizes_get() correctly handles
+ *                     edge case where argv_environ contains zero argc and buffer size,
+ *                     ensuring proper assignment and success return.
+ * Call Path: wasmtime_ssp_args_sizes_get() <- WASI args_sizes_get syscall
+ * Coverage Goal: Exercise function with boundary condition of zero values
+ ******/
+TEST_F(EnhancedPosixTest, ArgsSizesGet_ZeroValues_ReturnsZeroSizes) {
+    // Initialize argv_environ with zero values
+    struct argv_environ_values argv_environ;
+    argv_environ.argc = 0;
+    argv_environ.argv_buf_size = 0;
+
+    size_t argc = 999;      // Set to non-zero to verify assignment
+    size_t argv_buf_size = 999;  // Set to non-zero to verify assignment
+
+    // Call function to exercise lines 2970-2975
+    __wasi_errno_t result = wasmtime_ssp_args_sizes_get(&argv_environ, &argc, &argv_buf_size);
+
+    // Verify line 2973: *argc = argv_environ->argc;
+    ASSERT_EQ(0, argc);
+
+    // Verify line 2974: *argv_buf_size = argv_environ->argv_buf_size;
+    ASSERT_EQ(0, argv_buf_size);
+
+    // Verify line 2975: return __WASI_ESUCCESS;
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+}
+
+/******
+ * Test Case: ArgsSizesGet_LargeValues_ReturnsLargeSizes
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:2970-2975
+ * Target Lines: 2970-2971 (function signature), 2972-2974 (assignment operations), 2975 (return)
+ * Functional Purpose: Validates that wasmtime_ssp_args_sizes_get() correctly handles
+ *                     large argc and buffer size values without overflow or truncation,
+ *                     ensuring robust handling of substantial argument lists.
+ * Call Path: wasmtime_ssp_args_sizes_get() <- WASI args_sizes_get syscall
+ * Coverage Goal: Exercise function with large values to test robustness
+ ******/
+TEST_F(EnhancedPosixTest, ArgsSizesGet_LargeValues_ReturnsLargeSizes) {
+    // Initialize argv_environ with large values
+    struct argv_environ_values argv_environ;
+    argv_environ.argc = 65536;          // Large argc value
+    argv_environ.argv_buf_size = 1048576;  // Large buffer size (1MB)
+
+    size_t argc = 0;
+    size_t argv_buf_size = 0;
+
+    // Call function to exercise lines 2970-2975
+    __wasi_errno_t result = wasmtime_ssp_args_sizes_get(&argv_environ, &argc, &argv_buf_size);
+
+    // Verify line 2973: *argc = argv_environ->argc;
+    ASSERT_EQ(65536, argc);
+
+    // Verify line 2974: *argv_buf_size = argv_environ->argv_buf_size;
+    ASSERT_EQ(1048576, argv_buf_size);
+
+    // Verify line 2975: return __WASI_ESUCCESS;
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+}
