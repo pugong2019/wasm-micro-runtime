@@ -53,4 +53,5 @@ add_executable(wasm_running_modes_test ${unit_test_sources})
 
 target_link_libraries(wasm_running_modes_test ${LLVM_AVAILABLE_LIBS} gtest_main)
 
+# include(GoogleTest)
 gtest_discover_tests(wasm_running_modes_test)
