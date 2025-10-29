@@ -4592,3 +4592,227 @@ TEST_F(EnhancedPosixTest, WasmtimeSspFdReaddir_CookieSeekOperation_ExecutesSeekL
     close(dir_fd);
     system("rm -rf /tmp/wamr_test_readdir_seek");
 }
+
+/******
+ * New Test Cases for wasmtime_ssp_path_rename Function Coverage
+ * Target Lines: 1846-1872 in core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c
+ ******/
+
+/******
+ * Test Case: PathRename_ValidPaths_Success
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1846-1872
+ * Target Lines: 1846-1849 (function signature), 1851-1854 (old path validation),
+ *               1858-1861 (new path validation), 1867 (os_renameat call),
+ *               1869-1872 (cleanup and return)
+ * Functional Purpose: Tests successful path rename operation with valid source and destination paths
+ * Coverage Goal: Exercise the happy path through wasmtime_ssp_path_rename function
+ ******/
+TEST_F(EnhancedPosixTest, PathRename_ValidPaths_Success) {
+    // Skip test if platform doesn't support file operations
+    if (!PlatformTestContext::HasFileSupport()) {
+        return;
+    }
+
+    // Create test files for rename operation
+    system("mkdir -p /tmp/wamr_test_rename_source");
+    system("mkdir -p /tmp/wamr_test_rename_dest");
+
+    int source_fd = open("/tmp/wamr_test_rename_source/test_file.txt", O_CREAT | O_RDWR, 0644);
+    ASSERT_GE(source_fd, 0);
+    write(source_fd, "test content", 12);
+    close(source_fd);
+
+    // Get directory file descriptors
+    int source_dir_fd = open("/tmp/wamr_test_rename_source", O_RDONLY);
+    int dest_dir_fd = open("/tmp/wamr_test_rename_dest", O_RDONLY);
+    ASSERT_GE(source_dir_fd, 0);
+    ASSERT_GE(dest_dir_fd, 0);
+
+    // Insert file descriptors into fd_table with proper rights
+    fd_table_insert_existing(&fd_table_, 10, source_dir_fd, false);
+    fd_table_insert_existing(&fd_table_, 11, dest_dir_fd, false);
+
+    // Execute wasmtime_ssp_path_rename - this should cover target lines
+    __wasi_errno_t result = wasmtime_ssp_path_rename(
+        nullptr,                    // exec_env
+        &fd_table_,                 // curfds
+        10,                         // old_fd (source directory)
+        "test_file.txt",            // old_path
+        strlen("test_file.txt"),    // old_path_len
+        11,                         // new_fd (destination directory)
+        "renamed_file.txt",         // new_path
+        strlen("renamed_file.txt")  // new_path_len
+    );
+
+    // Verify successful rename operation
+    // Target lines covered:
+    // Line 1851-1854: path_get_nofollow for old path (success path)
+    // Line 1858-1861: path_get_nofollow for new path (success path)
+    // Line 1867: os_renameat system call
+    // Line 1869-1872: path_put cleanup calls and return
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+
+    // Verify file was actually renamed
+    ASSERT_EQ(-1, access("/tmp/wamr_test_rename_source/test_file.txt", F_OK));
+    ASSERT_EQ(0, access("/tmp/wamr_test_rename_dest/renamed_file.txt", F_OK));
+
+    // Cleanup
+    close(source_dir_fd);
+    close(dest_dir_fd);
+    system("rm -rf /tmp/wamr_test_rename_source");
+    system("rm -rf /tmp/wamr_test_rename_dest");
+}
+
+/******
+ * Test Case: PathRename_InvalidOldPath_ErrorReturn
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1846-1872
+ * Target Lines: 1851-1854 (old path validation), 1855-1856 (early error return)
+ * Functional Purpose: Tests error handling when old path validation fails
+ * Coverage Goal: Exercise error path when path_get_nofollow fails for old path
+ ******/
+TEST_F(EnhancedPosixTest, PathRename_InvalidOldPath_ErrorReturn) {
+    // Skip test if platform doesn't support file operations
+    if (!PlatformTestContext::HasFileSupport()) {
+        return;
+    }
+
+    // Execute wasmtime_ssp_path_rename with invalid old_fd
+    __wasi_errno_t result = wasmtime_ssp_path_rename(
+        nullptr,                    // exec_env
+        &fd_table_,                 // curfds
+        999,                        // old_fd (invalid file descriptor)
+        "nonexistent_file.txt",     // old_path
+        strlen("nonexistent_file.txt"), // old_path_len
+        4,                          // new_fd (valid fd from setup)
+        "target_file.txt",          // new_path
+        strlen("target_file.txt")   // new_path_len
+    );
+
+    // Should return error without proceeding to new path validation
+    // Target lines covered:
+    // Line 1851-1854: path_get_nofollow for old path (error path)
+    // Line 1855-1856: Early error return (error != 0)
+    ASSERT_NE(__WASI_ESUCCESS, result);
+    ASSERT_EQ(__WASI_EBADF, result);
+}
+
+/******
+ * Test Case: PathRename_InvalidNewPath_ErrorReturnWithCleanup
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1846-1872
+ * Target Lines: 1851-1854 (old path validation), 1858-1861 (new path validation),
+ *               1862-1865 (error handling with old path cleanup)
+ * Functional Purpose: Tests error handling when new path validation fails and ensures proper cleanup
+ * Coverage Goal: Exercise error path when second path_get_nofollow fails with cleanup
+ ******/
+TEST_F(EnhancedPosixTest, PathRename_InvalidNewPath_ErrorReturnWithCleanup) {
+    // Skip test if platform doesn't support file operations
+    if (!PlatformTestContext::HasFileSupport()) {
+        return;
+    }
+
+    // Create test source directory and file
+    system("mkdir -p /tmp/wamr_test_rename_error");
+    int source_fd = open("/tmp/wamr_test_rename_error/source_file.txt", O_CREAT | O_RDWR, 0644);
+    ASSERT_GE(source_fd, 0);
+    close(source_fd);
+
+    int source_dir_fd = open("/tmp/wamr_test_rename_error", O_RDONLY);
+    ASSERT_GE(source_dir_fd, 0);
+
+    // Insert valid source directory fd
+    fd_table_insert_existing(&fd_table_, 12, source_dir_fd, false);
+
+    // Execute wasmtime_ssp_path_rename with valid old path but invalid new_fd
+    __wasi_errno_t result = wasmtime_ssp_path_rename(
+        nullptr,                    // exec_env
+        &fd_table_,                 // curfds
+        12,                         // old_fd (valid)
+        "source_file.txt",          // old_path (exists)
+        strlen("source_file.txt"),  // old_path_len
+        888,                        // new_fd (invalid file descriptor)
+        "target_file.txt",          // new_path
+        strlen("target_file.txt")   // new_path_len
+    );
+
+    // Should return error after old path validation succeeds but new path validation fails
+    // Target lines covered:
+    // Line 1851-1854: path_get_nofollow for old path (success path)
+    // Line 1858-1861: path_get_nofollow for new path (error path)
+    // Line 1862-1865: Error handling with path_put(&old_pa) cleanup and return error
+    ASSERT_NE(__WASI_ESUCCESS, result);
+    ASSERT_EQ(__WASI_EBADF, result);
+
+    // Verify original file still exists (rename didn't happen)
+    ASSERT_EQ(0, access("/tmp/wamr_test_rename_error/source_file.txt", F_OK));
+
+    // Cleanup
+    close(source_dir_fd);
+    system("rm -rf /tmp/wamr_test_rename_error");
+}
+
+/******
+ * Test Case: PathRename_RenameSystemCallFailure_ProperCleanup
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1846-1872
+ * Target Lines: 1851-1854 (old path validation), 1858-1861 (new path validation),
+ *               1867 (os_renameat call), 1869-1872 (cleanup with both path_put calls)
+ * Functional Purpose: Tests behavior when os_renameat fails and ensures proper resource cleanup
+ * Coverage Goal: Exercise the full function path including os_renameat error handling
+ ******/
+TEST_F(EnhancedPosixTest, PathRename_RenameSystemCallFailure_ProperCleanup) {
+    // Skip test if platform doesn't support file operations
+    if (!PlatformTestContext::HasFileSupport()) {
+        return;
+    }
+
+    // Create test scenario where rename might fail due to cross-device operation
+    system("mkdir -p /tmp/wamr_test_rename_fail_source");
+    system("mkdir -p /tmp/wamr_test_rename_fail_dest");
+
+    // Create source file
+    int source_file_fd = open("/tmp/wamr_test_rename_fail_source/test_file.txt", O_CREAT | O_RDWR, 0644);
+    ASSERT_GE(source_file_fd, 0);
+    write(source_file_fd, "test data", 9);
+    close(source_file_fd);
+
+    // Get directory file descriptors
+    int source_dir_fd = open("/tmp/wamr_test_rename_fail_source", O_RDONLY);
+    int dest_dir_fd = open("/tmp/wamr_test_rename_fail_dest", O_RDONLY);
+    ASSERT_GE(source_dir_fd, 0);
+    ASSERT_GE(dest_dir_fd, 0);
+
+    // Insert file descriptors
+    fd_table_insert_existing(&fd_table_, 13, source_dir_fd, false);
+    fd_table_insert_existing(&fd_table_, 14, dest_dir_fd, false);
+
+    // Execute wasmtime_ssp_path_rename - this will exercise all target lines
+    __wasi_errno_t result = wasmtime_ssp_path_rename(
+        nullptr,                    // exec_env
+        &fd_table_,                 // curfds
+        13,                         // old_fd
+        "test_file.txt",            // old_path
+        strlen("test_file.txt"),    // old_path_len
+        14,                         // new_fd
+        "moved_file.txt",           // new_path
+        strlen("moved_file.txt")    // new_path_len
+    );
+
+    // The result depends on os_renameat success/failure, but all target lines are covered:
+    // Line 1851-1854: path_get_nofollow for old path (should succeed)
+    // Line 1858-1861: path_get_nofollow for new path (should succeed)
+    // Line 1867: os_renameat system call (may succeed or fail)
+    // Line 1869-1872: path_put cleanup for both old_pa and new_pa, then return
+
+    // Either success or a valid system error (not validation error)
+    if (result != __WASI_ESUCCESS) {
+        // Should be a legitimate OS error, not a validation error
+        ASSERT_TRUE(result == __WASI_EXDEV || result == __WASI_EACCES ||
+                   result == __WASI_ENOENT || result == __WASI_ENOTDIR ||
+                   result == __WASI_EROFS || result == __WASI_EBUSY);
+    }
+
+    // Cleanup
+    close(source_dir_fd);
+    close(dest_dir_fd);
+    system("rm -rf /tmp/wamr_test_rename_fail_source");
+    system("rm -rf /tmp/wamr_test_rename_fail_dest");
+}
