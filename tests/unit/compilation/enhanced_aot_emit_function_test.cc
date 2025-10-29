@@ -675,3 +675,250 @@ TEST_F(EnhancedAotEmitFunctionTest, aot_compile_op_call_indirect_GCEnabled_Multi
     aot_destroy_comp_context(comp_ctx);
     wasm_runtime_unload(module);
 }
+
+// === NEW TEST CASES FOR LINES 2751-2758 ===
+
+/******
+ * Test Case: aot_compile_op_ref_null_TechnicalLimitation_Documented
+ * Source: core/iwasm/compilation/aot_emit_function.c:2751-2758
+ * Target Lines: 2751-2758 (aot_compile_op_ref_null function)
+ * Technical Limitation: Current test environment does not have WAMR_BUILD_REF_TYPES enabled.
+ *                       Lines 2751-2758 are within aot_compile_op_ref_null function which
+ *                       requires ref.null WebAssembly instruction that needs ref types support.
+ * Function Purpose: aot_compile_op_ref_null handles WASM_OP_REF_NULL instruction compilation
+ *                   Line 2753: Checks if comp_ctx->enable_gc
+ *                   Line 2754: PUSH_GC_REF(GC_REF_NULL) if GC enabled
+ *                   Line 2756: PUSH_I32(REF_NULL) if GC disabled
+ *                   Line 2758: return true
+ * Coverage Limitation: Cannot exercise these lines without ref types runtime support
+ ******/
+TEST_F(EnhancedAotEmitFunctionTest, aot_compile_op_ref_null_TechnicalLimitation_Documented) {
+    // TECHNICAL LIMITATION DOCUMENTATION:
+    // The aot_compile_op_ref_null function (lines 2751-2758) handles the WASM_OP_REF_NULL
+    // instruction which requires WAMR_BUILD_REF_TYPES=1 in the build configuration.
+    // Current test environment shows "Reference Types" as blank (disabled) in CMake output.
+    // Without ref types support, ref.null instruction cannot be loaded or compiled.
+
+    // Create basic test module to verify compilation infrastructure works
+    wasm_module_t module = createCallIndirectTestModule();
+    ASSERT_NE(module, nullptr);
+
+    // Test compilation contexts with different GC settings
+    AOTCompContext* comp_ctx_gc = createCompContextWithOptions(module, true, false);
+    ASSERT_NE(comp_ctx_gc, nullptr);
+    ASSERT_TRUE(comp_ctx_gc->enable_gc);
+
+    AOTCompContext* comp_ctx_no_gc = createCompContextWithOptions(module, false, false);
+    ASSERT_NE(comp_ctx_no_gc, nullptr);
+    ASSERT_FALSE(comp_ctx_no_gc->enable_gc);
+
+    // Verify both contexts are properly initialized
+    ASSERT_NE(comp_ctx_gc->context, nullptr);
+    ASSERT_NE(comp_ctx_gc->builder, nullptr);
+    ASSERT_NE(comp_ctx_no_gc->context, nullptr);
+    ASSERT_NE(comp_ctx_no_gc->builder, nullptr);
+
+    // COVERAGE ANALYSIS: Lines 2751-2758 are not covered because:
+    // 1. WASM_OP_REF_NULL instruction requires ref types support
+    // 2. Current build configuration does not enable WAMR_BUILD_REF_TYPES
+    // 3. Runtime rejects WASM modules with ref.null instruction ("unknown value type")
+    // 4. Without ref types, aot_compile_op_ref_null is never called during compilation
+
+    // This test documents the technical limitation and verifies infrastructure readiness
+    // for when ref types support is enabled in the build configuration
+
+    // Cleanup
+    aot_destroy_comp_context(comp_ctx_gc);
+    aot_destroy_comp_context(comp_ctx_no_gc);
+    wasm_runtime_unload(module);
+}
+
+/******
+ * Test Case: aot_compile_op_ref_is_null_WithGCEnabled_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_function.c:2764-2795
+ * Target Lines: 2768-2775 (GC path), 2786-2791 (common path), 2793 (success return)
+ * Functional Purpose: Validates that aot_compile_op_ref_is_null() correctly handles
+ *                     the GC-enabled path, using POP_GC_REF and LLVMBuildIsNull for
+ *                     null reference checking with garbage collection support.
+ * Call Path: aot_compile_op_ref_is_null() <- WASM_OP_REF_IS_NULL processing
+ * Coverage Goal: Exercise GC-enabled path and successful completion
+ ******/
+TEST_F(EnhancedAotEmitFunctionTest, aot_compile_op_ref_is_null_WithGCEnabled_ReturnsTrue) {
+    wasm_module_t module = createCallIndirectTestModule();
+    ASSERT_NE(nullptr, module);
+
+    // Create compilation context with GC enabled
+    AOTCompContext* comp_ctx = createCompContextWithOptions(module, true, false);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Get the first function context for testing
+    AOTFuncContext* func_ctx = comp_ctx->func_ctxes[0];
+    ASSERT_NE(nullptr, func_ctx);
+
+    // Setup stack with a GC reference value
+    // Push a mock GC reference to be popped by POP_GC_REF
+    AOTValue *aot_value = (AOTValue*)wasm_runtime_malloc(sizeof(AOTValue));
+    ASSERT_NE(aot_value, nullptr);
+    memset(aot_value, 0, sizeof(AOTValue));
+    aot_value->value = LLVMConstNull(LLVMPointerType(LLVMInt8Type(), 0));
+    aot_value->type = VALUE_TYPE_GC_REF;
+    if (func_ctx->block_stack.block_list_end) {
+        AOTBlock *cur_block = func_ctx->block_stack.block_list_end;
+        aot_value_stack_push(comp_ctx, &cur_block->value_stack, aot_value);
+    }
+
+    // Test: Call aot_compile_op_ref_is_null with GC enabled
+    bool result = aot_compile_op_ref_is_null(comp_ctx, func_ctx);
+
+    // Verify: Function should succeed
+    ASSERT_TRUE(result);
+
+    // Verify: Stack should have result pushed as I32
+    if (func_ctx->block_stack.block_list_end) {
+        AOTBlock *cur_block = func_ctx->block_stack.block_list_end;
+        ASSERT_NE(cur_block->value_stack.value_list_end, nullptr);
+
+        // Verify: Top of stack should be I32 type (result of null check)
+        uint8_t top_type = cur_block->value_stack.value_list_end->type;
+        ASSERT_EQ(VALUE_TYPE_I32, top_type);
+    }
+
+    // Cleanup
+    aot_destroy_comp_context(comp_ctx);
+    wasm_runtime_unload(module);
+}
+
+/******
+ * Test Case: aot_compile_op_ref_is_null_WithoutGC_ReturnsTrue
+ * Source: core/iwasm/compilation/aot_emit_function.c:2764-2795
+ * Target Lines: 2777-2784 (non-GC path), 2786-2791 (common path), 2793 (success return)
+ * Functional Purpose: Validates that aot_compile_op_ref_is_null() correctly handles
+ *                     the non-GC path, using POP_I32 and LLVMBuildICmp for comparing
+ *                     reference values against REF_NULL without garbage collection.
+ * Call Path: aot_compile_op_ref_is_null() <- WASM_OP_REF_IS_NULL processing
+ * Coverage Goal: Exercise non-GC path and successful completion
+ ******/
+TEST_F(EnhancedAotEmitFunctionTest, aot_compile_op_ref_is_null_WithoutGC_ReturnsTrue) {
+    wasm_module_t module = createCallIndirectTestModule();
+    ASSERT_NE(nullptr, module);
+
+    // Create compilation context with GC disabled
+    AOTCompContext* comp_ctx = createCompContextWithOptions(module, false, false);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Get the first function context for testing
+    AOTFuncContext* func_ctx = comp_ctx->func_ctxes[0];
+    ASSERT_NE(nullptr, func_ctx);
+
+    // Setup stack with an I32 reference value
+    // Push a mock I32 reference to be popped by POP_I32
+    AOTValue *aot_value = (AOTValue*)wasm_runtime_malloc(sizeof(AOTValue));
+    ASSERT_NE(aot_value, nullptr);
+    memset(aot_value, 0, sizeof(AOTValue));
+    aot_value->value = LLVMConstInt(LLVMInt32Type(), 0, false);
+    aot_value->type = VALUE_TYPE_I32;
+    if (func_ctx->block_stack.block_list_end) {
+        AOTBlock *cur_block = func_ctx->block_stack.block_list_end;
+        aot_value_stack_push(comp_ctx, &cur_block->value_stack, aot_value);
+    }
+
+    // Test: Call aot_compile_op_ref_is_null with GC disabled
+    bool result = aot_compile_op_ref_is_null(comp_ctx, func_ctx);
+
+    // Verify: Function should succeed
+    ASSERT_TRUE(result);
+
+    // Verify: Stack should have result pushed as I32
+    if (func_ctx->block_stack.block_list_end) {
+        AOTBlock *cur_block = func_ctx->block_stack.block_list_end;
+        ASSERT_NE(cur_block->value_stack.value_list_end, nullptr);
+
+        // Verify: Top of stack should be I32 type (result of null comparison)
+        uint8_t top_type = cur_block->value_stack.value_list_end->type;
+        ASSERT_EQ(VALUE_TYPE_I32, top_type);
+    }
+
+    // Cleanup
+    aot_destroy_comp_context(comp_ctx);
+    wasm_runtime_unload(module);
+}
+
+/******
+ * Test Case: aot_compile_op_ref_is_null_EmptyStack_ReturnsFalse
+ * Source: core/iwasm/compilation/aot_emit_function.c:2764-2795
+ * Target Lines: 2769/2777 (POP operations), 2794-2795 (failure path)
+ * Functional Purpose: Validates that aot_compile_op_ref_is_null() correctly handles
+ *                     stack underflow conditions when attempting to pop values from
+ *                     an empty stack, properly returning false on failure.
+ * Call Path: aot_compile_op_ref_is_null() <- WASM_OP_REF_IS_NULL processing
+ * Coverage Goal: Exercise error handling for empty stack conditions
+ ******/
+TEST_F(EnhancedAotEmitFunctionTest, aot_compile_op_ref_is_null_EmptyStack_ReturnsFalse) {
+    wasm_module_t module = createCallIndirectTestModule();
+    ASSERT_NE(nullptr, module);
+
+    // Create compilation context with GC enabled
+    AOTCompContext* comp_ctx = createCompContextWithOptions(module, true, false);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Get the first function context for testing
+    AOTFuncContext* func_ctx = comp_ctx->func_ctxes[0];
+    ASSERT_NE(nullptr, func_ctx);
+
+    // Ensure stack is empty for testing stack underflow
+    if (func_ctx->block_stack.block_list_end) {
+        AOTBlock *cur_block = func_ctx->block_stack.block_list_end;
+        cur_block->value_stack.value_list_end = nullptr;
+        cur_block->value_stack.value_list_head = nullptr;
+    }
+
+    // Test: Call aot_compile_op_ref_is_null with empty stack
+    bool result = aot_compile_op_ref_is_null(comp_ctx, func_ctx);
+
+    // Verify: Function should fail due to stack underflow
+    ASSERT_FALSE(result);
+
+    // Cleanup
+    aot_destroy_comp_context(comp_ctx);
+    wasm_runtime_unload(module);
+}
+
+/******
+ * Test Case: aot_compile_op_ref_is_null_NonGCEmptyStack_ReturnsFalse
+ * Source: core/iwasm/compilation/aot_emit_function.c:2764-2795
+ * Target Lines: 2777 (POP_I32 operation), 2794-2795 (failure path)
+ * Functional Purpose: Validates that aot_compile_op_ref_is_null() correctly handles
+ *                     stack underflow in non-GC mode when attempting to pop I32 values
+ *                     from an empty stack, ensuring proper error handling.
+ * Call Path: aot_compile_op_ref_is_null() <- WASM_OP_REF_IS_NULL processing
+ * Coverage Goal: Exercise non-GC error handling for empty stack conditions
+ ******/
+TEST_F(EnhancedAotEmitFunctionTest, aot_compile_op_ref_is_null_NonGCEmptyStack_ReturnsFalse) {
+    wasm_module_t module = createCallIndirectTestModule();
+    ASSERT_NE(nullptr, module);
+
+    // Create compilation context with GC disabled
+    AOTCompContext* comp_ctx = createCompContextWithOptions(module, false, false);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Get the first function context for testing
+    AOTFuncContext* func_ctx = comp_ctx->func_ctxes[0];
+    ASSERT_NE(nullptr, func_ctx);
+
+    // Ensure stack is empty for testing stack underflow in non-GC mode
+    if (func_ctx->block_stack.block_list_end) {
+        AOTBlock *cur_block = func_ctx->block_stack.block_list_end;
+        cur_block->value_stack.value_list_end = nullptr;
+        cur_block->value_stack.value_list_head = nullptr;
+    }
+
+    // Test: Call aot_compile_op_ref_is_null with empty stack in non-GC mode
+    bool result = aot_compile_op_ref_is_null(comp_ctx, func_ctx);
+
+    // Verify: Function should fail due to stack underflow
+    ASSERT_FALSE(result);
+
+    // Cleanup
+    aot_destroy_comp_context(comp_ctx);
+    wasm_runtime_unload(module);
+}
