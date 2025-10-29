@@ -6244,3 +6244,245 @@ TEST_F(EnhancedPosixTest, ArgsSizesGet_LargeValues_ReturnsLargeSizes) {
     // Verify line 2975: return __WASI_ESUCCESS;
     ASSERT_EQ(__WASI_ESUCCESS, result);
 }
+
+// ===============================================================================
+// NEW TEST CASES FOR wasmtime_ssp_path_filestat_get - Lines 1959-1976
+// ===============================================================================
+
+/******
+ * Test Case: PathFilestatGet_ValidFile_ReturnsFilestat
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1959-1976
+ * Target Lines: 1959-1962 (function signature), 1964-1967 (path_get call), 1971-1972 (os_fstatat call), 1974 (path_put call), 1976 (return)
+ * Functional Purpose: Validates that wasmtime_ssp_path_filestat_get() correctly
+ *                     retrieves file statistics for a valid file path using the
+ *                     standard path resolution and filesystem query mechanism.
+ * Call Path: wasmtime_ssp_path_filestat_get() <- wasi_path_filestat_get() <- WASI syscall
+ * Coverage Goal: Exercise success path with valid file to cover main execution flow
+ ******/
+TEST_F(EnhancedPosixTest, PathFilestatGet_ValidFile_ReturnsFilestat) {
+    if (!PlatformTestContext::IsLinux()) {
+        // Skip test on non-Linux platforms as file operations may behave differently
+        return;
+    }
+
+    // Create a temporary directory for testing
+    const char *temp_dir = "/tmp/wamr_filestat_test_dir";
+    mkdir(temp_dir, 0755);
+
+    // Create a temporary test file in the directory
+    const char *test_filename = "test_filestat_file.txt";
+    char full_path[256];
+    snprintf(full_path, sizeof(full_path), "%s/%s", temp_dir, test_filename);
+    int temp_fd = open(full_path, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    ASSERT_NE(-1, temp_fd);
+    write(temp_fd, "test content", 12);
+    close(temp_fd);
+
+    // Open directory file descriptor
+    int dir_fd = open(temp_dir, O_RDONLY);
+    ASSERT_NE(-1, dir_fd);
+
+    // Insert directory fd into fd_table
+    __wasi_fd_t wasi_fd = 100;  // Use a different fd number
+    ASSERT_TRUE(fd_table_insert_existing(&fd_table_, wasi_fd, dir_fd, false));
+
+    __wasi_lookupflags_t flags = 0;  // Don't follow symlinks
+    const char *path = test_filename;
+    size_t pathlen = strlen(path);
+    __wasi_filestat_t buf;
+    memset(&buf, 0, sizeof(buf));
+
+    // Call the function to exercise lines 1959-1976
+    __wasi_errno_t result = wasmtime_ssp_path_filestat_get(nullptr, &fd_table_, wasi_fd, flags, path, pathlen, &buf);
+
+    // Verify function completed successfully - exercises line 1976
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+
+    // Verify that filestat buffer was populated (indicates os_fstatat succeeded on line 1971-1972)
+    ASSERT_NE(0, buf.st_size);  // File should have non-zero size
+    ASSERT_EQ(__WASI_FILETYPE_REGULAR_FILE, buf.st_filetype);  // Should be a regular file
+
+    // Cleanup
+    close(dir_fd);
+    unlink(full_path);  // Remove test file
+    rmdir(temp_dir);   // Remove directory
+}
+
+/******
+ * Test Case: PathFilestatGet_InvalidPath_ReturnsError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1959-1976
+ * Target Lines: 1964-1969 (path_get call and error handling), 1976 (error return)
+ * Functional Purpose: Validates that wasmtime_ssp_path_filestat_get() correctly
+ *                     handles invalid file paths by propagating path_get errors
+ *                     without proceeding to filesystem operations.
+ * Call Path: wasmtime_ssp_path_filestat_get() <- wasi_path_filestat_get() <- WASI syscall
+ * Coverage Goal: Exercise error path when path_get fails to test error handling
+ ******/
+TEST_F(EnhancedPosixTest, PathFilestatGet_InvalidPath_ReturnsError) {
+    if (!PlatformTestContext::IsLinux()) {
+        // Skip test on non-Linux platforms
+        return;
+    }
+
+    // Use an invalid file descriptor that doesn't exist in fd_table
+    __wasi_fd_t invalid_fd = 999;
+    __wasi_lookupflags_t flags = 0;
+    const char *path = "nonexistent_file.txt";
+    size_t pathlen = strlen(path);
+    __wasi_filestat_t buf;
+    memset(&buf, 0, sizeof(buf));
+
+    // Call the function - should fail at path_get (lines 1965-1967)
+    __wasi_errno_t result = wasmtime_ssp_path_filestat_get(nullptr, &fd_table_, invalid_fd, flags, path, pathlen, &buf);
+
+    // Verify that path_get error is returned (line 1968-1969 early return)
+    ASSERT_NE(__WASI_ESUCCESS, result);
+    ASSERT_EQ(__WASI_EBADF, result);  // Bad file descriptor error
+}
+
+/******
+ * Test Case: PathFilestatGet_SymlinkFollow_CallsOsFstatatWithFlags
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1959-1976
+ * Target Lines: 1971-1972 (os_fstatat call with follow flag), 1974 (path_put), 1976 (return)
+ * Functional Purpose: Validates that wasmtime_ssp_path_filestat_get() correctly
+ *                     passes the symlink follow flag to os_fstatat based on the
+ *                     path_access follow field from path_get resolution.
+ * Call Path: wasmtime_ssp_path_filestat_get() <- wasi_path_filestat_get() <- WASI syscall
+ * Coverage Goal: Exercise symlink following logic in os_fstatat call
+ ******/
+TEST_F(EnhancedPosixTest, PathFilestatGet_SymlinkFollow_CallsOsFstatatWithFlags) {
+    if (!PlatformTestContext::IsLinux()) {
+        // Skip test on non-Linux platforms
+        return;
+    }
+
+    // Create a temporary directory for testing
+    const char *temp_dir = "/tmp/wamr_symlink_test_dir";
+    mkdir(temp_dir, 0755);
+
+    // Create a temporary test file and symlink in the directory
+    const char *test_filename = "test_target_file.txt";
+    const char *test_symlink = "test_symlink_file.txt";
+
+    char target_path[256], symlink_path[256];
+    snprintf(target_path, sizeof(target_path), "%s/%s", temp_dir, test_filename);
+    snprintf(symlink_path, sizeof(symlink_path), "%s/%s", temp_dir, test_symlink);
+
+    int temp_fd = open(target_path, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    ASSERT_NE(-1, temp_fd);
+    write(temp_fd, "symlink target content", 22);
+    close(temp_fd);
+
+    // Create symlink using relative path (required for WASI sandboxing)
+    // Change to temp directory and create relative symlink
+    char old_cwd[PATH_MAX];
+    ASSERT_NE(nullptr, getcwd(old_cwd, sizeof(old_cwd)));
+    ASSERT_EQ(0, chdir(temp_dir));
+    int symlink_result = symlink(test_filename, test_symlink);
+    ASSERT_EQ(0, symlink_result);
+    ASSERT_EQ(0, chdir(old_cwd));
+
+    // Open directory file descriptor
+    int dir_fd = open(temp_dir, O_RDONLY);
+    ASSERT_NE(-1, dir_fd);
+
+    // Insert directory fd into fd_table
+    __wasi_fd_t wasi_fd = 101;  // Use a different fd number
+    ASSERT_TRUE(fd_table_insert_existing(&fd_table_, wasi_fd, dir_fd, false));
+
+    // Test with follow symlinks flag
+    __wasi_lookupflags_t flags = __WASI_LOOKUP_SYMLINK_FOLLOW;
+    const char *path = test_symlink;
+    size_t pathlen = strlen(path);
+    __wasi_filestat_t buf;
+    memset(&buf, 0, sizeof(buf));
+
+    // Call the function - should follow symlink (exercises line 1971-1972 with follow=true)
+    __wasi_errno_t result = wasmtime_ssp_path_filestat_get(nullptr, &fd_table_, wasi_fd, flags, path, pathlen, &buf);
+
+    // Verify function completed successfully
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+
+    // Verify that we got stats for the target file (symlink was followed)
+    ASSERT_EQ(__WASI_FILETYPE_REGULAR_FILE, buf.st_filetype);
+    ASSERT_EQ(22, buf.st_size);  // Size of target file content
+
+    // Cleanup
+    close(dir_fd);
+    unlink(symlink_path);
+    unlink(target_path);
+    rmdir(temp_dir);
+}
+
+/******
+ * Test Case: PathFilestatGet_NoFollowSymlink_CallsOsFstatatWithoutFlags
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1959-1976
+ * Target Lines: 1971-1972 (os_fstatat call with follow=false), 1974 (path_put), 1976 (return)
+ * Functional Purpose: Validates that wasmtime_ssp_path_filestat_get() correctly
+ *                     calls os_fstatat without follow flags when symlinks should
+ *                     not be followed, returning information about the link itself.
+ * Call Path: wasmtime_ssp_path_filestat_get() <- wasi_path_filestat_get() <- WASI syscall
+ * Coverage Goal: Exercise symlink non-following logic in os_fstatat call
+ ******/
+TEST_F(EnhancedPosixTest, PathFilestatGet_NoFollowSymlink_CallsOsFstatatWithoutFlags) {
+    if (!PlatformTestContext::IsLinux()) {
+        // Skip test on non-Linux platforms
+        return;
+    }
+
+    // Create a temporary directory for testing
+    const char *temp_dir = "/tmp/wamr_nofollow_test_dir";
+    mkdir(temp_dir, 0755);
+
+    // Create a temporary test file and symlink in the directory
+    const char *test_filename = "test_target_file2.txt";
+    const char *test_symlink = "test_symlink_file2.txt";
+
+    char target_path[256], symlink_path[256];
+    snprintf(target_path, sizeof(target_path), "%s/%s", temp_dir, test_filename);
+    snprintf(symlink_path, sizeof(symlink_path), "%s/%s", temp_dir, test_symlink);
+
+    int temp_fd = open(target_path, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    ASSERT_NE(-1, temp_fd);
+    write(temp_fd, "symlink target content 2", 24);
+    close(temp_fd);
+
+    // Create symlink using relative path (required for WASI sandboxing)
+    // Change to temp directory and create relative symlink
+    char old_cwd2[PATH_MAX];
+    ASSERT_NE(nullptr, getcwd(old_cwd2, sizeof(old_cwd2)));
+    ASSERT_EQ(0, chdir(temp_dir));
+    int symlink_result = symlink(test_filename, test_symlink);
+    ASSERT_EQ(0, symlink_result);
+    ASSERT_EQ(0, chdir(old_cwd2));
+
+    // Open directory file descriptor
+    int dir_fd = open(temp_dir, O_RDONLY);
+    ASSERT_NE(-1, dir_fd);
+
+    // Insert directory fd into fd_table
+    __wasi_fd_t wasi_fd = 102;  // Use a different fd number
+    ASSERT_TRUE(fd_table_insert_existing(&fd_table_, wasi_fd, dir_fd, false));
+
+    // Test without follow symlinks flag (default behavior)
+    __wasi_lookupflags_t flags = 0;  // No follow
+    const char *path = test_symlink;
+    size_t pathlen = strlen(path);
+    __wasi_filestat_t buf;
+    memset(&buf, 0, sizeof(buf));
+
+    // Call the function - should NOT follow symlink (exercises line 1971-1972 with follow=false)
+    __wasi_errno_t result = wasmtime_ssp_path_filestat_get(nullptr, &fd_table_, wasi_fd, flags, path, pathlen, &buf);
+
+    // Verify function completed successfully
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+
+    // Verify that we got stats for the symlink itself, not the target
+    ASSERT_EQ(__WASI_FILETYPE_SYMBOLIC_LINK, buf.st_filetype);
+
+    // Cleanup
+    close(dir_fd);
+    unlink(symlink_path);
+    unlink(target_path);
+    rmdir(temp_dir);
+}
