@@ -15,6 +15,9 @@ extern "C" {
 #include "ssp_config.h"
 #include "wasmtime_ssp.h"
 #include "wasm_export.h"
+
+// Forward declaration for internal function being tested
+__wasi_errno_t readlinkat_dup(os_file_handle handle, const char *path, size_t *p_len, char **out_buf);
 }
 
 // Platform detection utility for tests - REQUIRED in every test file
@@ -3315,4 +3318,250 @@ TEST_F(EnhancedPosixTest, wasmtime_ssp_fd_fdstat_set_flags_MultipleFlags_Success
 
     // Cleanup
     unlink("/tmp/wamr_multiflags_test");
+}
+
+/******
+ * Test Case: readlinkat_dup_ValidSymlink_Success
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1222-1275
+ * Target Lines: 1235 (os_fstatat call), 1244 (buf_len calculation), 1249-1253 (memory allocation),
+ *               1255 (os_readlinkat call), 1264-1268 (success path)
+ * Functional Purpose: Validates that readlinkat_dup() successfully reads a symbolic link
+ *                     into an allocated buffer with proper size calculation.
+ * Call Path: readlinkat_dup() <- path_get() / wasmtime_ssp_path_readlink()
+ * Coverage Goal: Exercise successful symlink reading with proper buffer allocation
+ ******/
+TEST_F(EnhancedPosixTest, readlinkat_dup_ValidSymlink_Success) {
+    // Create a test file and symlink for readlinkat_dup testing
+    const char* target_file = "/tmp/wamr_readlink_target";
+    const char* symlink_file = "/tmp/wamr_readlink_symlink";
+
+    // Create target file
+    int target_fd = open(target_file, O_CREAT | O_WRONLY, 0644);
+    ASSERT_NE(-1, target_fd);
+    write(target_fd, "test content", 12);
+    close(target_fd);
+
+    // Create symlink pointing to target
+    ASSERT_EQ(0, symlink(target_file, symlink_file));
+
+    // Open directory for readlinkat_dup
+    int dir_fd = open("/tmp", O_RDONLY);
+    ASSERT_NE(-1, dir_fd);
+
+    // Test readlinkat_dup function
+    size_t out_len = 0;
+    char* out_buf = nullptr;
+
+    __wasi_errno_t result = readlinkat_dup(dir_fd, "wamr_readlink_symlink", &out_len, &out_buf);
+
+    // Verify successful operation - Lines 1264-1268
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+    ASSERT_NE(nullptr, out_buf);
+    ASSERT_GT(out_len, 0);
+
+    // Verify symlink content is correct (includes null terminator)
+    ASSERT_EQ(strlen(target_file) + 1, out_len);
+    ASSERT_STREQ(target_file, out_buf);
+
+    // Cleanup allocated buffer
+    if (out_buf) {
+        wasm_runtime_free(out_buf);
+    }
+    close(dir_fd);
+    unlink(symlink_file);
+    unlink(target_file);
+}
+
+/******
+ * Test Case: readlinkat_dup_InvalidPath_FstatError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1222-1275
+ * Target Lines: 1235 (os_fstatat call), 1236-1238 (error handling),
+ *               1244 (buf_len fallback to 32), 1255-1261 (readlinkat error path)
+ * Functional Purpose: Validates that readlinkat_dup() handles os_fstatat failure
+ *                     correctly by setting stat.st_size = 0 and using fallback buffer size.
+ * Call Path: readlinkat_dup() <- various path operations
+ * Coverage Goal: Exercise error handling path when fstatat fails but readlinkat might still work
+ ******/
+TEST_F(EnhancedPosixTest, readlinkat_dup_InvalidPath_FstatError) {
+    // Open directory for readlinkat_dup
+    int dir_fd = open("/tmp", O_RDONLY);
+    ASSERT_NE(-1, dir_fd);
+
+    // Test with non-existent symlink path - this should cause os_fstatat to fail
+    size_t out_len = 0;
+    char* out_buf = nullptr;
+
+    __wasi_errno_t result = readlinkat_dup(dir_fd, "non_existent_symlink_12345", &out_len, &out_buf);
+
+    // Should fail during os_readlinkat call - Lines 1255-1261
+    ASSERT_NE(__WASI_ESUCCESS, result);
+    ASSERT_EQ(nullptr, out_buf);
+    ASSERT_EQ(0, out_len);
+
+    close(dir_fd);
+}
+
+/******
+ * Test Case: readlinkat_dup_RegularFile_NotSymlink
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1222-1275
+ * Target Lines: 1235 (os_fstatat success), 1244 (st_size > 0 path),
+ *               1255-1261 (os_readlinkat fails for non-symlink)
+ * Functional Purpose: Validates that readlinkat_dup() properly fails when trying to
+ *                     read a regular file as a symbolic link.
+ * Call Path: readlinkat_dup() <- path operations on regular files
+ * Coverage Goal: Exercise readlinkat error path for non-symlink files
+ ******/
+TEST_F(EnhancedPosixTest, readlinkat_dup_RegularFile_NotSymlink) {
+    // Create a regular file (not a symlink)
+    const char* regular_file = "/tmp/wamr_regular_file";
+    int fd = open(regular_file, O_CREAT | O_WRONLY, 0644);
+    ASSERT_NE(-1, fd);
+    write(fd, "regular file content", 20);
+    close(fd);
+
+    // Open directory for readlinkat_dup
+    int dir_fd = open("/tmp", O_RDONLY);
+    ASSERT_NE(-1, dir_fd);
+
+    // Test readlinkat_dup on regular file - should fail
+    size_t out_len = 0;
+    char* out_buf = nullptr;
+
+    __wasi_errno_t result = readlinkat_dup(dir_fd, "wamr_regular_file", &out_len, &out_buf);
+
+    // Should fail with appropriate error (EINVAL typically) - Lines 1255-1261
+    ASSERT_NE(__WASI_ESUCCESS, result);
+    ASSERT_EQ(nullptr, out_buf);
+    ASSERT_EQ(0, out_len);
+
+    close(dir_fd);
+    unlink(regular_file);
+}
+
+/******
+ * Test Case: readlinkat_dup_EmptySymlink_SmallBuffer
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1222-1275
+ * Target Lines: 1235 (os_fstatat call), 1237-1238 (st_size = 0),
+ *               1244 (buf_len = 32 fallback), 1249-1253 (allocation), 1264-1268 (success)
+ * Functional Purpose: Validates that readlinkat_dup() handles symbolic links that report
+ *                     st_size as 0 (magic symlinks) by using fallback buffer size of 32.
+ * Call Path: readlinkat_dup() <- path operations
+ * Coverage Goal: Exercise st_size == 0 fallback logic and small buffer success path
+ ******/
+TEST_F(EnhancedPosixTest, readlinkat_dup_EmptySymlink_SmallBuffer) {
+    // Create a short target path to ensure st_size might be 0 or small
+    const char* short_target = "/tmp/short";
+    const char* symlink_file = "/tmp/wamr_short_symlink";
+
+    // Create short target file
+    int target_fd = open(short_target, O_CREAT | O_WRONLY, 0644);
+    ASSERT_NE(-1, target_fd);
+    write(target_fd, "x", 1);
+    close(target_fd);
+
+    // Create symlink
+    ASSERT_EQ(0, symlink(short_target, symlink_file));
+
+    // Open directory for readlinkat_dup
+    int dir_fd = open("/tmp", O_RDONLY);
+    ASSERT_NE(-1, dir_fd);
+
+    // Test readlinkat_dup function
+    size_t out_len = 0;
+    char* out_buf = nullptr;
+
+    __wasi_errno_t result = readlinkat_dup(dir_fd, "wamr_short_symlink", &out_len, &out_buf);
+
+    // Should succeed - Lines 1264-1268
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+    ASSERT_NE(nullptr, out_buf);
+    ASSERT_GT(out_len, 0);
+
+    // Verify content and proper null termination
+    ASSERT_EQ(strlen(short_target) + 1, out_len);
+    ASSERT_STREQ(short_target, out_buf);
+
+    // Cleanup
+    if (out_buf) {
+        wasm_runtime_free(out_buf);
+    }
+    close(dir_fd);
+    unlink(symlink_file);
+    unlink(short_target);
+}
+
+/******
+ * Test Case: readlinkat_dup_LongSymlink_BufferResize
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1222-1275
+ * Target Lines: 1264 (bytes_read >= buf_len check), 1272-1274 (buffer resize loop),
+ *               1249-1253 (repeated allocation), 1255 (repeated readlinkat calls)
+ * Functional Purpose: Validates that readlinkat_dup() properly handles buffer truncation
+ *                     by doubling buffer size and retrying until successful read.
+ * Call Path: readlinkat_dup() <- path operations with long symlinks
+ * Coverage Goal: Exercise buffer resize loop for truncated symlink content
+ ******/
+TEST_F(EnhancedPosixTest, readlinkat_dup_LongSymlink_BufferResize) {
+    // Create a very long target path to force buffer resizing
+    std::string long_target = "/tmp/";
+    // Create path longer than initial 32-byte buffer
+    for (int i = 0; i < 50; i++) {
+        long_target += "very_long_path_component_";
+    }
+    long_target += "target_file";
+
+    const char* symlink_file = "/tmp/wamr_long_symlink";
+
+    // Create the long symlink (doesn't need actual target file)
+    ASSERT_EQ(0, symlink(long_target.c_str(), symlink_file));
+
+    // Open directory for readlinkat_dup
+    int dir_fd = open("/tmp", O_RDONLY);
+    ASSERT_NE(-1, dir_fd);
+
+    // Test readlinkat_dup function - should trigger buffer resize
+    size_t out_len = 0;
+    char* out_buf = nullptr;
+
+    __wasi_errno_t result = readlinkat_dup(dir_fd, "wamr_long_symlink", &out_len, &out_buf);
+
+    // Should eventually succeed after buffer resizing - Lines 1264-1268
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+    ASSERT_NE(nullptr, out_buf);
+    ASSERT_GT(out_len, 0);
+
+    // Verify full long path is read correctly
+    ASSERT_EQ(long_target.length() + 1, out_len);
+    ASSERT_EQ(long_target, std::string(out_buf));
+
+    // Cleanup
+    if (out_buf) {
+        wasm_runtime_free(out_buf);
+    }
+    close(dir_fd);
+    unlink(symlink_file);
+}
+
+/******
+ * Test Case: readlinkat_dup_InvalidHandle_Error
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1222-1275
+ * Target Lines: 1235 (os_fstatat with invalid handle), 1255-1261 (error path)
+ * Functional Purpose: Validates that readlinkat_dup() properly handles invalid
+ *                     file handle by returning appropriate error codes.
+ * Call Path: readlinkat_dup() <- path operations with invalid handles
+ * Coverage Goal: Exercise error handling for invalid file descriptors
+ ******/
+TEST_F(EnhancedPosixTest, readlinkat_dup_InvalidHandle_Error) {
+    // Use an invalid file descriptor
+    int invalid_fd = -1;
+
+    // Test readlinkat_dup with invalid handle
+    size_t out_len = 0;
+    char* out_buf = nullptr;
+
+    __wasi_errno_t result = readlinkat_dup(invalid_fd, "any_path", &out_len, &out_buf);
+
+    // Should fail early - Lines 1255-1261
+    ASSERT_NE(__WASI_ESUCCESS, result);
+    ASSERT_EQ(nullptr, out_buf);
+    ASSERT_EQ(0, out_len);
 }
