@@ -3183,3 +3183,136 @@ TEST_F(EnhancedPosixTest, FdstatGet_ClosedFileDescriptor_TriggersFlagError) {
         unlink("/tmp/wamr_test_closed");
     }
 }
+
+/******
+ * NEW TEST CASES FOR LINES 1085-1089 IN wasmtime_ssp_fd_fdstat_set_flags
+ * Target: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1085-1089
+ ******/
+
+/******
+ * Test Case: wasmtime_ssp_fd_fdstat_set_flags_ValidFlags_Success
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1085-1089
+ * Target Lines: 1085 (os_file_set_fdflags call), 1087 (fd_object_release call), 1089 (return error)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_fdstat_set_flags() successfully sets
+ *                     file descriptor flags using os_file_set_fdflags() and properly releases
+ *                     the file object resource through fd_object_release().
+ * Call Path: wasmtime_ssp_fd_fdstat_set_flags() [PUBLIC API - Direct test]
+ * Coverage Goal: Exercise success path for standard APPEND flag setting
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_fd_fdstat_set_flags_ValidFlags_Success) {
+    // Skip test on Windows platform where file flag semantics may differ
+    if (!PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create test file for flag operations
+    int temp_fd = open("/tmp/wamr_fdflags_test", O_CREAT | O_RDWR, 0644);
+    ASSERT_GE(temp_fd, 0) << "Failed to create test file";
+
+    // Insert file descriptor into fd_table with unique fd number
+    fd_table_insert_existing(&fd_table_, 10, temp_fd, false);
+
+    // Test wasmtime_ssp_fd_fdstat_set_flags with APPEND flag
+    // This should exercise lines 1085-1089
+    __wasi_errno_t result = wasmtime_ssp_fd_fdstat_set_flags(nullptr, &fd_table_, 10, __WASI_FDFLAG_APPEND);
+
+    // Line 1085: os_file_set_fdflags should be called
+    // Line 1087: fd_object_release should be called
+    // Line 1089: return error should be executed
+    ASSERT_EQ(__WASI_ESUCCESS, result) << "Setting APPEND flag should succeed";
+
+    // Verify flag was actually set by reading it back
+    __wasi_fdstat_t fdstat;
+    __wasi_errno_t get_result = wasmtime_ssp_fd_fdstat_get(nullptr, &fd_table_, 10, &fdstat);
+    ASSERT_EQ(__WASI_ESUCCESS, get_result) << "Getting fdstat should succeed";
+    ASSERT_NE(0, fdstat.fs_flags & __WASI_FDFLAG_APPEND) << "APPEND flag should be set";
+
+    // Cleanup
+    unlink("/tmp/wamr_fdflags_test");
+}
+
+/******
+ * Test Case: wasmtime_ssp_fd_fdstat_set_flags_SyncFlag_Success
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1085-1089
+ * Target Lines: 1085 (os_file_set_fdflags call), 1087 (fd_object_release call), 1089 (return error)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_fdstat_set_flags() successfully sets
+ *                     SYNC flag through the same code path, ensuring different flag types
+ *                     exercise the same target lines with different parameters.
+ * Call Path: wasmtime_ssp_fd_fdstat_set_flags() [PUBLIC API - Direct test]
+ * Coverage Goal: Exercise success path for SYNC flag setting to ensure all flag types covered
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_fd_fdstat_set_flags_SyncFlag_Success) {
+    // Skip test on Windows platform where file flag semantics may differ
+    if (!PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create test file for SYNC flag operations
+    int temp_fd = open("/tmp/wamr_syncflag_test", O_CREAT | O_RDWR, 0644);
+    ASSERT_GE(temp_fd, 0) << "Failed to create test file";
+
+    // Insert file descriptor into fd_table with unique fd number
+    fd_table_insert_existing(&fd_table_, 11, temp_fd, false);
+
+    // Test wasmtime_ssp_fd_fdstat_set_flags with SYNC flag
+    // This should exercise the same lines 1085-1089 with different flag parameter
+    __wasi_errno_t result = wasmtime_ssp_fd_fdstat_set_flags(nullptr, &fd_table_, 11, __WASI_FDFLAG_SYNC);
+
+    // Line 1085: os_file_set_fdflags should be called with SYNC flag
+    // Line 1087: fd_object_release should be called
+    // Line 1089: return error should be executed
+    ASSERT_EQ(__WASI_ESUCCESS, result) << "Setting SYNC flag should succeed";
+
+    // Verify fdstat_get works (SYNC flag behavior is platform-specific)
+    __wasi_fdstat_t fdstat;
+    __wasi_errno_t get_result = wasmtime_ssp_fd_fdstat_get(nullptr, &fd_table_, 11, &fdstat);
+    ASSERT_EQ(__WASI_ESUCCESS, get_result) << "Getting fdstat should succeed";
+    // SYNC flag support is platform-dependent - main goal is coverage of lines 1085-1089
+
+    // Cleanup
+    unlink("/tmp/wamr_syncflag_test");
+}
+
+/******
+ * Test Case: wasmtime_ssp_fd_fdstat_set_flags_MultipleFlags_Success
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1085-1089
+ * Target Lines: 1085 (os_file_set_fdflags call), 1087 (fd_object_release call), 1089 (return error)
+ * Functional Purpose: Validates that wasmtime_ssp_fd_fdstat_set_flags() successfully sets
+ *                     multiple combined flags, ensuring comprehensive exercise of the target
+ *                     lines with complex flag combinations.
+ * Call Path: wasmtime_ssp_fd_fdstat_set_flags() [PUBLIC API - Direct test]
+ * Coverage Goal: Exercise success path for combined flags to ensure complete line coverage
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_fd_fdstat_set_flags_MultipleFlags_Success) {
+    // Skip test on Windows platform where file flag semantics may differ
+    if (!PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create test file for multiple flag operations
+    int temp_fd = open("/tmp/wamr_multiflags_test", O_CREAT | O_RDWR, 0644);
+    ASSERT_GE(temp_fd, 0) << "Failed to create test file";
+
+    // Insert file descriptor into fd_table with unique fd number
+    fd_table_insert_existing(&fd_table_, 12, temp_fd, false);
+
+    // Test wasmtime_ssp_fd_fdstat_set_flags with combined flags
+    // This should exercise the same lines 1085-1089 with multiple flags
+    __wasi_fdflags_t combined_flags = __WASI_FDFLAG_APPEND | __WASI_FDFLAG_SYNC;
+    __wasi_errno_t result = wasmtime_ssp_fd_fdstat_set_flags(nullptr, &fd_table_, 12, combined_flags);
+
+    // Line 1085: os_file_set_fdflags should be called with combined flags
+    // Line 1087: fd_object_release should be called
+    // Line 1089: return error should be executed
+    ASSERT_EQ(__WASI_ESUCCESS, result) << "Setting combined flags should succeed";
+
+    // Verify fdstat_get works (combined flag behavior may be platform-specific)
+    __wasi_fdstat_t fdstat;
+    __wasi_errno_t get_result = wasmtime_ssp_fd_fdstat_get(nullptr, &fd_table_, 12, &fdstat);
+    ASSERT_EQ(__WASI_ESUCCESS, get_result) << "Getting fdstat should succeed";
+    ASSERT_NE(0, fdstat.fs_flags & __WASI_FDFLAG_APPEND) << "APPEND flag should be set";
+    // SYNC flag support is platform-dependent - main goal is coverage of lines 1085-1089
+
+    // Cleanup
+    unlink("/tmp/wamr_multiflags_test");
+}
