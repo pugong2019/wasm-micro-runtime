@@ -6486,3 +6486,245 @@ TEST_F(EnhancedPosixTest, PathFilestatGet_NoFollowSymlink_CallsOsFstatatWithoutF
     unlink(target_path);
     rmdir(temp_dir);
 }
+
+/******
+ * Test Case: wasmtime_ssp_path_readlink_ValidSymlink_ReadsLinkContent
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1826-1842
+ * Target Lines: 1826-1842 (complete function coverage)
+ * Functional Purpose: Validates that wasmtime_ssp_path_readlink() correctly reads
+ *                     symbolic link contents from valid symlinks and returns
+ *                     proper buffer usage information.
+ * Call Path: wasmtime_ssp_path_readlink() (public WASI API)
+ * Coverage Goal: Exercise successful readlink operation with valid symlink
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_path_readlink_ValidSymlink_ReadsLinkContent) {
+    // Platform check - readlink operations are platform-specific
+    if (!PlatformTestContext::IsLinux()) {
+        return;  // Skip on non-Linux platforms
+    }
+
+    // Create temporary directory and files
+    char temp_dir[] = "/tmp/wamr_test_readlink_XXXXXX";
+    ASSERT_NE(nullptr, mkdtemp(temp_dir));
+
+    const char *target_file = "target_file.txt";
+    const char *symlink_name = "test_symlink.txt";
+
+    char target_path[PATH_MAX], symlink_path[PATH_MAX];
+    snprintf(target_path, sizeof(target_path), "%s/%s", temp_dir, target_file);
+    snprintf(symlink_path, sizeof(symlink_path), "%s/%s", temp_dir, symlink_name);
+
+    // Create target file
+    int temp_fd = open(target_path, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    ASSERT_NE(-1, temp_fd);
+    const char *content = "readlink test content";
+    write(temp_fd, content, strlen(content));
+    close(temp_fd);
+
+    // Create symbolic link
+    ASSERT_EQ(0, symlink(target_file, symlink_path));
+
+    // Open directory file descriptor
+    int dir_fd = open(temp_dir, O_RDONLY);
+    ASSERT_NE(-1, dir_fd);
+
+    // Insert directory fd into WASI fd_table
+    __wasi_fd_t wasi_fd = 200;
+    ASSERT_TRUE(fd_table_insert_existing(&fd_table_, wasi_fd, dir_fd, false));
+
+    // Prepare readlink parameters
+    char buf[256];
+    size_t bufsize = sizeof(buf);
+    size_t bufused = 0;
+    const char *path = symlink_name;
+    size_t pathlen = strlen(path);
+
+    // Test successful readlink operation (exercises lines 1826-1842)
+    __wasi_errno_t result = wasmtime_ssp_path_readlink(nullptr, &fd_table_, wasi_fd,
+                                                       path, pathlen, buf, bufsize, &bufused);
+
+    // Validate successful operation
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+    ASSERT_GT(bufused, 0);  // Should have read some content
+    ASSERT_EQ(strlen(target_file), bufused);  // Should match target filename length
+    ASSERT_EQ(0, strncmp(buf, target_file, bufused));  // Content should match target filename
+
+    // Cleanup
+    close(dir_fd);
+    unlink(symlink_path);
+    unlink(target_path);
+    rmdir(temp_dir);
+}
+
+/******
+ * Test Case: wasmtime_ssp_path_readlink_InvalidPath_ReturnsError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1832-1836
+ * Target Lines: 1832-1836 (path_get_nofollow error handling)
+ * Functional Purpose: Validates that wasmtime_ssp_path_readlink() correctly handles
+ *                     invalid path resolution by returning appropriate error codes
+ *                     when path_get_nofollow fails.
+ * Call Path: wasmtime_ssp_path_readlink() -> path_get_nofollow() (error path)
+ * Coverage Goal: Exercise error handling path for invalid path resolution
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_path_readlink_InvalidPath_ReturnsError) {
+    // Platform check
+    if (!PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create temporary directory
+    char temp_dir[] = "/tmp/wamr_test_readlink_err_XXXXXX";
+    ASSERT_NE(nullptr, mkdtemp(temp_dir));
+
+    // Open directory file descriptor
+    int dir_fd = open(temp_dir, O_RDONLY);
+    ASSERT_NE(-1, dir_fd);
+
+    // Insert directory fd into WASI fd_table
+    __wasi_fd_t wasi_fd = 201;
+    ASSERT_TRUE(fd_table_insert_existing(&fd_table_, wasi_fd, dir_fd, false));
+
+    // Test with non-existent path (should trigger path_get_nofollow error)
+    const char *invalid_path = "non_existent_symlink.txt";
+    size_t pathlen = strlen(invalid_path);
+    char buf[256];
+    size_t bufsize = sizeof(buf);
+    size_t bufused = 0;
+
+    // Call readlink with invalid path (exercises lines 1832-1836 error path)
+    __wasi_errno_t result = wasmtime_ssp_path_readlink(nullptr, &fd_table_, wasi_fd,
+                                                       invalid_path, pathlen, buf, bufsize, &bufused);
+
+    // Validate error handling - should return error, not success
+    ASSERT_NE(__WASI_ESUCCESS, result);  // Should fail for non-existent file
+    ASSERT_EQ(0, bufused);  // No content should be read on error
+
+    // Cleanup
+    close(dir_fd);
+    rmdir(temp_dir);
+}
+
+/******
+ * Test Case: wasmtime_ssp_path_readlink_SmallBuffer_ReturnsPartialContent
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1838-1842
+ * Target Lines: 1838-1842 (os_readlinkat call and return path)
+ * Functional Purpose: Validates that wasmtime_ssp_path_readlink() correctly handles
+ *                     small buffer scenarios by properly calling os_readlinkat and
+ *                     returning appropriate buffer usage information.
+ * Call Path: wasmtime_ssp_path_readlink() -> os_readlinkat() (small buffer)
+ * Coverage Goal: Exercise os_readlinkat call with buffer size limitations
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_path_readlink_SmallBuffer_ReturnsPartialContent) {
+    // Platform check
+    if (!PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create temporary directory and files
+    char temp_dir[] = "/tmp/wamr_test_readlink_small_XXXXXX";
+    ASSERT_NE(nullptr, mkdtemp(temp_dir));
+
+    const char *long_target = "very_long_target_filename_for_testing.txt";
+    const char *symlink_name = "small_buf_symlink.txt";
+
+    char target_path[PATH_MAX], symlink_path[PATH_MAX];
+    snprintf(target_path, sizeof(target_path), "%s/%s", temp_dir, long_target);
+    snprintf(symlink_path, sizeof(symlink_path), "%s/%s", temp_dir, symlink_name);
+
+    // Create target file
+    int temp_fd = open(target_path, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    ASSERT_NE(-1, temp_fd);
+    close(temp_fd);
+
+    // Create symbolic link
+    ASSERT_EQ(0, symlink(long_target, symlink_path));
+
+    // Open directory file descriptor
+    int dir_fd = open(temp_dir, O_RDONLY);
+    ASSERT_NE(-1, dir_fd);
+
+    // Insert directory fd into WASI fd_table
+    __wasi_fd_t wasi_fd = 202;
+    ASSERT_TRUE(fd_table_insert_existing(&fd_table_, wasi_fd, dir_fd, false));
+
+    // Test with small buffer (exercises lines 1838-1842 with size limitation)
+    const char *path = symlink_name;
+    size_t pathlen = strlen(path);
+    char small_buf[10];  // Intentionally small buffer
+    size_t bufsize = sizeof(small_buf);
+    size_t bufused = 0;
+
+    // Call readlink with small buffer (exercises os_readlinkat call)
+    __wasi_errno_t result = wasmtime_ssp_path_readlink(nullptr, &fd_table_, wasi_fd,
+                                                       path, pathlen, small_buf, bufsize, &bufused);
+
+    // Validate operation - should succeed but with limited content
+    ASSERT_EQ(__WASI_ESUCCESS, result);
+    ASSERT_GT(bufused, 0);  // Should have read some content
+    ASSERT_LE(bufused, bufsize);  // Should not exceed buffer size
+
+    // Cleanup
+    close(dir_fd);
+    unlink(symlink_path);
+    unlink(target_path);
+    rmdir(temp_dir);
+}
+
+/******
+ * Test Case: wasmtime_ssp_path_readlink_RegularFile_ReturnsError
+ * Source: core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/src/posix.c:1838-1842
+ * Target Lines: 1838-1842 (os_readlinkat error handling for non-symlink)
+ * Functional Purpose: Validates that wasmtime_ssp_path_readlink() correctly handles
+ *                     attempts to read regular files (not symlinks) by returning
+ *                     appropriate error codes from os_readlinkat.
+ * Call Path: wasmtime_ssp_path_readlink() -> os_readlinkat() (error case)
+ * Coverage Goal: Exercise os_readlinkat error path for non-symbolic-link files
+ ******/
+TEST_F(EnhancedPosixTest, wasmtime_ssp_path_readlink_RegularFile_ReturnsError) {
+    // Platform check
+    if (!PlatformTestContext::IsLinux()) {
+        return;
+    }
+
+    // Create temporary directory and regular file
+    char temp_dir[] = "/tmp/wamr_test_readlink_regular_XXXXXX";
+    ASSERT_NE(nullptr, mkdtemp(temp_dir));
+
+    const char *regular_file = "regular_file.txt";
+    char file_path[PATH_MAX];
+    snprintf(file_path, sizeof(file_path), "%s/%s", temp_dir, regular_file);
+
+    // Create regular file (not a symlink)
+    int temp_fd = open(file_path, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    ASSERT_NE(-1, temp_fd);
+    write(temp_fd, "regular file content", 20);
+    close(temp_fd);
+
+    // Open directory file descriptor
+    int dir_fd = open(temp_dir, O_RDONLY);
+    ASSERT_NE(-1, dir_fd);
+
+    // Insert directory fd into WASI fd_table
+    __wasi_fd_t wasi_fd = 203;
+    ASSERT_TRUE(fd_table_insert_existing(&fd_table_, wasi_fd, dir_fd, false));
+
+    // Attempt to readlink on regular file (should fail)
+    const char *path = regular_file;
+    size_t pathlen = strlen(path);
+    char buf[256];
+    size_t bufsize = sizeof(buf);
+    size_t bufused = 0;
+
+    // Call readlink on regular file (exercises os_readlinkat error handling)
+    __wasi_errno_t result = wasmtime_ssp_path_readlink(nullptr, &fd_table_, wasi_fd,
+                                                       path, pathlen, buf, bufsize, &bufused);
+
+    // Validate error handling - readlink should fail on regular files
+    ASSERT_NE(__WASI_ESUCCESS, result);  // Should fail for non-symlink
+    // Note: bufused behavior on error is platform-dependent, so we don't assert it
+
+    // Cleanup
+    close(dir_fd);
+    unlink(file_path);
+    rmdir(temp_dir);
+}
