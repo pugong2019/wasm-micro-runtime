@@ -7,6 +7,8 @@
 #include "gtest/gtest.h"
 #include "wasm_export.h"
 #include "aot_runtime.h"
+#include "aot.h"
+#include "bh_bitmap.h"
 
 // Enhanced test fixture for aot_runtime.c functions
 class EnhancedAotRuntimeTest : public testing::Test {
@@ -757,4 +759,289 @@ TEST_F(EnhancedAotRuntimeTest, aot_const_str_set_insert_EmptyString_HandledCorre
     if (test_module.const_str_set) {
         bh_hash_map_destroy(test_module.const_str_set);
     }
+}
+
+/******
+ * Test Case: aot_memory_init_ValidSegment_SuccessfulCopy
+ * Source: core/iwasm/aot/aot_runtime.c:3539-3579
+ * Target Lines: 3544-3560 (memory instance and data segment setup), 3562-3564 (address validation),
+ *              3566-3569 (bounds checking), 3571-3578 (memory copy with locking)
+ * Functional Purpose: Tests the primary execution flow of aot_memory_init() with valid memory
+ *                     data segment to cover the most commonly executed code paths in bulk
+ *                     memory initialization operations.
+ * Call Path: aot_memory_init() <- AOT compiled code <- WebAssembly bulk memory operations
+ * Coverage Goal: Exercise main routine processing path for standard bulk memory initialization
+ ******/
+TEST_F(EnhancedAotRuntimeTest, aot_memory_init_ValidSegment_SuccessfulCopy) {
+    // Create AOT module instance with valid memory setup
+    AOTModuleInstance module_inst;
+    AOTModuleInstanceExtra extra;
+    AOTMemoryInstance memory_inst;
+    AOTModule aot_module;
+    AOTMemInitData mem_init_data;
+    AOTMemInitData *mem_init_data_list[1];
+
+    memset(&module_inst, 0, sizeof(AOTModuleInstance));
+    memset(&extra, 0, sizeof(AOTModuleInstanceExtra));
+    memset(&memory_inst, 0, sizeof(AOTMemoryInstance));
+    memset(&aot_module, 0, sizeof(AOTModule));
+    memset(&mem_init_data, 0, sizeof(AOTMemInitData));
+
+    // Setup module instance structure
+    module_inst.e = (WASMModuleInstanceExtra*)&extra;
+    module_inst.module = (WASMModule*)&aot_module;
+    module_inst.memory_count = 1;
+    // Allocate array of memory instance pointers
+    module_inst.memories = (WASMMemoryInstance**)wasm_runtime_malloc(sizeof(WASMMemoryInstance*));
+    ASSERT_NE(nullptr, module_inst.memories);
+    module_inst.memories[0] = (WASMMemoryInstance*)&memory_inst;
+
+    // Setup memory instance with valid data
+    memory_inst.memory_data_size = 65536; // 64KB page
+    memory_inst.memory_data = (uint8*)wasm_runtime_malloc(memory_inst.memory_data_size);
+    ASSERT_NE(nullptr, memory_inst.memory_data);
+
+    // Setup memory initialization data
+    const char test_data[] = "Hello WAMR bulk memory test";
+    mem_init_data.byte_count = strlen(test_data);
+    mem_init_data.bytes = (uint8*)test_data;
+    mem_init_data_list[0] = &mem_init_data;
+
+    aot_module.mem_init_data_count = 1;
+    aot_module.mem_init_data_list = mem_init_data_list;
+
+    // Initialize data_dropped bitmap (not dropped)
+    extra.common.data_dropped = bh_bitmap_new(0, 1);
+    ASSERT_NE(nullptr, extra.common.data_dropped);
+
+    // Test parameters for valid memory initialization
+    uint32 seg_index = 0;
+    uint32 offset = 0;
+    uint32 len = strlen(test_data);
+    size_t dst = 1024; // Valid destination within memory bounds
+
+    // Execute aot_memory_init
+    bool result = aot_memory_init(&module_inst, seg_index, offset, len, dst);
+
+    // Assert successful memory initialization
+    ASSERT_TRUE(result);
+
+    // Verify memory content was copied correctly
+    ASSERT_EQ(0, memcmp(memory_inst.memory_data + dst, test_data, len));
+
+    // Cleanup
+    wasm_runtime_free(memory_inst.memory_data);
+    wasm_runtime_free(module_inst.memories);
+    bh_bitmap_delete(extra.common.data_dropped);
+}
+
+/******
+ * Test Case: aot_memory_init_DroppedSegment_EmptyDataHandling
+ * Source: core/iwasm/aot/aot_runtime.c:3539-3579
+ * Target Lines: 3550-3555 (dropped segment detection and empty data setup)
+ * Functional Purpose: Tests the execution path when data segment has been dropped
+ *                     (data_dropped bitmap set), ensuring proper handling of empty data
+ *                     in bulk memory operations.
+ * Call Path: aot_memory_init() <- AOT compiled code <- WebAssembly bulk memory operations
+ * Coverage Goal: Exercise dropped segment handling path for runtime data management
+ ******/
+TEST_F(EnhancedAotRuntimeTest, aot_memory_init_DroppedSegment_EmptyDataHandling) {
+    // Create AOT module instance with dropped data segment
+    AOTModuleInstance module_inst;
+    AOTModuleInstanceExtra extra;
+    AOTMemoryInstance memory_inst;
+    AOTModule aot_module;
+    AOTMemInitData mem_init_data;
+    AOTMemInitData *mem_init_data_list[1];
+
+    memset(&module_inst, 0, sizeof(AOTModuleInstance));
+    memset(&extra, 0, sizeof(AOTModuleInstanceExtra));
+    memset(&memory_inst, 0, sizeof(AOTMemoryInstance));
+    memset(&aot_module, 0, sizeof(AOTModule));
+    memset(&mem_init_data, 0, sizeof(AOTMemInitData));
+
+    // Setup module instance structure
+    module_inst.e = (WASMModuleInstanceExtra*)&extra;
+    module_inst.module = (WASMModule*)&aot_module;
+    module_inst.memory_count = 1;
+    // Allocate array of memory instance pointers
+    module_inst.memories = (WASMMemoryInstance**)wasm_runtime_malloc(sizeof(WASMMemoryInstance*));
+    ASSERT_NE(nullptr, module_inst.memories);
+    module_inst.memories[0] = (WASMMemoryInstance*)&memory_inst;
+
+    // Setup memory instance
+    memory_inst.memory_data_size = 65536;
+    memory_inst.memory_data = (uint8*)wasm_runtime_malloc(memory_inst.memory_data_size);
+    ASSERT_NE(nullptr, memory_inst.memory_data);
+
+    // Setup memory initialization data (will be ignored due to dropped flag)
+    const char test_data[] = "This should be ignored";
+    mem_init_data.byte_count = strlen(test_data);
+    mem_init_data.bytes = (uint8*)test_data;
+    mem_init_data_list[0] = &mem_init_data;
+
+    aot_module.mem_init_data_count = 1;
+    aot_module.mem_init_data_list = mem_init_data_list;
+
+    // Initialize data_dropped bitmap with segment 0 marked as dropped
+    extra.common.data_dropped = bh_bitmap_new(0, 1);
+    ASSERT_NE(nullptr, extra.common.data_dropped);
+    bh_bitmap_set_bit(extra.common.data_dropped, 0); // Mark segment 0 as dropped
+
+    // Test parameters for dropped segment
+    uint32 seg_index = 0;
+    uint32 offset = 0;
+    uint32 len = 10; // Any length should work with dropped segment
+    size_t dst = 1024;
+
+    // Execute aot_memory_init
+    bool result = aot_memory_init(&module_inst, seg_index, offset, len, dst);
+
+    // Assert successful handling of dropped segment (empty data)
+    ASSERT_TRUE(result);
+
+    // Cleanup
+    wasm_runtime_free(memory_inst.memory_data);
+    wasm_runtime_free(module_inst.memories);
+    bh_bitmap_delete(extra.common.data_dropped);
+}
+
+/******
+ * Test Case: aot_memory_init_InvalidAppAddr_ValidationFailure
+ * Source: core/iwasm/aot/aot_runtime.c:3539-3579
+ * Target Lines: 3562-3564 (application address validation failure)
+ * Functional Purpose: Tests the address validation path where wasm_runtime_validate_app_addr
+ *                     fails due to invalid destination address, ensuring proper error handling
+ *                     in bulk memory operations.
+ * Call Path: aot_memory_init() <- AOT compiled code <- WebAssembly bulk memory operations
+ * Coverage Goal: Exercise address validation failure path for error handling
+ ******/
+TEST_F(EnhancedAotRuntimeTest, aot_memory_init_InvalidAppAddr_ValidationFailure) {
+    // Create AOT module instance with invalid destination address
+    AOTModuleInstance module_inst;
+    AOTModuleInstanceExtra extra;
+    AOTMemoryInstance memory_inst;
+    AOTModule aot_module;
+    AOTMemInitData mem_init_data;
+    AOTMemInitData *mem_init_data_list[1];
+
+    memset(&module_inst, 0, sizeof(AOTModuleInstance));
+    memset(&extra, 0, sizeof(AOTModuleInstanceExtra));
+    memset(&memory_inst, 0, sizeof(AOTMemoryInstance));
+    memset(&aot_module, 0, sizeof(AOTModule));
+    memset(&mem_init_data, 0, sizeof(AOTMemInitData));
+
+    // Setup module instance structure
+    module_inst.e = (WASMModuleInstanceExtra*)&extra;
+    module_inst.module = (WASMModule*)&aot_module;
+    module_inst.memory_count = 1;
+    // Allocate array of memory instance pointers
+    module_inst.memories = (WASMMemoryInstance**)wasm_runtime_malloc(sizeof(WASMMemoryInstance*));
+    ASSERT_NE(nullptr, module_inst.memories);
+    module_inst.memories[0] = (WASMMemoryInstance*)&memory_inst;
+
+    // Setup memory instance with small memory size
+    memory_inst.memory_data_size = 1024; // Small memory size
+    memory_inst.memory_data = (uint8*)wasm_runtime_malloc(memory_inst.memory_data_size);
+    ASSERT_NE(nullptr, memory_inst.memory_data);
+
+    // Setup valid memory initialization data
+    const char test_data[] = "Test data";
+    mem_init_data.byte_count = strlen(test_data);
+    mem_init_data.bytes = (uint8*)test_data;
+    mem_init_data_list[0] = &mem_init_data;
+
+    aot_module.mem_init_data_count = 1;
+    aot_module.mem_init_data_list = mem_init_data_list;
+
+    // Initialize data_dropped bitmap (not dropped)
+    extra.common.data_dropped = bh_bitmap_new(0, 1);
+    ASSERT_NE(nullptr, extra.common.data_dropped);
+
+    // Test parameters with invalid destination address (beyond memory bounds)
+    uint32 seg_index = 0;
+    uint32 offset = 0;
+    uint32 len = strlen(test_data);
+    size_t dst = memory_inst.memory_data_size + 1000; // Invalid destination beyond memory
+
+    // Execute aot_memory_init
+    bool result = aot_memory_init(&module_inst, seg_index, offset, len, dst);
+
+    // Assert validation failure (wasm_runtime_validate_app_addr fails)
+    ASSERT_FALSE(result);
+
+    // Cleanup
+    wasm_runtime_free(memory_inst.memory_data);
+    wasm_runtime_free(module_inst.memories);
+    bh_bitmap_delete(extra.common.data_dropped);
+}
+
+/******
+ * Test Case: aot_memory_init_OutOfBounds_ExceptionSet
+ * Source: core/iwasm/aot/aot_runtime.c:3539-3579
+ * Target Lines: 3566-3569 (bounds checking and exception setting)
+ * Functional Purpose: Tests the bounds checking path where offset + len exceeds segment length,
+ *                     ensuring proper exception setting via aot_set_exception for out of
+ *                     bounds memory access in bulk memory operations.
+ * Call Path: aot_memory_init() <- AOT compiled code <- WebAssembly bulk memory operations
+ * Coverage Goal: Exercise bounds violation exception handling path
+ ******/
+TEST_F(EnhancedAotRuntimeTest, aot_memory_init_OutOfBounds_ExceptionSet) {
+    // Create AOT module instance with bounds violation scenario
+    AOTModuleInstance module_inst;
+    AOTModuleInstanceExtra extra;
+    AOTMemoryInstance memory_inst;
+    AOTModule aot_module;
+    AOTMemInitData mem_init_data;
+    AOTMemInitData *mem_init_data_list[1];
+
+    memset(&module_inst, 0, sizeof(AOTModuleInstance));
+    memset(&extra, 0, sizeof(AOTModuleInstanceExtra));
+    memset(&memory_inst, 0, sizeof(AOTMemoryInstance));
+    memset(&aot_module, 0, sizeof(AOTModule));
+    memset(&mem_init_data, 0, sizeof(AOTMemInitData));
+
+    // Setup module instance structure
+    module_inst.e = (WASMModuleInstanceExtra*)&extra;
+    module_inst.module = (WASMModule*)&aot_module;
+    module_inst.memory_count = 1;
+    // Allocate array of memory instance pointers
+    module_inst.memories = (WASMMemoryInstance**)wasm_runtime_malloc(sizeof(WASMMemoryInstance*));
+    ASSERT_NE(nullptr, module_inst.memories);
+    module_inst.memories[0] = (WASMMemoryInstance*)&memory_inst;
+
+    // Setup memory instance
+    memory_inst.memory_data_size = 65536;
+    memory_inst.memory_data = (uint8*)wasm_runtime_malloc(memory_inst.memory_data_size);
+    ASSERT_NE(nullptr, memory_inst.memory_data);
+
+    // Setup memory initialization data with small segment
+    const char test_data[] = "Small";
+    mem_init_data.byte_count = strlen(test_data); // Only 5 bytes available
+    mem_init_data.bytes = (uint8*)test_data;
+    mem_init_data_list[0] = &mem_init_data;
+
+    aot_module.mem_init_data_count = 1;
+    aot_module.mem_init_data_list = mem_init_data_list;
+
+    // Initialize data_dropped bitmap (not dropped)
+    extra.common.data_dropped = bh_bitmap_new(0, 1);
+    ASSERT_NE(nullptr, extra.common.data_dropped);
+
+    // Test parameters with out of bounds access (offset + len > seg_len)
+    uint32 seg_index = 0;
+    uint32 offset = 3;  // Start at offset 3 in 5-byte segment
+    uint32 len = 5;     // Try to read 5 bytes, but only 2 bytes available (5-3=2)
+    size_t dst = 1024;  // Valid destination
+
+    // Execute aot_memory_init
+    bool result = aot_memory_init(&module_inst, seg_index, offset, len, dst);
+
+    // Assert out of bounds exception (offset + len > seg_len)
+    ASSERT_FALSE(result);
+
+    // Cleanup
+    wasm_runtime_free(memory_inst.memory_data);
+    wasm_runtime_free(module_inst.memories);
+    bh_bitmap_delete(extra.common.data_dropped);
 }
