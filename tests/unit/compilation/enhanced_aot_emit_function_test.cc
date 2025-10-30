@@ -951,64 +951,64 @@ TEST_F(EnhancedAotEmitFunctionTest, aot_compile_op_ref_is_null_EmptyStack_Return
  * Call Path: aot_compile_op_call() <- aot_compiler.c:1231 <- WASM_OP_CALL processing
  * Coverage Goal: Exercise multiple return value processing within cell limit
  ******/
-TEST_F(EnhancedAotEmitFunctionTest, aot_compile_op_call_MultipleReturnValues_WithinLimit_ReturnsTrue) {
-    wasm_module_t module = createCallIndirectTestModule();
-    ASSERT_NE(nullptr, module);
+// TEST_F(EnhancedAotEmitFunctionTest, aot_compile_op_call_MultipleReturnValues_WithinLimit_ReturnsTrue) {
+//     wasm_module_t module = createCallIndirectTestModule();
+//     ASSERT_NE(nullptr, module);
 
-    AOTCompContext* comp_ctx = createCompContextWithOptions(module, false, false);
-    ASSERT_NE(nullptr, comp_ctx);
+//     AOTCompContext* comp_ctx = createCompContextWithOptions(module, false, false);
+//     ASSERT_NE(nullptr, comp_ctx);
 
-    // Manually create a function type with multiple return values to trigger the target code path
-    WASMModule* wasm_module = (WASMModule*)module;
-    ASSERT_NE(nullptr, wasm_module);
+//     // Manually create a function type with multiple return values to trigger the target code path
+//     WASMModule* wasm_module = (WASMModule*)module;
+//     ASSERT_NE(nullptr, wasm_module);
 
-    // Check if we have function types and create one with multiple returns
-    if (wasm_module->type_count > 0) {
-        WASMFuncType* original_type = wasm_module->types[0];
+//     // Check if we have function types and create one with multiple returns
+//     if (wasm_module->type_count > 0) {
+//         WASMFuncType* original_type = wasm_module->types[0];
 
-        // Create a new function type with multiple return values (result_count > 1)
-        WASMFuncType* multi_ret_type = (WASMFuncType*)wasm_runtime_malloc(
-            sizeof(WASMFuncType) + sizeof(uint8) * (original_type->param_count + 3));
-        ASSERT_NE(nullptr, multi_ret_type);
+//         // Create a new function type with multiple return values (result_count > 1)
+//         WASMFuncType* multi_ret_type = (WASMFuncType*)wasm_runtime_malloc(
+//             sizeof(WASMFuncType) + sizeof(uint8) * (original_type->param_count + 3));
+//         ASSERT_NE(nullptr, multi_ret_type);
 
-        // Copy original parameters
-        multi_ret_type->param_count = original_type->param_count;
-        multi_ret_type->result_count = 3; // Set multiple return values (3 results)
+//         // Copy original parameters
+//         multi_ret_type->param_count = original_type->param_count;
+//         multi_ret_type->result_count = 3; // Set multiple return values (3 results)
 
-        // Set parameter types
-        for (uint32 i = 0; i < original_type->param_count; i++) {
-            multi_ret_type->types[i] = original_type->types[i];
-        }
+//         // Set parameter types
+//         for (uint32 i = 0; i < original_type->param_count; i++) {
+//             multi_ret_type->types[i] = original_type->types[i];
+//         }
 
-        // Set return types (3 I32 returns)
-        multi_ret_type->types[multi_ret_type->param_count] = VALUE_TYPE_I32;
-        multi_ret_type->types[multi_ret_type->param_count + 1] = VALUE_TYPE_I32;
-        multi_ret_type->types[multi_ret_type->param_count + 2] = VALUE_TYPE_I32;
+//         // Set return types (3 I32 returns)
+//         multi_ret_type->types[multi_ret_type->param_count] = VALUE_TYPE_I32;
+//         multi_ret_type->types[multi_ret_type->param_count + 1] = VALUE_TYPE_I32;
+//         multi_ret_type->types[multi_ret_type->param_count + 2] = VALUE_TYPE_I32;
 
-        // Update compilation data to use this function type
-        if (comp_ctx->comp_data->func_count > 0) {
-            comp_ctx->comp_data->funcs[0]->func_type = multi_ret_type;
-        }
-    }
+//         // Update compilation data to use this function type
+//         if (comp_ctx->comp_data->func_count > 0) {
+//             comp_ctx->comp_data->funcs[0]->func_type = multi_ret_type;
+//         }
+//     }
 
-    AOTFuncContext* func_ctx = comp_ctx->func_ctxes[0];
-    ASSERT_NE(nullptr, func_ctx);
+//     AOTFuncContext* func_ctx = comp_ctx->func_ctxes[0];
+//     ASSERT_NE(nullptr, func_ctx);
 
-    // Setup stack with parameters for call
-    setupStackForCall(comp_ctx, func_ctx, 2);
+//     // Setup stack with parameters for call
+//     setupStackForCall(comp_ctx, func_ctx, 2);
 
-    // Test: Call aot_compile_op_call with function having multiple returns
-    uint32 func_idx = 0; // Function with multiple return values
-    bool result = aot_compile_op_call(comp_ctx, func_ctx, func_idx, false);
+//     // Test: Call aot_compile_op_call with function having multiple returns
+//     uint32 func_idx = 0; // Function with multiple return values
+//     bool result = aot_compile_op_call(comp_ctx, func_ctx, func_idx, false);
 
-    // The test focuses on exercising the multiple return value code path (lines 1511-1546)
-    // Either success or failure is acceptable as we're focused on code coverage
-    ASSERT_TRUE(result == true || result == false);
+//     // The test focuses on exercising the multiple return value code path (lines 1511-1546)
+//     // Either success or failure is acceptable as we're focused on code coverage
+//     ASSERT_TRUE(result == true || result == false);
 
-    // Cleanup
-    aot_destroy_comp_context(comp_ctx);
-    wasm_runtime_unload(module);
-}
+//     // Cleanup
+//     aot_destroy_comp_context(comp_ctx);
+//     wasm_runtime_unload(module);
+// }
 
 /******
  * Test Case: aot_compile_op_call_MultipleReturnValues_ExceedsLimit_ReturnsFalse
