@@ -1225,3 +1225,153 @@ TEST_F(EnhancedAotEmitFunctionTest, aot_compile_op_call_MultipleReturnValues_LLV
     aot_destroy_comp_context(comp_ctx);
     wasm_runtime_unload(module);
 }
+
+// ========== NEW TEST CASES FOR LINES 2751-2760 (aot_compile_op_ref_null) ==========
+
+/******
+ * Test Case: aot_compile_op_ref_null_WithGC_PushesGCRef
+ * Source: core/iwasm/compilation/aot_emit_function.c:2751-2760
+ * Target Lines: 2751 (function entry), 2753 (GC check), 2754 (PUSH_GC_REF), 2758 (return true)
+ * Functional Purpose: Validates that aot_compile_op_ref_null() correctly handles the GC-enabled
+ *                     path, pushing a GC reference with GC_REF_NULL value when GC is enabled.
+ * Call Path: aot_compile_op_ref_null() <- aot_compiler.c:1383 <- WASM_OP_REF_NULL processing
+ * Coverage Goal: Exercise GC-enabled path and successful completion
+ ******/
+TEST_F(EnhancedAotEmitFunctionTest, aot_compile_op_ref_null_WithGC_PushesGCRef) {
+    wasm_module_t module = createCallIndirectTestModule();
+    ASSERT_NE(nullptr, module);
+
+    // Create compilation context with GC enabled to exercise lines 2753-2754
+    AOTCompContext* comp_ctx = createCompContextWithOptions(module, true, false);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Verify GC is enabled in the context for target code path
+    ASSERT_TRUE(comp_ctx->enable_gc);
+
+    // Get the first function context for testing
+    AOTFuncContext* func_ctx = comp_ctx->func_ctxes[0];
+    ASSERT_NE(nullptr, func_ctx);
+
+    // Test: Call aot_compile_op_ref_null with GC enabled
+    // This should execute lines 2751 (entry), 2753 (GC check), 2754 (PUSH_GC_REF), 2758 (return true)
+    bool result = aot_compile_op_ref_null(comp_ctx, func_ctx);
+
+    // Verify: Function should succeed and exercise the GC path
+    ASSERT_TRUE(result);
+
+    // Verify: Stack should have GC reference pushed (if value stack is accessible)
+    if (func_ctx->block_stack.block_list_end) {
+        AOTBlock *cur_block = func_ctx->block_stack.block_list_end;
+        if (cur_block->value_stack.value_list_end) {
+            // Verify: Top of stack should be GC_REF type
+            uint8_t top_type = cur_block->value_stack.value_list_end->type;
+            ASSERT_EQ(VALUE_TYPE_GC_REF, top_type);
+        }
+    }
+
+    // Cleanup
+    aot_destroy_comp_context(comp_ctx);
+    wasm_runtime_unload(module);
+}
+
+/******
+ * Test Case: aot_compile_op_ref_null_WithoutGC_PushesI32Ref
+ * Source: core/iwasm/compilation/aot_emit_function.c:2751-2760
+ * Target Lines: 2751 (function entry), 2753 (GC check), 2756 (PUSH_I32), 2758 (return true)
+ * Functional Purpose: Validates that aot_compile_op_ref_null() correctly handles the non-GC
+ *                     path, pushing an I32 reference with REF_NULL value when GC is disabled.
+ * Call Path: aot_compile_op_ref_null() <- aot_compiler.c:1383 <- WASM_OP_REF_NULL processing
+ * Coverage Goal: Exercise non-GC path and successful completion
+ ******/
+TEST_F(EnhancedAotEmitFunctionTest, aot_compile_op_ref_null_WithoutGC_PushesI32Ref) {
+    wasm_module_t module = createCallIndirectTestModule();
+    ASSERT_NE(nullptr, module);
+
+    // Create compilation context with GC disabled to exercise lines 2753, 2756
+    AOTCompContext* comp_ctx = createCompContextWithOptions(module, false, false);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Set enable_ref_types to true so the function can be called (lines 1377-1378 requirement)
+    comp_ctx->enable_ref_types = true;
+
+    // Verify GC is disabled but ref types enabled for target code path
+    ASSERT_FALSE(comp_ctx->enable_gc);
+    ASSERT_TRUE(comp_ctx->enable_ref_types);
+
+    // Get the first function context for testing
+    AOTFuncContext* func_ctx = comp_ctx->func_ctxes[0];
+    ASSERT_NE(nullptr, func_ctx);
+
+    // Test: Call aot_compile_op_ref_null with GC disabled
+    // This should execute lines 2751 (entry), 2753 (GC check false), 2756 (PUSH_I32), 2758 (return true)
+    bool result = aot_compile_op_ref_null(comp_ctx, func_ctx);
+
+    // Verify: Function should succeed and exercise the non-GC path
+    ASSERT_TRUE(result);
+
+    // Verify: Stack should have I32 reference pushed (if value stack is accessible)
+    if (func_ctx->block_stack.block_list_end) {
+        AOTBlock *cur_block = func_ctx->block_stack.block_list_end;
+        if (cur_block->value_stack.value_list_end) {
+            // Verify: Top of stack should be I32 type
+            uint8_t top_type = cur_block->value_stack.value_list_end->type;
+            ASSERT_EQ(VALUE_TYPE_I32, top_type);
+        }
+    }
+
+    // Cleanup
+    aot_destroy_comp_context(comp_ctx);
+    wasm_runtime_unload(module);
+}
+
+/******
+ * Test Case: aot_compile_op_ref_null_CompleteCoverage_ExercisesAllLines
+ * Source: core/iwasm/compilation/aot_emit_function.c:2751-2760
+ * Target Lines: All lines in aot_compile_op_ref_null function
+ * Functional Purpose: Comprehensive test to ensure complete coverage of the aot_compile_op_ref_null
+ *                     function including function signature, conditional logic, and return paths.
+ * Call Path: aot_compile_op_ref_null() <- direct function call for coverage completeness
+ * Coverage Goal: Exercise complete function coverage for all 10 target lines
+ ******/
+TEST_F(EnhancedAotEmitFunctionTest, aot_compile_op_ref_null_CompleteCoverage_ExercisesAllLines) {
+    wasm_module_t module = createCallIndirectTestModule();
+    ASSERT_NE(nullptr, module);
+
+    // Test both GC enabled and disabled paths for comprehensive coverage
+
+    // Part 1: GC enabled path
+    AOTCompContext* comp_ctx_gc = createCompContextWithOptions(module, true, false);
+    ASSERT_NE(nullptr, comp_ctx_gc);
+    ASSERT_TRUE(comp_ctx_gc->enable_gc);
+
+    AOTFuncContext* func_ctx_gc = comp_ctx_gc->func_ctxes[0];
+    ASSERT_NE(nullptr, func_ctx_gc);
+
+    // Execute GC path: lines 2751, 2753 (true), 2754, 2758
+    bool result_gc = aot_compile_op_ref_null(comp_ctx_gc, func_ctx_gc);
+    ASSERT_TRUE(result_gc);
+
+    // Part 2: GC disabled path
+    AOTCompContext* comp_ctx_no_gc = createCompContextWithOptions(module, false, false);
+    ASSERT_NE(nullptr, comp_ctx_no_gc);
+    comp_ctx_no_gc->enable_ref_types = true; // Enable ref types for function accessibility
+
+    ASSERT_FALSE(comp_ctx_no_gc->enable_gc);
+    ASSERT_TRUE(comp_ctx_no_gc->enable_ref_types);
+
+    AOTFuncContext* func_ctx_no_gc = comp_ctx_no_gc->func_ctxes[0];
+    ASSERT_NE(nullptr, func_ctx_no_gc);
+
+    // Execute non-GC path: lines 2751, 2753 (false), 2756, 2758
+    bool result_no_gc = aot_compile_op_ref_null(comp_ctx_no_gc, func_ctx_no_gc);
+    ASSERT_TRUE(result_no_gc);
+
+    // Both paths should succeed covering all lines 2751-2758
+    // Lines 2759-2760 (fail path) are only reachable if PUSH operations fail internally
+    // which is rare in normal test conditions but the labels exist for completeness
+
+    // Cleanup
+    aot_destroy_comp_context(comp_ctx_gc);
+    aot_destroy_comp_context(comp_ctx_no_gc);
+    wasm_runtime_unload(module);
+}
