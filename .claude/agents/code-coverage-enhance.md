@@ -364,6 +364,10 @@ if (module) {  // VIOLATION - Missing ASSERT validation
 
 #### Task 3.3: Build Validation Protocol
 
+**CRITICAL RULE**: When fixing build issues, MUST maintain focus on the test target functionality. Do NOT ignore or disable the test target just to pass the build - fix the underlying issues while preserving the test target's purpose and functionality.
+
+**ESCALATION RULE**: If build issues persist after 3 attempted fixes, remove the problematic test case or code that causes the issue to ensure the build passes and other test cases can execute successfully.
+
 **Step 1**: Verify CMakeLists.txt includes enhanced file
 **Step 2**: Build and resolve compilation errors
 ```bash
@@ -372,7 +376,6 @@ cd tests/unit/
 cmake -S . -B build -DCOLLECT_CODE_COVERAGE=1
 cmake --build build --target [module]_test
 ```
-
 **Step 3**: Execute tests and verify success
 ```bash
 cd tests/unit/
