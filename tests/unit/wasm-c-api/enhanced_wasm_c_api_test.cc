@@ -3771,3 +3771,50 @@ TEST_F(EnhancedWasmCApiModuleNameTest, wasm_module_set_name_NullName_HandlesGrac
     wasm_byte_vec_delete(&wasm_bytes);
 }
 
+/******
+ * Test Case: wasm_module_get_name_NullModule_ReturnsEmptyString
+ * Source: core/iwasm/common/wasm_c_api.c:2999-3003
+ * Target Lines: 3002-3003 (null module validation and empty string return)
+ * Functional Purpose: Validates that wasm_module_get_name correctly handles null module
+ *                     parameter by returning an empty string without attempting any operations.
+ * Call Path: wasm_module_get_name() [PUBLIC API - Direct call]
+ * Coverage Goal: Exercise null module parameter validation path
+ ******/
+TEST_F(EnhancedWasmCApiModuleNameTest, wasm_module_get_name_NullModule_ReturnsEmptyString)
+{
+    // Test null module parameter - this exercises lines 3002-3003
+    const char *result = wasm_module_get_name(nullptr);
+    ASSERT_NE(nullptr, result);
+    ASSERT_STREQ("", result);
+}
+
+/******
+ * Test Case: wasm_module_get_name_ValidModule_ReturnsModuleName
+ * Source: core/iwasm/common/wasm_c_api.c:2999-3006
+ * Target Lines: 3001, 3005-3006 (variable declaration, module conversion, and name retrieval)
+ * Functional Purpose: Validates that wasm_module_get_name successfully retrieves module name
+ *                     for a valid module by converting to extended format and calling runtime function.
+ * Call Path: wasm_module_get_name() -> module_to_module_ext() -> wasm_runtime_get_module_name()
+ * Coverage Goal: Exercise successful module name retrieval path
+ ******/
+TEST_F(EnhancedWasmCApiModuleNameTest, wasm_module_get_name_ValidModule_ReturnsModuleName)
+{
+    // Create a valid WASM module
+    wasm_byte_vec_t wasm_bytes;
+    wasm_byte_vec_new(&wasm_bytes, wasm_simple_global.size(), (const wasm_byte_t*)wasm_simple_global.data());
+
+    module = wasm_module_new(store, &wasm_bytes);
+    ASSERT_NE(nullptr, module);
+
+    // Set a module name first
+    bool set_result = wasm_module_set_name(module, "test_module");
+    ASSERT_TRUE(set_result);
+
+    // Test valid module parameter - this exercises lines 3001, 3005-3006
+    const char *result = wasm_module_get_name(module);
+    ASSERT_NE(nullptr, result);
+    ASSERT_STREQ("test_module", result);
+
+    wasm_byte_vec_delete(&wasm_bytes);
+}
+
