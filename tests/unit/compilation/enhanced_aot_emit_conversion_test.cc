@@ -237,7 +237,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_wrap_i64_MultipleConver
  * Coverage Goal: Exercise signed non-saturating truncation path
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f32_SignedNonSaturating_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i32_trunc_f32_test.wasm";
+    const char *wasm_file = "i32_trunc_f32_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -292,7 +292,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f32_SignedNonSatu
  * Coverage Goal: Exercise unsigned non-saturating truncation path
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f32_UnsignedNonSaturating_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i32_trunc_f32_test.wasm";
+    const char *wasm_file = "i32_trunc_f32_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -347,7 +347,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f32_UnsignedNonSa
  * Coverage Goal: Exercise signed saturating truncation path
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f32_SignedSaturating_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i32_trunc_f32_test.wasm";
+    const char *wasm_file = "i32_trunc_f32_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -402,7 +402,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f32_SignedSaturat
  * Coverage Goal: Exercise unsigned saturating truncation path
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f32_UnsignedSaturating_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i32_trunc_f32_test.wasm";
+    const char *wasm_file = "i32_trunc_f32_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -459,7 +459,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f32_UnsignedSatur
  * Coverage Goal: Exercise signed non-saturating truncation path in direct mode
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f64_SignedNonSaturating_DirectMode_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i32_trunc_f64_test.wasm";
+    const char *wasm_file = "i32_trunc_f64_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -515,7 +515,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f64_SignedNonSatu
  * Coverage Goal: Exercise unsigned non-saturating truncation path in direct mode
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f64_UnsignedNonSaturating_DirectMode_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i32_trunc_f64_test.wasm";
+    const char *wasm_file = "i32_trunc_f64_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -571,7 +571,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f64_UnsignedNonSa
  * Coverage Goal: Exercise signed saturating truncation path in direct mode
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f64_SignedSaturating_DirectMode_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i32_trunc_f64_test.wasm";
+    const char *wasm_file = "i32_trunc_f64_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -627,7 +627,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f64_SignedSaturat
  * Coverage Goal: Exercise unsigned saturating truncation path in direct mode
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f64_UnsignedSaturating_DirectMode_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i32_trunc_f64_test.wasm";
+    const char *wasm_file = "i32_trunc_f64_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -686,7 +686,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_trunc_f64_UnsignedSatur
  * Coverage Goal: Exercise signed extension path (LLVMBuildSExt) in success scenario
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_extend_i32_SignedExtension_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_extend_i32_test.wasm";
+    const char *wasm_file = "i64_extend_i32_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -741,7 +741,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_extend_i32_SignedExtens
  * Coverage Goal: Exercise unsigned extension path (LLVMBuildZExt) in success scenario
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_extend_i32_UnsignedExtension_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_extend_i32_test.wasm";
+    const char *wasm_file = "i64_extend_i32_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -796,7 +796,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_extend_i32_UnsignedExte
  * Coverage Goal: Exercise both signed and unsigned extension paths in combined scenario
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_extend_i32_CombinedOperations_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_extend_i32_test.wasm";
+    const char *wasm_file = "i64_extend_i32_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -856,7 +856,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_extend_i32_CombinedOper
  * Coverage Goal: Exercise 8-bit sign extension path in i64_extend_i64 function
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_extend_i64_Extend8S_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_extend8s_test.wasm";
+    const char *wasm_file = "i64_extend8s_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -911,7 +911,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_extend_i64_Extend8S_Ret
  * Coverage Goal: Exercise 16-bit sign extension path in i64_extend_i64 function
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_extend_i64_Extend16S_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_extend16s_test.wasm";
+    const char *wasm_file = "i64_extend16s_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -966,7 +966,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_extend_i64_Extend16S_Re
  * Coverage Goal: Exercise 32-bit sign extension path in i64_extend_i64 function
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_extend_i64_Extend32S_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_extend32s_test.wasm";
+    const char *wasm_file = "i64_extend32s_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -1021,7 +1021,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_extend_i64_Extend32S_Re
  * Coverage Goal: Exercise all bitwidth paths in a single comprehensive test
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_extend_i64_CombinedOperations_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_extend_combined_test.wasm";
+    const char *wasm_file = "i64_extend_combined_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -1080,7 +1080,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_extend_i64_CombinedOper
  * Coverage Goal: Exercise 8-bit sign extension path in i32_extend_i32 function
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_extend_i32_Extend8S_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i32_extend8s_test.wasm";
+    const char *wasm_file = "i32_extend8s_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -1135,7 +1135,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_extend_i32_Extend8S_Ret
  * Coverage Goal: Exercise 16-bit sign extension path in i32_extend_i32 function
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_extend_i32_Extend16S_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i32_extend16s_test.wasm";
+    const char *wasm_file = "i32_extend16s_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -1190,7 +1190,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_extend_i32_Extend16S_Re
  * Coverage Goal: Exercise both 8-bit and 16-bit extension paths in combined scenario
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_extend_i32_CombinedOperations_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i32_extend_combined_test.wasm";
+    const char *wasm_file = "i32_extend_combined_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -1249,7 +1249,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i32_extend_i32_CombinedOper
  * Coverage Goal: Exercise signed non-saturating truncation path in direct mode
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_trunc_f32_SignedNonSaturating_DirectMode_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_trunc_f32_test.wasm";
+    const char *wasm_file = "i64_trunc_f32_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -1305,7 +1305,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_trunc_f32_SignedNonSatu
  * Coverage Goal: Exercise unsigned non-saturating truncation path in direct mode
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_trunc_f32_UnsignedNonSaturating_DirectMode_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_trunc_f32_test.wasm";
+    const char *wasm_file = "i64_trunc_f32_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -1361,7 +1361,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_trunc_f32_UnsignedNonSa
  * Coverage Goal: Exercise signed saturating truncation path in direct mode
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_trunc_f32_SignedSaturating_DirectMode_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_trunc_f32_test.wasm";
+    const char *wasm_file = "i64_trunc_f32_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -1417,7 +1417,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_trunc_f32_SignedSaturat
  * Coverage Goal: Exercise unsigned saturating truncation path in direct mode
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_trunc_f32_UnsignedSaturating_DirectMode_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_trunc_f32_test.wasm";
+    const char *wasm_file = "i64_trunc_f32_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -1473,7 +1473,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_trunc_f32_UnsignedSatur
  * Coverage Goal: Exercise indirect mode path with intrinsic capability support
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_trunc_f32_IndirectMode_IntrinsicCapability_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_trunc_f32_test.wasm";
+    const char *wasm_file = "i64_trunc_f32_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -1529,7 +1529,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_trunc_f32_IndirectMode_
  * Coverage Goal: Exercise maximum code coverage by testing all operation combinations
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_trunc_f32_CombinedOperations_AllPaths_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_trunc_f32_test.wasm";
+    const char *wasm_file = "i64_trunc_f32_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -1596,7 +1596,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_trunc_f64_Signed_Return
     AOTCompOption option = { 0 };
 
     // Load i64_trunc_f64 test WASM module
-    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_trunc_f64_test.wasm", &wasm_file_size);
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("i64_trunc_f64_test.wasm", &wasm_file_size);
     ASSERT_NE(nullptr, wasm_file_buf);
     wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
     ASSERT_NE(nullptr, wasm_module);
@@ -1640,7 +1640,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_trunc_f64_Unsigned_Retu
     AOTCompOption option = { 0 };
 
     // Load i64_trunc_f64 test WASM module
-    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_trunc_f64_test.wasm", &wasm_file_size);
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("i64_trunc_f64_test.wasm", &wasm_file_size);
     ASSERT_NE(nullptr, wasm_file_buf);
     wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
     ASSERT_NE(nullptr, wasm_module);
@@ -1683,7 +1683,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_trunc_f64_SignedSaturat
     AOTCompOption option = { 0 };
 
     // Load i64_trunc_f64 test WASM module
-    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_trunc_f64_test.wasm", &wasm_file_size);
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("i64_trunc_f64_test.wasm", &wasm_file_size);
     ASSERT_NE(nullptr, wasm_file_buf);
     wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
     ASSERT_NE(nullptr, wasm_module);
@@ -1726,7 +1726,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_i64_trunc_f64_UnsignedSatur
     AOTCompOption option = { 0 };
 
     // Load i64_trunc_f64 test WASM module
-    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/i64_trunc_f64_test.wasm", &wasm_file_size);
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("i64_trunc_f64_test.wasm", &wasm_file_size);
     ASSERT_NE(nullptr, wasm_file_buf);
     wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
     ASSERT_NE(nullptr, wasm_module);
@@ -1769,7 +1769,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_convert_i32_Signed_Retu
     AOTCompOption option = { 0 };
 
     // Load f32_convert_i32 test WASM module
-    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f32_convert_i32_test.wasm", &wasm_file_size);
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("f32_convert_i32_test.wasm", &wasm_file_size);
     ASSERT_NE(nullptr, wasm_file_buf);
     wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
     ASSERT_NE(nullptr, wasm_module);
@@ -1812,7 +1812,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_convert_i32_Unsigned_Re
     AOTCompOption option = { 0 };
 
     // Load f32_convert_i32 test WASM module
-    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f32_convert_i32_test.wasm", &wasm_file_size);
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("f32_convert_i32_test.wasm", &wasm_file_size);
     ASSERT_NE(nullptr, wasm_file_buf);
     wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
     ASSERT_NE(nullptr, wasm_module);
@@ -1858,7 +1858,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_convert_i32_WithIntrins
     option.disable_llvm_intrinsics = true;
 
     // Load f32_convert_i32 test WASM module
-    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f32_convert_i32_test.wasm", &wasm_file_size);
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("f32_convert_i32_test.wasm", &wasm_file_size);
     ASSERT_NE(nullptr, wasm_file_buf);
     wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
     ASSERT_NE(nullptr, wasm_module);
@@ -1896,7 +1896,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_convert_i32_WithIntrins
  * Coverage Goal: Exercise signed conversion path (LLVMBuildSIToFP) in success scenario
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_convert_i64_SignedConversion_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f32_convert_i64_test.wasm";
+    const char *wasm_file = "f32_convert_i64_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -1951,7 +1951,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_convert_i64_SignedConve
  * Coverage Goal: Exercise unsigned conversion path (LLVMBuildUIToFP) in success scenario
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_convert_i64_UnsignedConversion_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f32_convert_i64_test.wasm";
+    const char *wasm_file = "f32_convert_i64_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -2006,7 +2006,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_convert_i64_UnsignedCon
  * Coverage Goal: Exercise intrinsic path for signed conversion (aot_call_llvm_intrinsic)
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_convert_i64_SignedWithIntrinsics_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f32_convert_i64_test.wasm";
+    const char *wasm_file = "f32_convert_i64_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -2061,7 +2061,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_convert_i64_SignedWithI
  * Coverage Goal: Exercise intrinsic path for unsigned conversion (aot_call_llvm_intrinsic)
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_convert_i64_UnsignedWithIntrinsics_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f32_convert_i64_test.wasm";
+    const char *wasm_file = "f32_convert_i64_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -2117,7 +2117,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_convert_i64_UnsignedWit
  * Coverage Goal: Exercise both signed and unsigned conversion paths in combined scenario
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_convert_i64_CombinedOperations_ReturnsTrue) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f32_convert_i64_test.wasm";
+    const char *wasm_file = "f32_convert_i64_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -2175,7 +2175,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_convert_i64_CombinedOpe
  * Coverage Goal: Exercise standard FPTrunc execution path for f32.demote_f64 conversion
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_demote_f64_Success_StandardPath) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f32_demote_f64_test.wasm";
+    const char *wasm_file = "f32_demote_f64_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -2234,7 +2234,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_demote_f64_Success_Stan
  * Coverage Goal: Exercise LLVM intrinsic execution path for f32.demote_f64 conversion
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_demote_f64_Success_IntrinsicPath) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f32_demote_f64_test.wasm";
+    const char *wasm_file = "f32_demote_f64_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -2293,7 +2293,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_demote_f64_Success_Intr
  * Coverage Goal: Exercise function with multiple f32.demote_f64 operations
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_demote_f64_Multiple_Operations) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f32_demote_f64_test.wasm";
+    const char *wasm_file = "f32_demote_f64_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -2350,7 +2350,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_demote_f64_Multiple_Ope
  * Coverage Goal: Exercise intrinsic availability check and call path
  ******/
 TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f32_demote_f64_IntrinsicEnabled_TestIntrinsicPath) {
-    const char *wasm_file = "/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f32_demote_f64_test.wasm";
+    const char *wasm_file = "f32_demote_f64_test.wasm";
     unsigned int wasm_file_size = 0;
     unsigned char *wasm_file_buf = nullptr;
     char error_buf[128] = {0};
@@ -2434,7 +2434,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f64_convert_i64_SignedStand
     option.enable_llvm_pgo = false;
 
     // Load f64_convert_s_i64 test WASM module
-    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f64_convert_s_i64_test.wasm", &wasm_file_size);
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("f64_convert_s_i64_test.wasm", &wasm_file_size);
     ASSERT_NE(nullptr, wasm_file_buf);
     ASSERT_GT(wasm_file_size, 0U);
     wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
@@ -2492,7 +2492,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f64_convert_i64_UnsignedSta
     option.enable_llvm_pgo = false;
 
     // Load f64_convert_u_i64 test WASM module
-    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f64_convert_u_i64_test.wasm", &wasm_file_size);
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("f64_convert_u_i64_test.wasm", &wasm_file_size);
     ASSERT_NE(nullptr, wasm_file_buf);
     ASSERT_GT(wasm_file_size, 0U);
     wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
@@ -2550,7 +2550,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f64_convert_i64_SignedIntri
     option.enable_llvm_pgo = false;
 
     // Load f64_convert_s_i64 test WASM module
-    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f64_convert_s_i64_test.wasm", &wasm_file_size);
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("f64_convert_s_i64_test.wasm", &wasm_file_size);
     ASSERT_NE(nullptr, wasm_file_buf);
     ASSERT_GT(wasm_file_size, 0U);
     wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
@@ -2608,7 +2608,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f64_convert_i64_UnsignedInt
     option.enable_llvm_pgo = false;
 
     // Load f64_convert_u_i64 test WASM module
-    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f64_convert_u_i64_test.wasm", &wasm_file_size);
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("f64_convert_u_i64_test.wasm", &wasm_file_size);
     ASSERT_NE(nullptr, wasm_file_buf);
     ASSERT_GT(wasm_file_size, 0U);
     wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
@@ -2667,7 +2667,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f64_promote_f32_StandardLLV
     option.enable_llvm_pgo = false;
 
     // Load f64_promote_f32 test WASM module
-    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f64_promote_f32_test.wasm", &wasm_file_size);
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("f64_promote_f32_test.wasm", &wasm_file_size);
     ASSERT_NE(nullptr, wasm_file_buf);
     ASSERT_GT(wasm_file_size, 0U);
     wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
@@ -2723,7 +2723,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f64_promote_f32_IntrinsicPa
     option.enable_llvm_pgo = false;
 
     // Load f64_promote_f32 test WASM module
-    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f64_promote_f32_test.wasm", &wasm_file_size);
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("f64_promote_f32_test.wasm", &wasm_file_size);
     ASSERT_NE(nullptr, wasm_file_buf);
     ASSERT_GT(wasm_file_size, 0U);
     wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
@@ -2779,7 +2779,7 @@ TEST_F(EnhancedAotEmitConversionTest, aot_compile_op_f64_promote_f32_ComplexOper
     option.enable_llvm_pgo = false;
 
     // Load WASM module with complex f64.promote_f32 operations
-    wasm_file_buf = (uint8*)bh_read_file_to_buffer("/home/pugong/CPU_WPE/wasm-micro-runtime/tests/unit/compilation/f64_promote_f32_test.wasm", &wasm_file_size);
+    wasm_file_buf = (uint8*)bh_read_file_to_buffer("f64_promote_f32_test.wasm", &wasm_file_size);
     ASSERT_NE(nullptr, wasm_file_buf);
     ASSERT_GT(wasm_file_size, 0U);
     wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
