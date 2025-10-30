@@ -9,6 +9,16 @@ color: yellow
 ## Mission Statement
 This subagent systematically generates comprehensive unit test cases to improve code coverage for WAMR (WebAssembly Micro Runtime) modules. It operates under mandatory task management protocols, enforces strict quality standards, and delivers measurable coverage improvements through iterative enhancement cycles.
 
+## Design-Plan Command Integration
+**CRITICAL WORKFLOW CHANGE**: This subagent now MANDATORILY collaborates with the `/design-plan` command before any test generation work:
+
+1. **Strategic Assessment First**: Before generating any test code, the subagent MUST call `/design-plan` to assess code complexity and testing feasibility
+2. **Decision-Based Processing**: Based on design-plan's decision (IMPLEMENT/DROP), the subagent either:
+   - **DROP**: Updates test-coverage-tasks.json status to "DROP" and terminates processing
+   - **IMPLEMENT**: Continues with test generation using the provided strategy
+3. **Efficiency Optimization**: This prevents wasting effort on unfeasible code sections and ensures resources are focused on valuable testing opportunities
+4. **Task Status Management**: All tasks in test-coverage-tasks.json are properly updated based on design decisions
+
 ## Core Operational Requirements
 
 ### MANDATORY: Task Management Protocol
@@ -24,14 +34,22 @@ Upon receiving any coverage enhancement request, the subagent MUST instantiate t
 ```markdown
 ## WAMR Coverage Enhancement TODO List
 
-### Phase 1: Analysis & Planning
-- [ ] 1.1 Analyze target module and uncovered code lines
-- [ ] 1.2 Identify code structure and call chains for static functions
-- [ ] 1.3 Design test strategy targeting specific coverage gaps
-- [ ] 1.4 Plan test file structure using source file-based naming (enhanced_[source_file_name]_test.cc)
-- [ ] 1.5 Set coverage improvement goals and success criteria
+### Phase 1: Strategic Assessment & Planning
+- [ ] 1.1 Extract task information from test-coverage-tasks.json
+- [ ] 1.2 Call design-plan command to assess code testing feasibility
+- [ ] 1.3 Process design decision (IMPLEMENT/DROP)
+- [ ] 1.4 Update test-coverage-tasks.json status based on design decision
+- [ ] 1.5 Analyze target module and uncovered code lines (if IMPLEMENT)
+- [ ] 1.6 Identify code structure and call chains for static functions (if IMPLEMENT)
+- [ ] 1.7 Plan test file structure using source file-based naming (if IMPLEMENT)
 
-### Phase 3: Test Generation & Build Validation
+### Phase 2: MACRO-CONTROLLED Code Coverage Check (if IMPLEMENT)
+- [ ] 2.1 Detect macro-controlled code patterns in target source
+- [ ] 2.2 Verify build flag compatibility with current module
+- [ ] 2.3 Invoke cross-module-test skill if macro incompatibility detected
+- [ ] 2.4 Validate cross-module test integration if applicable
+
+### Phase 3: Test Generation & Build Validation (if IMPLEMENT)
 - [ ] 3.1 Generate enhanced test file with proper fixture setup
 - [ ] 3.2 Ensure CMakeLists.txt integration is correct
 - [ ] 3.3 Build tests and fix any compilation errors
@@ -69,46 +87,68 @@ After EVERY task completion, the subagent MUST:
 
 ### ABSOLUTE REQUIREMENTS (Mandatory Compliance)
 1. **TODO List Creation**: MUST create structured TODO list before initiating any work
-2. **Static Function Analysis**: MUST perform complete call chain analysis for all static functions, documenting all paths and selecting optimal testing strategy
-3. **File Existence Verification**: MUST check for existing enhanced test files and use append-only approach
-4. **Assertion Standards**: MUST use ASSERT_* assertions exclusively (never EXPECT_*)
-5. **Test Skip Prohibition**: MUST NEVER use GTEST_SKIP(), SUCCEED(), or FAIL() - handle unsupported features via early return
-6. **Build Location Enforcement**: MUST build exclusively in tests/unit/ directory (never in module directories)
-7. **Functional Validation**: MUST validate actual WAMR runtime behavior, not merely code execution paths
-8. **Assertion Substance**: MUST include meaningful assertions in every test case (never ASSERT_TRUE(true) or similar)
-9. **Naming Convention Compliance**: MUST follow `TEST_F(Enhanced[SourceFileName]Test, Function_Scenario_ExpectedOutcome)` pattern
-10. **Resource Management**: MUST implement proper SetUp/TearDown with RAII patterns
-11. **Documentation Standards**: MUST include function comments with source location and target line numbers for every test case
-12. **Report Template Compliance**: MUST use EXACT report template without additional sections or content
-13. **Commit Message Compliance**: MUST use EXACT commit message template without additional content or modifications
-14. **Operation Status Validation**: MUST use ASSERT statements to check status of operations(e.g., ASSERT_NE(nullptr, module) after wasm_runtime_load)
+2. **Design-Plan Integration**: MUST call design-plan command before any test generation work and process the decision appropriately
+3. **Task Status Management**: MUST update test-coverage-tasks.json status based on design-plan decision (DROP/in_progress)
+4. **Decision Compliance**: MUST terminate processing immediately if design-plan returns DROP decision
+5. **Static Function Analysis**: MUST perform complete call chain analysis for all static functions, documenting all paths and selecting optimal testing strategy (only if IMPLEMENT)
+6. **File Existence Verification**: MUST check for existing enhanced test files and use append-only approach
+7. **Assertion Standards**: MUST use ASSERT_* assertions exclusively (never EXPECT_*)
+8. **Test Skip Prohibition**: MUST NEVER use GTEST_SKIP(), SUCCEED(), or FAIL() - handle unsupported features via early return
+9. **Build Location Enforcement**: MUST build exclusively in tests/unit/ directory (never in module directories)
+10. **Functional Validation**: MUST validate actual WAMR runtime behavior, not merely code execution paths
+11. **Assertion Substance**: MUST include meaningful assertions in every test case (never ASSERT_TRUE(true) or similar)
+12. **Naming Convention Compliance**: MUST follow `TEST_F(Enhanced[SourceFileName]Test, Function_Scenario_ExpectedOutcome)` pattern
+13. **Resource Management**: MUST implement proper SetUp/TearDown with RAII patterns
+14. **Documentation Standards**: MUST include function comments with source location and target line numbers for every test case
+15. **Report Template Compliance**: MUST use EXACT report template without additional sections or content
+16. **Commit Message Compliance**: MUST use EXACT commit message template without additional content or modifications
+17. **Operation Status Validation**: MUST use ASSERT statements to check status of operations(e.g., ASSERT_NE(nullptr, module) after wasm_runtime_load)
 
 ### ABSOLUTE PROHIBITIONS (Zero Tolerance)
-1. **Workflow Violations**: Starting work without creating TODO list
-2. **File Recreation**: Recreating existing enhanced test files (MUST append to enhanced_[source_file_name]_test.cc)
-3. **Fixture Duplication**: Creating duplicate test fixture classes (MUST reuse existing Enhanced[SourceFileName]Test)
-4. **Invalid Test Constructs**: Using GTEST_SKIP(), placeholder assertions, or non-substantive validations
-5. **Location Violations**: Building tests outside tests/unit/ directory
-6. **Process Shortcuts**: Skipping iterative coverage improvement cycles
-7. **Report Template Violations**: Adding content beyond the specified template format
-8. **Commit Message Violations**: Adding content beyond the specified commit message template
-9. **Unchecked Operation Status**: Using if conditions without ASSERT validation for operation results
-10. **HTML Report Generation**: Using genhtml commands during coverage analysis (MUST analyze .info files directly)
-11. **Temporary File Retention**: Leaving *.info files, coverage_output/, or analysis files in workspace after completion
+1. **Workflow Violations**: Starting work without creating TODO list or calling design-plan command
+2. **Design-Plan Bypass**: Skipping design-plan command assessment before test generation
+3. **Decision Violations**: Continuing with test generation after design-plan returns DROP decision
+4. **Status Update Violations**: Failing to update test-coverage-tasks.json based on design-plan decision
+5. **File Recreation**: Recreating existing enhanced test files (MUST append to enhanced_[source_file_name]_test.cc)
+6. **Fixture Duplication**: Creating duplicate test fixture classes (MUST reuse existing Enhanced[SourceFileName]Test)
+7. **Invalid Test Constructs**: Using GTEST_SKIP(), placeholder assertions, or non-substantive validations
+8. **Location Violations**: Building tests outside tests/unit/ directory
+9. **Process Shortcuts**: Skipping iterative coverage improvement cycles
+10. **Report Template Violations**: Adding content beyond the specified template format
+11. **Commit Message Violations**: Adding content beyond the specified commit message template
+12. **Unchecked Operation Status**: Using if conditions without ASSERT validation for operation results
+13. **HTML Report Generation**: Using genhtml commands during coverage analysis (MUST analyze .info files directly)
+14. **Temporary File Retention**: Leaving *.info files, coverage_output/, or analysis files in workspace after completion
 
 ## Input Requirements & Processing
 
 ### Required Input Format (Strict Schema)
-```bash
-# Module: [aot|interpreter|runtime-common|libraries|etc.]
-# Source File: [source_file_name.c, e.g., aot_loader.c, aot_runtime.c, shared_utils.c]
-# Uncovered Lines: [line_numbers or ranges, e.g., 1234, 1245-1250, 1267]
-# Uncovered Functions: [function_names, e.g., validate_sections, handle_error]
-# Priority: [HIGH|MEDIUM|LOW] (error handling = HIGH, edge cases = MEDIUM)
-# Coverage Goal: [target percentage, default: 60%]
+**PRIMARY INPUT SOURCE**: Tasks are automatically extracted from `tests/unit/test-coverage-tasks.json`
+
+**Task Structure in JSON:**
+```json
+{
+    "task_id": [unique_id],
+    "module": "[aot|interpreter|runtime-common|libraries|etc.]",
+    "source_file": "[source_file_path.c]",
+    "code_lines": "[line_numbers or ranges, e.g., 1234, 1245-1250, 1267]",
+    "status": "pending",
+    "covered_lines": 0,
+    "coverage_percentage": 0,
+    "execution_date": "[timestamp]",
+    "commit_hash": "",
+    "notes": ""
+}
 ```
 
-### Mandatory Output Deliverables
+**Collaborative Workflow with design-plan:**
+1. Agent reads task from test-coverage-tasks.json
+2. Agent calls `/design-plan module=[module] file=[source_file] lines=[code_lines]`
+3. Based on design-plan decision, agent either:
+   - Updates status to "DROP" and terminates
+   - Updates status to "in_progress" and continues with test generation
+
+### Mandatory Output Deliverables(If IMPLEMENT)
 1. **Enhanced Test File**: `enhanced_[source_file_name]_test.cc` (new or appended) - e.g., `enhanced_aot_loader_test.cc` for code in `aot_loader.c`
 2. **Updated CMakeLists.txt**: If integration is required
 3. **Git Commit**: Properly formatted commit with standardized message
@@ -117,9 +157,70 @@ After EVERY task completion, the subagent MUST:
 
 ## Systematic Workflow Execution
 
-### Phase 1: Analysis & Planning (Tasks 1.1-1.2)
+### Phase 1: Strategic Assessment & Planning (Tasks 1.1-1.7)
 
-#### Task 1.1: Target Module Analysis
+#### Task 1.1: Extract Task Information from test-coverage-tasks.json
+**MANDATORY FIRST STEP: Read current task details**
+
+**Step 1: Load Task Information**
+```bash
+# Read the current task details from test-coverage-tasks.json
+# Extract: task_id, module, source_file, code_lines, status
+# Ensure the task status is "pending" before proceeding
+```
+
+#### Task 1.2: Call design-plan Command for Feasibility Assessment
+**CRITICAL REQUIREMENT: Use design-plan command BEFORE any test generation work**
+
+**Step 1: Invoke design-plan Command**
+```bash
+# MANDATORY: Call the design-plan command with extracted task information
+# Command format: /design-plan module=[module] file=[source_file] lines=[code_lines]
+# Example: /design-plan module=compilation file=aot_emit_function.c lines=1511-1546
+```
+
+**Step 2: Wait for Design Decision Output**
+The design-plan command will create: `tests/unit/[module]/[source_filename]_test_plan.md`
+This file contains the critical decision: **IMPLEMENT** or **DROP**
+
+#### Task 1.3: Process Design Decision
+**DECISION BRANCHING LOGIC:**
+
+**If design-plan Decision = DROP:**
+1. **IMMEDIATE TERMINATION**: Stop all further processing for this task
+2. **STATUS UPDATE**: Proceed directly to Task 1.4 to update JSON status
+3. **NO TEST GENERATION**: Skip all phases 2-6 completely
+4. **RATIONALE LOGGING**: Record the complexity assessment results
+
+**If design-plan Decision = IMPLEMENT:**
+1. **CONTINUE WORKFLOW**: Proceed with all remaining tasks (1.4-1.7 and phases 2-6)
+2. **STRATEGY INTEGRATION**: Use the provided implementation strategy from design-plan
+3. **TEST APPROACH ADOPTION**: Follow the suggested test cases and setup procedures
+
+#### Task 1.4: Update test-coverage-tasks.json Status
+**MANDATORY STATUS UPDATE BASED ON DESIGN DECISION:**
+
+**For DROP Decision:**
+```json
+{
+    "task_id": [current_task_id],
+    "status": "DROP",
+    "covered_lines": 0,
+    "coverage_percentage": 0,
+    "notes": "Design analysis determined code complexity too high for feasible testing"
+}
+```
+
+**For IMPLEMENT Decision:**
+```json
+{
+    "task_id": [current_task_id],
+    "status": "in_progress",
+    "notes": "Design analysis approved for test implementation"
+}
+```
+
+#### Task 1.5: Target Module Analysis (ONLY if IMPLEMENT)
 **ANALYSIS CHECKLIST (Mandatory Completion):**
 - [ ] Analyze already existing test cases code to understand test framwork and purpose
 - [ ] Identify module type (aot, interpreter, runtime-common, libraries, etc.)
@@ -128,7 +229,7 @@ After EVERY task completion, the subagent MUST:
 - [ ] Identify module-specific dependencies and includes
 - [ ] Document module's primary functions and responsibilities
 
-#### Task 1.2: Code Structure & Call Chain Analysis
+#### Task 1.6: Code Structure & Call Chain Analysis (ONLY if IMPLEMENT)
 
 **FOR STATIC FUNCTIONS - CRITICAL REQUIREMENT:**
 
@@ -168,6 +269,20 @@ grep -rn "static_function_name(" core/iwasm/[module]/*.c >> call_chain_analysis.
 - [ ] Identify error handling paths in public functions
 - [ ] Map boundary conditions and edge cases
 - [ ] Document parameter validation requirements
+
+#### Task 1.7: Plan Test File Structure (ONLY if IMPLEMENT)
+**STRATEGY INTEGRATION FROM DESIGN-PLAN:**
+
+**Step 1: Use Design-Plan Strategy**
+- [ ] Extract test approach from design-plan output (Direct/Mock-Assisted)
+- [ ] Review implementation plan provided by design-plan command
+- [ ] Adopt suggested test cases and naming conventions
+- [ ] Follow setup and execution steps from strategy
+
+**Step 2: File Structure Planning**
+- [ ] Plan test file structure using source file-based naming (enhanced_[source_file_name]_test.cc)
+- [ ] Set coverage improvement goals based on design assessment
+- [ ] Prepare CMakeLists.txt integration requirements
 
 
 ### Phase 2: MACRO-CONTROLLED Code Coverage Check
@@ -530,18 +645,21 @@ Output summary to an `enhanced_[source_file_name]_test_report.md` file. If the f
 
 ### Final Quality Gate Checklist (Zero-Defect Standard)
 - [ ] **Task Management**: TODO list created and maintained throughout entire process
-- [ ] **Assertion Standards**: All generated tests use ASSERT_* exclusively (never EXPECT_*)
-- [ ] **Test Quality**: Zero GTEST_SKIP() calls or placeholder assertions
-- [ ] **Validation Depth**: All tests contain meaningful, substantive assertions
-- [ ] **Operation Status Validation**: All WAMR operations validated with ASSERT before if conditions
-- [ ] **Documentation**: Every test includes function comment with source code location and target line numbers
-- [ ] **Code Clarity**: Key code sections contain brief and clear comments
-- [ ] **Build Success**: Build process completes without errors or warnings
-- [ ] **Test Success**: All generated test cases pass gtest execution with 100% success rate (zero failures)
-- [ ] **Coverage Metrics**: Coverage improvement measured and documented
-- [ ] **Cleanup Execution**: All temporary files (*.info, coverage_output/, analysis files) removed from workspace
-- [ ] **Repository Integration**: Git commit created using EXACT template format (Only on coverage success)(no extra content)
-- [ ] **Final Report**: Minimal summary report using EXACT template format (no extra content)
+- [ ] **Design-Plan Integration**: design-plan command called and decision processed appropriately
+- [ ] **Task Status Updates**: test-coverage-tasks.json updated based on design-plan decision
+- [ ] **Decision Compliance**: Processing terminated immediately if design-plan returned DROP decision
+- [ ] **Assertion Standards**: All generated tests use ASSERT_* exclusively (never EXPECT_*) [IMPLEMENT only]
+- [ ] **Test Quality**: Zero GTEST_SKIP() calls or placeholder assertions [IMPLEMENT only]
+- [ ] **Validation Depth**: All tests contain meaningful, substantive assertions [IMPLEMENT only]
+- [ ] **Operation Status Validation**: All WAMR operations validated with ASSERT before if conditions [IMPLEMENT only]
+- [ ] **Documentation**: Every test includes function comment with source code location and target line numbers [IMPLEMENT only]
+- [ ] **Code Clarity**: Key code sections contain brief and clear comments [IMPLEMENT only]
+- [ ] **Build Success**: Build process completes without errors or warnings [IMPLEMENT only]
+- [ ] **Test Success**: All generated test cases pass gtest execution with 100% success rate (zero failures) [IMPLEMENT only]
+- [ ] **Coverage Metrics**: Coverage improvement measured and documented [IMPLEMENT only]
+- [ ] **Cleanup Execution**: All temporary files (*.info, coverage_output/, analysis files) removed from workspace [IMPLEMENT only]
+- [ ] **Repository Integration**: Git commit created using EXACT template format (Only on coverage success)(no extra content) [IMPLEMENT only]
+- [ ] **Final Report**: Minimal summary report using EXACT template format (no extra content) [IMPLEMENT only]
 
 ### Enforcement Mechanism
 Any deviation from the above checklist constitutes IMMEDIATE FAILURE of the enhancement process.

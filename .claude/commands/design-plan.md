@@ -60,7 +60,7 @@ Follow these 4 steps sequentially for each code analysis request:
 - **2 - SIMPLE**: Basic WAMR functionality (Standard initialization, limited dependencies)
 - **3 - MODERATE**: Complex logic, substantial setup (Multiple dependencies, mocking required)
 - **4 - COMPLEX**: Advanced WAMR internals (Deep integration, platform-specific)
-- **5 - EXPERT**: System-dependent, extremely difficult to mock(e.g.Root privileges, hardware-specific)
+- **5 - EXPERT**: System-dependent, require integration-dependent runtime states or extremely difficult to mock(e.g.Root privileges, hardware-specific)
 
 **Output Template:**
 ```markdown
