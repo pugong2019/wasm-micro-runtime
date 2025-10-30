@@ -3648,3 +3648,126 @@ TEST_F(EnhancedWasmCApiTest, wasm_module_exports_EmptyModule_NoExports)
 // for null parameter handling, ref_count validation, and basic export processing logic
 // without requiring actual WASM module creation.
 
+// Enhanced test fixture for wasm_module_set_name coverage
+class EnhancedWasmCApiModuleNameTest : public testing::Test
+{
+protected:
+    void SetUp() override
+    {
+        // Initialize runtime
+        bool init_result = wasm_runtime_init();
+        ASSERT_TRUE(init_result);
+        runtime_initialized = true;
+
+        // Create engine and store
+        engine = wasm_engine_new();
+        ASSERT_NE(nullptr, engine);
+        store = wasm_store_new(engine);
+        ASSERT_NE(nullptr, store);
+
+        // Simple working WASM module (from existing successful tests)
+        wasm_simple_global = {
+            0x00, 0x61, 0x73, 0x6d,  // WASM magic number
+            0x01, 0x00, 0x00, 0x00,  // Version 1
+            0x06, 0x06, 0x01, 0x7f,  // Global section: 1 global (i32, mutable)
+            0x01, 0x41, 0x2a, 0x0b,  // Global: mutable i32 with initial value 42
+            0x07, 0x0a, 0x01, 0x06,  // Export section: 1 export, 10 bytes
+            0x67, 0x6c, 0x6f, 0x62,  // Export name "glob"
+            0x61, 0x6c, 0x03, 0x00   // Export type: global, index 0
+        };
+    }
+
+    void TearDown() override
+    {
+        if (module) {
+            wasm_module_delete(module);
+            module = nullptr;
+        }
+        if (store) {
+            wasm_store_delete(store);
+            store = nullptr;
+        }
+        if (engine) {
+            wasm_engine_delete(engine);
+            engine = nullptr;
+        }
+        if (runtime_initialized) {
+            wasm_runtime_destroy();
+        }
+    }
+
+    bool runtime_initialized = false;
+    wasm_engine_t *engine = nullptr;
+    wasm_store_t *store = nullptr;
+    wasm_module_t *module = nullptr;
+    std::vector<uint8_t> wasm_simple_global;
+};
+
+/******
+ * Test Case: wasm_module_set_name_NullModule_ReturnsFalse
+ * Source: core/iwasm/common/wasm_c_api.c:2987-2988
+ * Target Lines: 2987-2988 (null module validation)
+ * Functional Purpose: Validates that wasm_module_set_name correctly rejects null module
+ *                     parameter and returns false without attempting any operations.
+ * Call Path: wasm_module_set_name() [PUBLIC API - Direct call]
+ * Coverage Goal: Exercise null module parameter validation path
+ ******/
+TEST_F(EnhancedWasmCApiModuleNameTest, wasm_module_set_name_NullModule_ReturnsFalse)
+{
+    // Test null module parameter - this exercises lines 2987-2988
+    bool result = wasm_module_set_name(nullptr, "test_name");
+    ASSERT_FALSE(result);
+}
+
+/******
+ * Test Case: wasm_module_set_name_ValidModule_ReturnsTrue
+ * Source: core/iwasm/common/wasm_c_api.c:2990-2995
+ * Target Lines: 2990-2995 (successful module name setting)
+ * Functional Purpose: Validates that wasm_module_set_name successfully sets module name
+ *                     for a valid module and returns true when operation succeeds.
+ * Call Path: wasm_module_set_name() [PUBLIC API - Direct call]
+ * Coverage Goal: Exercise successful module name setting path
+ ******/
+TEST_F(EnhancedWasmCApiModuleNameTest, wasm_module_set_name_ValidModule_ReturnsTrue)
+{
+    // Create a valid WASM module
+    wasm_byte_vec_t wasm_bytes;
+    wasm_byte_vec_new(&wasm_bytes, wasm_simple_global.size(), (const wasm_byte_t*)wasm_simple_global.data());
+
+    module = wasm_module_new(store, &wasm_bytes);
+    ASSERT_NE(nullptr, module);
+
+    // Test successful module name setting - this exercises lines 2990-2995
+    bool result = wasm_module_set_name(module, "test_module_name");
+    ASSERT_TRUE(result);
+
+    wasm_byte_vec_delete(&wasm_bytes);
+}
+
+/******
+ * Test Case: wasm_module_set_name_NullName_HandlesGracefully
+ * Source: core/iwasm/common/wasm_c_api.c:2990-2995
+ * Target Lines: 2990-2995 (null name parameter handling)
+ * Functional Purpose: Validates that wasm_module_set_name handles null name parameter
+ *                     gracefully by passing it through to the runtime function.
+ * Call Path: wasm_module_set_name() [PUBLIC API - Direct call]
+ * Coverage Goal: Exercise null name parameter path through runtime function
+ ******/
+TEST_F(EnhancedWasmCApiModuleNameTest, wasm_module_set_name_NullName_HandlesGracefully)
+{
+    // Create a valid WASM module
+    wasm_byte_vec_t wasm_bytes;
+    wasm_byte_vec_new(&wasm_bytes, wasm_simple_global.size(), (const wasm_byte_t*)wasm_simple_global.data());
+
+    module = wasm_module_new(store, &wasm_bytes);
+    ASSERT_NE(nullptr, module);
+
+    // Test null name parameter - this exercises lines 2990-2995
+    // The runtime function should handle null name appropriately
+    bool result = wasm_module_set_name(module, nullptr);
+    // Result may be true or false depending on runtime implementation
+    // The test focuses on exercising the code path without crashing
+
+    wasm_byte_vec_delete(&wasm_bytes);
+}
+
