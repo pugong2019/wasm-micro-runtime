@@ -1,7 +1,7 @@
 # WAMR Test Case Design Command
 
 ## Purpose
-Analyzes uncovered WAMR code sections to assess testing complexity, determine feasibility, and provide actionable test strategies or alternative recommendations.
+Analyzes uncovered WAMR code sections to prioritize common routine code paths for maximum coverage improvement. Focuses on frequently executed code patterns and main execution flows rather than edge cases or error handling.
 
 ## Required Input Format
 - **module**: [aot|interpreter|runtime-common|libraries|...]  
@@ -39,10 +39,11 @@ Follow these 4 steps sequentially for each code analysis request:
 - **External**: [system calls, libraries, etc.]
 - **Global State**: [shared variables, static data]
 
-### Code Paths
-- **Happy Path**: [normal execution flow]
-- **Error Paths**: [failure scenarios]
-- **Edge Cases**: [boundary conditions]
+### Code Paths Analysis Priority
+- **Primary Flow**: [main execution path - highest priority for coverage]
+- **Common Branches**: [frequently executed conditional paths]
+- **Routine Operations**: [standard processing patterns]
+- **Secondary Paths**: [less frequent but valid execution flows]
 ```
 
 ### Step 2: Complexity Assessment
@@ -55,12 +56,12 @@ Follow these 4 steps sequentially for each code analysis request:
 4. Identify testability barriers
 5. Calculate overall complexity rating
 
-**Complexity Scale:**
-- **1 - TRIVIAL**: Simple function, minimal setup (Direct calls, no dependencies)
-- **2 - SIMPLE**: Basic WAMR functionality (Standard initialization, limited dependencies)
-- **3 - MODERATE**: Complex logic, substantial setup (Multiple dependencies, mocking required)
-- **4 - COMPLEX**: Advanced WAMR internals (Deep integration, platform-specific)
-- **5 - EXPERT**: System-dependent, require integration-dependent runtime states or extremely difficult to mock(e.g.Root privileges, hardware-specific)
+**Complexity Scale (Routine Code Focus):**
+- **1 - TRIVIAL**: Common utility functions, simple operations (Direct calls, no dependencies)
+- **2 - SIMPLE**: Standard WAMR operations, typical processing paths (Basic initialization, common patterns)
+- **3 - MODERATE**: Multi-step routines, standard WAMR workflows (Normal dependencies, routine setup)
+- **4 - COMPLEX**: Advanced internals or platform-specific code (Focus only if covers many lines)
+- **5 - EXPERT**: System-dependent or extremely specialized code (Generally avoid unless critical routine)
 
 **Output Template:**
 ```markdown
@@ -79,9 +80,10 @@ Follow these 4 steps sequentially for each code analysis request:
 ### Step 3: Implementation Decision
 **Objective:** Make decision based on complexity assessment
 
-**Simple Decision Rule:**
-- **Complexity 1-3**: IMPLEMENT
-- **Complexity 4-5**: DROP
+**Routine Code Decision Rule:**
+- **Complexity 1-3**: IMPLEMENT (Focus on maximum line coverage)
+- **Complexity 4**: IMPLEMENT if high-value routine covering 10+ lines, otherwise DROP
+- **Complexity 5**: DROP (unless absolutely critical common routine)
 
 **Output Template:**
 ```markdown
@@ -95,24 +97,27 @@ Follow these 4 steps sequentially for each code analysis request:
 ### Step 4: Strategy Design (Only if need IMPLEMENT)
 **Objective:** Create specific test implementation plan
 
-**Test Approaches by Complexity:**
-- **Complexity 1-2**: Direct Testing
+**Test Approaches for Routine Code Coverage:**
+- **Complexity 1-2**: Direct Routine Testing
   - Minimal WAMR setup, direct function calls
-  - Focus on input validation and return values
+  - Focus on common input patterns and typical return values
+  - Test main execution paths only
 
-- **Complexity 3**: Mock-Assisted Testing
-  - Full WAMR environment with mocks
-  - Test normal, error, and state transitions
+- **Complexity 3**: Standard Workflow Testing
+  - Standard WAMR environment setup
+  - Test normal operation flows and common variations
+  - Focus on routine processing patterns
 
 **Actions:**
 1. Choose test approach based on complexity level
 2. Design specific test cases
 3. Provide implementation template
 
-**Key Test Cases**:
-- **Happy Path**: [test normal execution]
-- **Error Cases**: [test failure scenarios]
-- **Edge Cases**: [test boundary conditions]
+**Key Test Cases for Maximum Coverage**:
+- **Primary Flow**: [test main execution path - covers most lines]
+- **Common Variations**: [test frequent code branches]
+- **Routine Operations**: [test standard processing patterns]
+- **Secondary Flows**: [test alternative paths only if they cover significant lines]
 
 
 ### Required Output Format
@@ -166,9 +171,9 @@ A successful test case design analysis must meet ALL of the following criteria:
 - [ ] Testability barriers accurately identified
 
 ### 3. Implementation Strategy (for IMPLEMENT decisions only)
-- [ ] Test approach matches complexity level (Direct for 1-2, Mock-Assisted for 3)
-- [ ] All key test cases defined: Happy Path, Error Cases, Edge Cases
-- [ ] Test implementation template provided with realistic setup steps
+- [ ] Test approach matches complexity level (Direct Routine for 1-2, Standard Workflow for 3)
+- [ ] Key test cases prioritized: Primary Flow, Common Variations, Routine Operations
+- [ ] Test implementation template provided focusing on line coverage maximization
 - [ ] Test names follow naming convention: `TEST_F(Enhanced[Module]Test, [Function]_[Scenario])`
 
 ### 4. Output Deliverable
@@ -180,8 +185,8 @@ A successful test case design analysis must meet ALL of the following criteria:
 ### 5. Quality Standards
 - [ ] Analysis based on actual code examination (not assumptions)
 - [ ] Dependencies mapped accurately to WAMR architecture
-- [ ] Test cases cover realistic scenarios for the target function
-- [ ] Implementation plan is actionable and specific
+- [ ] Test cases prioritize routine scenarios with maximum line coverage potential
+- [ ] Implementation plan focuses on common code paths rather than edge cases
 
 
 

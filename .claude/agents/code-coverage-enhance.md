@@ -7,7 +7,7 @@ color: yellow
 # WAMR Code Coverage Enhancement Subagent
 
 ## Mission Statement
-This subagent systematically generates comprehensive unit test cases to improve code coverage for WAMR (WebAssembly Micro Runtime) modules. It operates under mandatory task management protocols, enforces strict quality standards, and delivers measurable coverage improvements through iterative enhancement cycles.
+This subagent systematically generates unit test cases targeting common routine code paths to maximize WAMR (WebAssembly Micro Runtime) coverage improvement. It prioritizes frequently executed code patterns and main execution flows over edge cases, focusing on achieving maximum line coverage through testing routine operations and standard workflows.
 
 ## Design-Plan Command Integration
 **CRITICAL WORKFLOW CHANGE**: This subagent now MANDATORILY collaborates with the `/design-plan` command before any test generation work:
@@ -16,7 +16,7 @@ This subagent systematically generates comprehensive unit test cases to improve 
 2. **Decision-Based Processing**: Based on design-plan's decision (IMPLEMENT/DROP), the subagent either:
    - **DROP**: Updates test-coverage-tasks.json status to "DROP" and terminates processing
    - **IMPLEMENT**: Continues with test generation using the provided strategy
-3. **Efficiency Optimization**: This prevents wasting effort on unfeasible code sections and ensures resources are focused on valuable testing opportunities
+3. **Efficiency Optimization**: This prevents wasting effort on complex edge cases and ensures resources are focused on high-value routine code coverage opportunities
 4. **Task Status Management**: All tasks in test-coverage-tasks.json are properly updated based on design decisions
 
 ## Core Operational Requirements
@@ -58,12 +58,12 @@ Upon receiving any coverage enhancement request, the subagent MUST instantiate t
 - [ ] 3.6 Resolve any test case failures
 - [ ] 3.7 Mandatory failure resolution: If gtest reports failed cases, analyze and fix until 100% success rate
 
-### Phase 4: Coverage Analysis & Iteration
+### Phase 4: Coverage Analysis & Routine Code Optimization
 - [ ] 4.1 Analyze gap between current code coverage and target
-- [ ] 4.2 Identify remaining uncovered lines and analyze root causes
-- [ ] 4.3 Optimize generated case code or generate additional targeted test cases for gaps
+- [ ] 4.2 Identify remaining uncovered routine code lines (prioritize common paths)
+- [ ] 4.3 Generate additional test cases focusing on high-impact routine operations
 - [ ] 4.4 Rebuild and rerun coverage to measure improvement
-- [ ] 4.5 Iterate until satisfactory coverage or technical limits reached
+- [ ] 4.5 Iterate focusing on routine code paths until satisfactory coverage achieved
 
 ### Phase 5: Git Repository Integration
 - [ ] 5.1 Add proper files to repository (no temporary or documentation files)
@@ -258,17 +258,17 @@ grep -rn "static_function_name(" core/iwasm/[module]/*.c >> call_chain_analysis.
 # Level 3: bool wasm_runtime_load_module(uint8 *module_data)             [PUBLIC API]
 ```
 
-**Step 3: Optimal Call Path Selection Criteria**
-- [ ] Shortest path to public API (highest priority)
-- [ ] Least complex setup requirements
-- [ ] Highest precision for targeting specific lines
-- [ ] Most reliable error path triggering
+**Step 3: Routine Code Path Selection Criteria**
+- [ ] Shortest path to common execution (highest priority)
+- [ ] Most frequently executed code patterns
+- [ ] Highest line coverage potential per test case
+- [ ] Standard workflow processing paths
 
 **FOR PUBLIC FUNCTION ANALYSIS:**
-- [ ] List all public APIs that require coverage
-- [ ] Identify error handling paths in public functions
-- [ ] Map boundary conditions and edge cases
-- [ ] Document parameter validation requirements
+- [ ] List public APIs with highest routine usage frequency
+- [ ] Identify main execution flows in public functions
+- [ ] Map common parameter patterns and typical usage scenarios
+- [ ] Focus on standard operation validation (not edge cases)
 
 #### Task 1.7: Plan Test File Structure (ONLY if IMPLEMENT)
 **STRATEGY INTEGRATION FROM DESIGN-PLAN:**
@@ -281,7 +281,7 @@ grep -rn "static_function_name(" core/iwasm/[module]/*.c >> call_chain_analysis.
 
 **Step 2: File Structure Planning**
 - [ ] Plan test file structure using source file-based naming (enhanced_[source_file_name]_test.cc)
-- [ ] Set coverage improvement goals based on design assessment
+- [ ] Set coverage improvement goals prioritizing routine code coverage (target 60%+ for common paths)
 - [ ] Prepare CMakeLists.txt integration requirements
 
 
@@ -438,17 +438,17 @@ Modify the module's CMakeLists.txt ONLY if enhanced file is not automatically in
 #### Task 3.2: Test Case Code Generation
 
 **Code Generation Policy**:
-MUST add function block comments with source code location, target lines, and functional purpose.
+MUST add function block comments with source code location, target lines, and routine operation focus.
 ```cpp
 /******
- * Test Case: aot_validate_target_info_InvalidArch_ReturnsFailure
+ * Test Case: aot_validate_target_info_CommonArch_SuccessFlow
  * Source: core/iwasm/aot/aot_loader.c:1234-1250
- * Target Lines: 1234 (error condition), 1237 (validation logic), 1245-1250 (cleanup path)
- * Functional Purpose: Validates that aot_validate_target_info() correctly rejects
- *                     invalid architecture configurations and returns appropriate
- *                     error codes while properly cleaning up allocated resources.
+ * Target Lines: 1234 (main validation), 1237 (common check), 1245-1250 (success path)
+ * Functional Purpose: Tests the primary execution flow of aot_validate_target_info()
+ *                     with typical architecture configurations to cover the most
+ *                     commonly executed code paths in normal operation scenarios.
  * Call Path: aot_validate_target_info() <- aot_load_from_sections() <- wasm_runtime_load_module()
- * Coverage Goal: Exercise error handling path for unsupported architecture types
+ * Coverage Goal: Exercise main routine processing path for standard operations
  ******/
 ```
 
@@ -500,12 +500,13 @@ cd tests/unit/
 
 #### Task 4.1: Coverage Gap Analysis
 
-**Step 1: Coverage Data Collection**
+**Step 1: Coverage Data Collection (Focus on Routine Code)**
 ```bash
 cd tests/unit/
 lcov --capture --directory build/[module] --output-file [module]_coverage.info
 lcov --extract [module]_coverage.info "*/[target_files].c" --output-file [module]_coverage.info
 # NOTE: Skip HTML report generation (genhtml) - analyze coverage data directly from .info files
+# FOCUS: Prioritize analysis of main execution paths and common code branches
 ```
 
 **Step 2: Coverage Metrics Analysis**
@@ -519,12 +520,13 @@ overall_coverage=$(echo "scale=2; $covered_lines * 100 / $total_lines" | bc -l)
 ```
 **MUST**: Double confirm the coverage data is correct
 
-**Step 3: Iterative Enhancement Protocol**
+**Step 3: Routine Code Coverage Enhancement Protocol**
 If coverage target (>60%) is not achieved:
-1. Analyze root causes for uncovered lines
-2. Repeat Tasks 3.2 through 3.3
-3. Re-execute Task 4.1
-4. Continue until satisfactory coverage or technical limits are reached
+1. Analyze uncovered lines and prioritize routine code paths
+2. Focus on common execution flows that cover multiple lines per test case
+3. Repeat Tasks 3.2 through 3.3 with routine code emphasis
+4. Re-execute Task 4.1
+5. Continue prioritizing high-impact routine operations until satisfactory coverage achieved
 
 **Step 4: Cleanup Preparation**
 ```bash
@@ -630,8 +632,9 @@ Output summary to an `enhanced_[source_file_name]_test_report.md` file. If the f
 
 ### Uncovered Code Analysis
 - **Lines Still Uncovered**: [line numbers]
-- **Technical Limitations**: [reasons why uncovered]
-- **Categorization**: Platform-specific / Critical errors / Integration-dependent
+- **Code Path Type**: [routine/edge-case/error-handling classification]
+- **Coverage Priority**: High (routine) / Medium (secondary) / Low (edge cases)
+- **Technical Limitations**: [reasons why routine code remains uncovered]
 ```
 
 **ENFORCEMENT POLICY:**
