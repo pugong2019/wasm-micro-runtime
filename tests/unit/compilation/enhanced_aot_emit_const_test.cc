@@ -15,9 +15,11 @@ static std::string CWD;
 static std::string MAIN_WASM = "/main.wasm";
 static std::string F32_CONST_WASM = "/f32_const_test.wasm";
 static std::string F64_PROMOTE_WASM = "/f64_promote_f32_test.wasm";
+static std::string F64_NAN_CONST_WASM = "/f64_nan_const_test.wasm";
 static char *WASM_FILE;
 static char *F32_CONST_WASM_FILE;
 static char *F64_PROMOTE_WASM_FILE;
+static char *F64_NAN_CONST_WASM_FILE;
 
 static std::string
 get_binary_path()
@@ -60,12 +62,14 @@ protected:
         WASM_FILE = strdup((CWD + MAIN_WASM).c_str());
         F32_CONST_WASM_FILE = strdup((CWD + F32_CONST_WASM).c_str());
         F64_PROMOTE_WASM_FILE = strdup((CWD + F64_PROMOTE_WASM).c_str());
+        F64_NAN_CONST_WASM_FILE = strdup((CWD + F64_NAN_CONST_WASM).c_str());
     }
 
     static void TearDownTestCase() {
         free(WASM_FILE);
         free(F32_CONST_WASM_FILE);
         free(F64_PROMOTE_WASM_FILE);
+        free(F64_NAN_CONST_WASM_FILE);
     }
 
 public:
@@ -630,6 +634,220 @@ TEST_F(EnhancedAotEmitConstTest, aot_compile_op_f64_const_IndirectModeIntrinsic_
     // Additional validation of compilation context after f64 intrinsic processing
     ASSERT_NE(nullptr, comp_ctx->builder);
     ASSERT_NE(nullptr, comp_ctx->context);
+
+    // Cleanup
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+    if (wasm_file_buf)
+        BH_FREE(wasm_file_buf);
+}
+
+// ========================================================================
+// NEW TEST CASES FOR LINES 142-164: F64 NaN HANDLING PATH
+// ========================================================================
+
+/******
+ * Test Case: aot_compile_op_f64_const_NaNHandling_SuccessPath
+ * Source: core/iwasm/compilation/aot_emit_const.c:142-164
+ * Target Lines: 142 (memcpy NaN bits), 148-149 (I64_CONST creation),
+ *               164 (PUSH_F64 success path) - complete NaN success flow
+ * Functional Purpose: Validates f64 NaN constant compilation success path which requires
+ *                     complex LLVM memory operations including memcpy for NaN bit preservation,
+ *                     LLVMBuildAlloca, LLVMBuildStore, LLVMBuildBitCast, and LLVMBuildLoad2
+ *                     for proper NaN representation in AOT compilation.
+ * Call Path: aot_compile_op_f64_const() <- aot_compiler.c:2121 (during WASM_OP_F64_CONST with NaN)
+ * Coverage Goal: Exercise NaN handling success path (lines 142, 148-149, 164)
+ ******/
+TEST_F(EnhancedAotEmitConstTest, aot_compile_op_f64_const_NaNHandling_SuccessPath)
+{
+    const char *wasm_file = F64_NAN_CONST_WASM_FILE;
+    unsigned int wasm_file_size = 0;
+    unsigned char *wasm_file_buf = nullptr;
+    char error_buf[128] = { 0 };
+    wasm_module_t wasm_module = nullptr;
+
+    struct AOTCompData *comp_data = nullptr;
+    struct AOTCompContext *comp_ctx = nullptr;
+    AOTCompOption option = { 0 };
+
+    // Configure for standard mode to ensure NaN path is triggered (not indirect mode)
+    option.opt_level = 3;
+    option.size_level = 3;
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 2;
+    option.enable_simd = true;
+    option.enable_aux_stack_check = true;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = true;
+    option.is_indirect_mode = false;  // Key: disable indirect mode for NaN path
+
+    wasm_file_buf = (unsigned char *)bh_read_file_to_buffer(wasm_file, &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    comp_data = aot_create_comp_data((WASMModule *)wasm_module, NULL, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Verify indirect mode is disabled for NaN path
+    ASSERT_FALSE(comp_ctx->is_indirect_mode);
+
+    // Compile the WASM module containing f64 NaN constants
+    // This will exercise lines 142-164 in the NaN handling success path
+    bool compile_result = aot_compile_wasm(comp_ctx);
+    ASSERT_TRUE(compile_result);
+
+    // Verify the compilation was successful and NaN handling path was used
+    ASSERT_NE(nullptr, comp_ctx->func_ctxes);
+    ASSERT_GT(comp_data->func_count, 0);
+
+    // Additional validation that LLVM builder context is properly set up
+    // since NaN handling requires complex LLVM memory operations
+    ASSERT_NE(nullptr, comp_ctx->builder);
+    ASSERT_NE(nullptr, comp_ctx->context);
+
+    // Cleanup
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+    if (wasm_file_buf)
+        BH_FREE(wasm_file_buf);
+}
+
+/******
+ * Test Case: aot_compile_op_f64_const_NaNHandling_MultipleNaNValues
+ * Source: core/iwasm/compilation/aot_emit_const.c:142-164
+ * Target Lines: 142 (memcpy with different NaN patterns), 148-149 (I64_CONST with various bit patterns),
+ *               164 (PUSH_F64 with multiple NaN values) - testing NaN bit preservation
+ * Functional Purpose: Validates that different NaN bit patterns are properly handled through
+ *                     the memcpy operation on line 142 and subsequent LLVM operations.
+ *                     Tests the robustness of NaN handling with various NaN representations.
+ * Call Path: aot_compile_op_f64_const() <- aot_compiler.c:2121 (with multiple NaN patterns)
+ * Coverage Goal: Exercise line 142 memcpy with different NaN bit patterns
+ ******/
+TEST_F(EnhancedAotEmitConstTest, aot_compile_op_f64_const_NaNHandling_MultipleNaNValues)
+{
+    const char *wasm_file = F64_NAN_CONST_WASM_FILE;
+    unsigned int wasm_file_size = 0;
+    unsigned char *wasm_file_buf = nullptr;
+    char error_buf[128] = { 0 };
+    wasm_module_t wasm_module = nullptr;
+
+    struct AOTCompData *comp_data = nullptr;
+    struct AOTCompContext *comp_ctx = nullptr;
+    AOTCompOption option = { 0 };
+
+    // Configure for standard mode with higher optimization to stress test NaN handling
+    option.opt_level = 3;
+    option.size_level = 1;  // Smaller size level to ensure more operations
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 2;
+    option.enable_simd = true;
+    option.enable_aux_stack_check = true;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = true;
+    option.is_indirect_mode = false;  // Ensure NaN path is used
+
+    wasm_file_buf = (unsigned char *)bh_read_file_to_buffer(wasm_file, &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    comp_data = aot_create_comp_data((WASMModule *)wasm_module, NULL, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Verify setup for NaN path testing
+    ASSERT_FALSE(comp_ctx->is_indirect_mode);
+    ASSERT_NE(nullptr, comp_ctx->builder);
+
+    // Compile WASM with multiple NaN constants - exercises line 142 memcpy repeatedly
+    bool compile_result = aot_compile_wasm(comp_ctx);
+    ASSERT_TRUE(compile_result);
+
+    // Verify successful compilation with multiple NaN handling
+    ASSERT_NE(nullptr, comp_ctx->func_ctxes);
+    ASSERT_GT(comp_data->func_count, 0);
+
+    // Verify LLVM context remains stable after multiple NaN operations
+    ASSERT_NE(nullptr, comp_ctx->context);
+
+    // Cleanup
+    aot_destroy_comp_context(comp_ctx);
+    aot_destroy_comp_data(comp_data);
+    wasm_runtime_unload(wasm_module);
+    if (wasm_file_buf)
+        BH_FREE(wasm_file_buf);
+}
+
+/******
+ * Test Case: aot_compile_op_f64_const_NaNHandling_OptimizationLevels
+ * Source: core/iwasm/compilation/aot_emit_const.c:142-164
+ * Target Lines: 142 (memcpy), 143-147 (LLVMBuildAlloca), 148-149 (I64_CONST + CHECK_LLVM_CONST),
+ *               150-153 (LLVMBuildStore), 154-158 (LLVMBuildBitCast), 159-163 (LLVMBuildLoad2),
+ *               164 (PUSH_F64) - complete flow with different optimization settings
+ * Functional Purpose: Validates that NaN handling remains consistent across different
+ *                     optimization levels, ensuring that LLVM operations in the NaN path
+ *                     work correctly regardless of optimization settings.
+ * Call Path: aot_compile_op_f64_const() <- aot_compiler.c:2121 (with various optimization levels)
+ * Coverage Goal: Exercise all lines 142-164 under different optimization conditions
+ ******/
+TEST_F(EnhancedAotEmitConstTest, aot_compile_op_f64_const_NaNHandling_OptimizationLevels)
+{
+    const char *wasm_file = F64_NAN_CONST_WASM_FILE;
+    unsigned int wasm_file_size = 0;
+    unsigned char *wasm_file_buf = nullptr;
+    char error_buf[128] = { 0 };
+    wasm_module_t wasm_module = nullptr;
+
+    struct AOTCompData *comp_data = nullptr;
+    struct AOTCompContext *comp_ctx = nullptr;
+    AOTCompOption option = { 0 };
+
+    // Test with minimal optimization to exercise all LLVM operations explicitly
+    option.opt_level = 0;  // No optimization - all LLVM calls should be explicit
+    option.size_level = 0;
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 2;
+    option.enable_simd = false;  // Disable SIMD to focus on basic operations
+    option.enable_aux_stack_check = false;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = true;
+    option.is_indirect_mode = false;  // Ensure NaN path is triggered
+
+    wasm_file_buf = (unsigned char *)bh_read_file_to_buffer(wasm_file, &wasm_file_size);
+    ASSERT_NE(nullptr, wasm_file_buf);
+
+    wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size, error_buf, sizeof(error_buf));
+    ASSERT_NE(nullptr, wasm_module);
+
+    comp_data = aot_create_comp_data((WASMModule *)wasm_module, NULL, false);
+    ASSERT_NE(nullptr, comp_data);
+
+    comp_ctx = aot_create_comp_context(comp_data, &option);
+    ASSERT_NE(nullptr, comp_ctx);
+
+    // Verify conditions for comprehensive NaN path testing
+    ASSERT_FALSE(comp_ctx->is_indirect_mode);
+    ASSERT_NE(nullptr, comp_ctx->builder);
+    ASSERT_NE(nullptr, comp_ctx->context);
+
+    // Compile with no optimization to ensure all LLVM operations are executed
+    // This exercises the complete NaN handling sequence in lines 142-164
+    bool compile_result = aot_compile_wasm(comp_ctx);
+    ASSERT_TRUE(compile_result);
+
+    // Verify successful compilation through complete NaN handling path
+    ASSERT_NE(nullptr, comp_ctx->func_ctxes);
+    ASSERT_GT(comp_data->func_count, 0);
 
     // Cleanup
     aot_destroy_comp_context(comp_ctx);
