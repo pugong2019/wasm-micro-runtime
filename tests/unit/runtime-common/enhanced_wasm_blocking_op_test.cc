@@ -265,3 +265,175 @@ TEST_F(EnhancedWasmBlockingOpTest, wasm_runtime_begin_blocking_op_MultipleFlags_
     // Clean up
     wasm_runtime_end_blocking_op(test_exec_env);
 }
+
+// ===== NEW TEST CASES FOR LINES 42-51 (wasm_runtime_end_blocking_op function) =====
+
+/******
+ * Test Case: wasm_runtime_end_blocking_op_NormalExecution_ClearsBlockingFlag
+ * Source: core/iwasm/common/wasm_blocking_op.c:42-51
+ * Target Lines: 44 (save errno), 45 (LOCK), 46 (assert BLOCKING), 47 (CLR BLOCKING), 48 (UNLOCK), 49 (os_end_blocking_op), 50 (restore errno)
+ * Functional Purpose: Tests normal execution path of wasm_runtime_end_blocking_op,
+ *                     verifying proper errno preservation, lock sequence, and flag clearing.
+ * Call Path: Direct API call to wasm_runtime_end_blocking_op()
+ * Coverage Goal: Exercise all lines 42-51 in the normal execution flow
+ ******/
+TEST_F(EnhancedWasmBlockingOpTest, wasm_runtime_end_blocking_op_NormalExecution_ClearsBlockingFlag) {
+    ASSERT_NE(nullptr, test_exec_env);
+
+    // First set BLOCKING flag to satisfy the assert on line 46
+    BH_ATOMIC_32_STORE(test_exec_env->suspend_flags.flags, WASM_SUSPEND_FLAG_BLOCKING);
+
+    // Verify BLOCKING flag is set before the call
+    uint32 flags_before = WASM_SUSPEND_FLAGS_GET(test_exec_env->suspend_flags);
+    ASSERT_NE(0, flags_before & WASM_SUSPEND_FLAG_BLOCKING);
+
+    // Set a specific errno value to test preservation
+    errno = 42;
+
+    // Call the function under test - this should execute all lines 42-51
+    wasm_runtime_end_blocking_op(test_exec_env);
+
+    // Verify BLOCKING flag is cleared after the call (line 47 effect)
+    uint32 flags_after = WASM_SUSPEND_FLAGS_GET(test_exec_env->suspend_flags);
+    ASSERT_EQ(0, flags_after & WASM_SUSPEND_FLAG_BLOCKING);
+
+    // Verify errno was preserved (lines 44, 50 effect)
+    ASSERT_EQ(42, errno);
+}
+
+/******
+ * Test Case: wasm_runtime_end_blocking_op_WithOtherFlags_PreservesOtherFlags
+ * Source: core/iwasm/common/wasm_blocking_op.c:42-51
+ * Target Lines: 44 (save errno), 45 (LOCK), 46 (assert BLOCKING), 47 (CLR BLOCKING), 48 (UNLOCK), 49 (os_end_blocking_op), 50 (restore errno)
+ * Functional Purpose: Tests that end_blocking_op only clears BLOCKING flag while preserving other flags.
+ *                     Verifies selective flag manipulation behavior.
+ * Call Path: Direct API call to wasm_runtime_end_blocking_op()
+ * Coverage Goal: Exercise all lines 42-51 with complex flag state
+ ******/
+TEST_F(EnhancedWasmBlockingOpTest, wasm_runtime_end_blocking_op_WithOtherFlags_PreservesOtherFlags) {
+    ASSERT_NE(nullptr, test_exec_env);
+
+    // Set BLOCKING flag plus other flags to test selective clearing
+    uint32 initial_flags = WASM_SUSPEND_FLAG_BLOCKING | WASM_SUSPEND_FLAG_SUSPEND | WASM_SUSPEND_FLAG_TERMINATE;
+    BH_ATOMIC_32_STORE(test_exec_env->suspend_flags.flags, initial_flags);
+
+    // Verify initial state
+    uint32 flags_before = WASM_SUSPEND_FLAGS_GET(test_exec_env->suspend_flags);
+    ASSERT_NE(0, flags_before & WASM_SUSPEND_FLAG_BLOCKING);
+    ASSERT_NE(0, flags_before & WASM_SUSPEND_FLAG_SUSPEND);
+    ASSERT_NE(0, flags_before & WASM_SUSPEND_FLAG_TERMINATE);
+
+    // Set errno to verify preservation across lock operations
+    errno = 123;
+
+    // Call the function under test - executes all lines 42-51
+    wasm_runtime_end_blocking_op(test_exec_env);
+
+    // Verify only BLOCKING flag is cleared (line 47), others preserved
+    uint32 flags_after = WASM_SUSPEND_FLAGS_GET(test_exec_env->suspend_flags);
+    ASSERT_EQ(0, flags_after & WASM_SUSPEND_FLAG_BLOCKING);        // Should be cleared
+    ASSERT_NE(0, flags_after & WASM_SUSPEND_FLAG_SUSPEND);        // Should remain set
+    ASSERT_NE(0, flags_after & WASM_SUSPEND_FLAG_TERMINATE);      // Should remain set
+
+    // Verify errno preservation (lines 44, 50)
+    ASSERT_EQ(123, errno);
+}
+
+/******
+ * Test Case: wasm_runtime_end_blocking_op_ValidExecEnv_CompletesSuccessfully
+ * Source: core/iwasm/common/wasm_blocking_op.c:42-51
+ * Target Lines: 44 (save errno), 45 (LOCK), 46 (assert BLOCKING), 47 (CLR BLOCKING), 48 (UNLOCK), 49 (os_end_blocking_op), 50 (restore errno)
+ * Functional Purpose: Tests end_blocking_op with real exec_env from module instantiation,
+ *                     ensuring lock/unlock sequence works with real mutex structures.
+ * Call Path: Direct API call to wasm_runtime_end_blocking_op()
+ * Coverage Goal: Exercise all lines 42-51 with production-like exec_env
+ ******/
+TEST_F(EnhancedWasmBlockingOpTest, wasm_runtime_end_blocking_op_ValidExecEnv_CompletesSuccessfully) {
+    ASSERT_NE(nullptr, exec_env);
+
+    // Set BLOCKING flag on real exec_env to satisfy assert
+    BH_ATOMIC_32_STORE(exec_env->suspend_flags.flags, WASM_SUSPEND_FLAG_BLOCKING);
+
+    // Verify BLOCKING flag is set
+    uint32 flags_before = WASM_SUSPEND_FLAGS_GET(exec_env->suspend_flags);
+    ASSERT_NE(0, flags_before & WASM_SUSPEND_FLAG_BLOCKING);
+
+    // Test errno preservation with different value
+    errno = 999;
+
+    // Call the function under test - executes all lines 42-51
+    wasm_runtime_end_blocking_op(exec_env);
+
+    // Verify BLOCKING flag is cleared
+    uint32 flags_after = WASM_SUSPEND_FLAGS_GET(exec_env->suspend_flags);
+    ASSERT_EQ(0, flags_after & WASM_SUSPEND_FLAG_BLOCKING);
+
+    // Verify errno preservation
+    ASSERT_EQ(999, errno);
+}
+
+/******
+ * Test Case: wasm_runtime_end_blocking_op_ErrnoModificationDuringCall_RestoresOriginal
+ * Source: core/iwasm/common/wasm_blocking_op.c:42-51
+ * Target Lines: 44 (save errno), 45-49 (operations that might modify errno), 50 (restore errno)
+ * Functional Purpose: Tests that errno is properly saved at the beginning and restored at the end,
+ *                     even if intermediate operations modify errno.
+ * Call Path: Direct API call to wasm_runtime_end_blocking_op()
+ * Coverage Goal: Exercise errno save/restore behavior (lines 44, 50) specifically
+ ******/
+TEST_F(EnhancedWasmBlockingOpTest, wasm_runtime_end_blocking_op_ErrnoModificationDuringCall_RestoresOriginal) {
+    ASSERT_NE(nullptr, test_exec_env);
+
+    // Set BLOCKING flag for proper function execution
+    BH_ATOMIC_32_STORE(test_exec_env->suspend_flags.flags, WASM_SUSPEND_FLAG_BLOCKING);
+
+    // Set a specific errno value that should be preserved
+    errno = 555;
+
+    // Call the function under test - should save errno at line 44 and restore at line 50
+    wasm_runtime_end_blocking_op(test_exec_env);
+
+    // Verify BLOCKING flag cleared (confirms function executed)
+    uint32 flags_after = WASM_SUSPEND_FLAGS_GET(test_exec_env->suspend_flags);
+    ASSERT_EQ(0, flags_after & WASM_SUSPEND_FLAG_BLOCKING);
+
+    // Most important: verify errno was restored to original value
+    ASSERT_EQ(555, errno);
+}
+
+/******
+ * Test Case: wasm_runtime_end_blocking_op_CompleteCycle_BeginEndSequence
+ * Source: core/iwasm/common/wasm_blocking_op.c:42-51
+ * Target Lines: 44 (save errno), 45 (LOCK), 46 (assert BLOCKING), 47 (CLR BLOCKING), 48 (UNLOCK), 49 (os_end_blocking_op), 50 (restore errno)
+ * Functional Purpose: Tests complete begin/end blocking operation cycle to ensure proper
+ *                     flag state transitions and that end properly cleans up begin state.
+ * Call Path: wasm_runtime_begin_blocking_op() followed by wasm_runtime_end_blocking_op()
+ * Coverage Goal: Exercise all lines 42-51 in realistic usage pattern
+ ******/
+TEST_F(EnhancedWasmBlockingOpTest, wasm_runtime_end_blocking_op_CompleteCycle_BeginEndSequence) {
+    ASSERT_NE(nullptr, test_exec_env);
+
+    // Start with clean state
+    BH_ATOMIC_32_STORE(test_exec_env->suspend_flags.flags, 0);
+
+    // Set errno to verify it survives the complete cycle
+    errno = 777;
+
+    // First call begin_blocking_op to properly set BLOCKING flag
+    bool begin_result = wasm_runtime_begin_blocking_op(test_exec_env);
+    ASSERT_TRUE(begin_result);
+
+    // Verify BLOCKING flag is set after begin
+    uint32 flags_middle = WASM_SUSPEND_FLAGS_GET(test_exec_env->suspend_flags);
+    ASSERT_NE(0, flags_middle & WASM_SUSPEND_FLAG_BLOCKING);
+
+    // Now call end_blocking_op - this executes all target lines 42-51
+    wasm_runtime_end_blocking_op(test_exec_env);
+
+    // Verify complete cleanup: BLOCKING flag should be cleared
+    uint32 flags_final = WASM_SUSPEND_FLAGS_GET(test_exec_env->suspend_flags);
+    ASSERT_EQ(0, flags_final & WASM_SUSPEND_FLAG_BLOCKING);
+
+    // Verify errno preservation through the complete cycle
+    ASSERT_EQ(777, errno);
+}
