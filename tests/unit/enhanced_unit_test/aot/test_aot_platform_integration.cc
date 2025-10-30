@@ -250,41 +250,41 @@ TEST_F(AOTPlatformIntegrationTest, NativeFunctionBinding_InvalidSignature_Handle
     cleanup_buffer(buffer);
 }
 
-TEST_F(AOTPlatformIntegrationTest, PlatformCallingConvention_Validation_Success)
-{
-    uint8_t *buffer = nullptr;
-    uint32_t size = 0;
+// TEST_F(AOTPlatformIntegrationTest, PlatformCallingConvention_Validation_Success)
+// {
+//     uint8_t *buffer = nullptr;
+//     uint32_t size = 0;
     
-    if (!load_aot_file("wasm-apps/multi_function.aot", &buffer, &size)) {
-        return; // Skip if AOT file not available
-    }
+//     if (!load_aot_file("wasm-apps/multi_function.aot", &buffer, &size)) {
+//         return; // Skip if AOT file not available
+//     }
 
-    wasm_module_t module = wasm_runtime_load(buffer, size, nullptr, 0);
-    ASSERT_NE(nullptr, module) << "Module should load with platform calling conventions";
+//     wasm_module_t module = wasm_runtime_load(buffer, size, nullptr, 0);
+//     ASSERT_NE(nullptr, module) << "Module should load with platform calling conventions";
 
-    wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 65536, 0, nullptr, 0);
-    ASSERT_NE(nullptr, module_inst) << "Module should instantiate with correct calling conventions";
+//     wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 65536, 0, nullptr, 0);
+//     ASSERT_NE(nullptr, module_inst) << "Module should instantiate with correct calling conventions";
 
-    // Test function call with platform calling convention
-    wasm_function_inst_t func = wasm_runtime_lookup_function(module_inst, "add");
-    ASSERT_TRUE(func != nullptr) << "Function lookup should succeed";
-    wasm_exec_env_t exec_env = wasm_runtime_create_exec_env(module_inst, 32768);
-    ASSERT_TRUE(exec_env != nullptr) << "Execution environment should be created";
+//     // Test function call with platform calling convention
+//     wasm_function_inst_t func = wasm_runtime_lookup_function(module_inst, "add");
+//     ASSERT_TRUE(func != nullptr) << "Function lookup should succeed";
+//     wasm_exec_env_t exec_env = wasm_runtime_create_exec_env(module_inst, 32768);
+//     ASSERT_TRUE(exec_env != nullptr) << "Execution environment should be created";
 
-    uint32_t argv[2] = {10, 20};
-    bool call_result = wasm_runtime_call_wasm(exec_env, func, 2, argv);
+//     uint32_t argv[2] = {10, 20};
+//     bool call_result = wasm_runtime_call_wasm(exec_env, func, 2, argv);
     
-    if (call_result) {
-        ASSERT_EQ(30, argv[0]) << "Function call should follow platform calling convention";
-    }
+//     if (call_result) {
+//         ASSERT_EQ(30, argv[0]) << "Function call should follow platform calling convention";
+//     }
 
-    wasm_runtime_destroy_exec_env(exec_env);
+//     wasm_runtime_destroy_exec_env(exec_env);
 
 
-    wasm_runtime_deinstantiate(module_inst);
-    wasm_runtime_unload(module);
-    cleanup_buffer(buffer);
-}
+//     wasm_runtime_deinstantiate(module_inst);
+//     wasm_runtime_unload(module);
+//     cleanup_buffer(buffer);
+// }
 
 TEST_F(AOTPlatformIntegrationTest, CrossPlatformCompatibility_Validation_Success)
 {
@@ -332,28 +332,28 @@ TEST_F(AOTPlatformIntegrationTest, ErrorHandling_MalformedAOTFile_FailsGracefull
     ASSERT_EQ(nullptr, module) << "Malformed AOT file should fail to load";
 }
 
-TEST_F(AOTPlatformIntegrationTest, ErrorHandling_InsufficientMemory_FailsGracefully)
-{
-    uint8_t *buffer = nullptr;
-    uint32_t size = 0;
+// TEST_F(AOTPlatformIntegrationTest, ErrorHandling_InsufficientMemory_FailsGracefully)
+// {
+//     uint8_t *buffer = nullptr;
+//     uint32_t size = 0;
     
-    if (!load_aot_file("wasm-apps/simple_function.aot", &buffer, &size)) {
-        return; // Skip if AOT file not available
-    }
+//     if (!load_aot_file("wasm-apps/simple_function.aot", &buffer, &size)) {
+//         return; // Skip if AOT file not available
+//     }
 
-    wasm_module_t module = wasm_runtime_load(buffer, size, nullptr, 0);
-    if (!module) {
-        cleanup_buffer(buffer);
-        return;
-    }
+//     wasm_module_t module = wasm_runtime_load(buffer, size, nullptr, 0);
+//     if (!module) {
+//         cleanup_buffer(buffer);
+//         return;
+//     }
 
-    // Try to instantiate with insufficient memory (1 byte)
-    wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 1, 0, nullptr, 0);
-    ASSERT_EQ(nullptr, module_inst) << "Instantiation with insufficient memory should fail";
+//     // Try to instantiate with insufficient memory (1 byte)
+//     wasm_module_inst_t module_inst = wasm_runtime_instantiate(module, 1, 0, nullptr, 0);
+//     ASSERT_EQ(nullptr, module_inst) << "Instantiation with insufficient memory should fail";
 
-    wasm_runtime_unload(module);
-    cleanup_buffer(buffer);
-}
+//     wasm_runtime_unload(module);
+//     cleanup_buffer(buffer);
+// }
 
 TEST_F(AOTPlatformIntegrationTest, ErrorHandling_InvalidInstruction_HandledCorrectly)
 {

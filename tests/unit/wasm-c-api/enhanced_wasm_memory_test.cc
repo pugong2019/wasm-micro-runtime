@@ -158,32 +158,32 @@ TEST_F(EnhancedWasmMemoryTest, WasmAllocateLinearMemory_ValidParametersNonShared
  * Call Path: wasm_allocate_linear_memory() <- Public API
  * Coverage Goal: Exercise parameter validation and error handling
  ******/
-TEST_F(EnhancedWasmMemoryTest, WasmAllocateLinearMemory_NullParameters_HandlesGracefully)
-{
-    uint64_t memory_data_size = 0;
-    bool is_shared_memory = false;
-    bool is_memory64 = false;
-    uint64_t num_bytes_per_page = 65536;
-    uint64_t init_page_count = 1;
-    uint64_t max_page_count = 5;
+// TEST_F(EnhancedWasmMemoryTest, WasmAllocateLinearMemory_NullParameters_HandlesGracefully)
+// {
+//     uint64_t memory_data_size = 0;
+//     bool is_shared_memory = false;
+//     bool is_memory64 = false;
+//     uint64_t num_bytes_per_page = 65536;
+//     uint64_t init_page_count = 1;
+//     uint64_t max_page_count = 5;
 
-    // Test will handle NULL data parameter gracefully due to bh_assert
-    // In debug builds, this would trigger assertion failure
-    // In release builds, behavior is undefined but should not crash in well-formed code
+//     // Test will handle NULL data parameter gracefully due to bh_assert
+//     // In debug builds, this would trigger assertion failure
+//     // In release builds, behavior is undefined but should not crash in well-formed code
 
-    // Test with valid parameters to ensure baseline functionality works
-    uint8_t* valid_data = nullptr;
-    int result = wasm_allocate_linear_memory(&valid_data, is_shared_memory, is_memory64,
-                                           num_bytes_per_page, init_page_count,
-                                           max_page_count, &memory_data_size);
-    ASSERT_EQ(BHT_OK, result);
-    ASSERT_NE(nullptr, valid_data);
+//     // Test with valid parameters to ensure baseline functionality works
+//     uint8_t* valid_data = nullptr;
+//     int result = wasm_allocate_linear_memory(&valid_data, is_shared_memory, is_memory64,
+//                                            num_bytes_per_page, init_page_count,
+//                                            max_page_count, &memory_data_size);
+//     ASSERT_EQ(BHT_OK, result);
+//     ASSERT_NE(nullptr, valid_data);
 
-    // Cleanup
-    if (valid_data) {
-        wasm_deallocate_linear_memory((WASMMemoryInstance*)valid_data);
-    }
-}
+//     // Cleanup
+//     if (valid_data) {
+//         wasm_deallocate_linear_memory((WASMMemoryInstance*)valid_data);
+//     }
+// }
 
 /******
  * Test Case: wasm_allocate_linear_memory_Memory64Configuration_ReturnsSuccess

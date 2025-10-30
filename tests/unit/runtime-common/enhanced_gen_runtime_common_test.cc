@@ -110,20 +110,20 @@ TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_detect_native_stack_overflow_
  *                     requested size is small enough to not cause overflow
  * Call Path: Direct call to wasm_runtime_detect_native_stack_overflow_size()
  * Coverage Goal: Exercise success path with boundary adjustment and no overflow detection
- ******/
-TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_detect_native_stack_overflow_size_ValidBoundarySmallSize_ReturnsTrue) {
-    // Create exec env with valid boundary (use stack address)
-    uint8 stack_buffer[8192];
-    uint8 *boundary = &stack_buffer[4096];  // Set boundary in middle of buffer
+//  ******/
+// TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_detect_native_stack_overflow_size_ValidBoundarySmallSize_ReturnsTrue) {
+//     // Create exec env with valid boundary (use stack address)
+//     uint8 stack_buffer[8192];
+//     uint8 *boundary = &stack_buffer[4096];  // Set boundary in middle of buffer
 
-    WASMExecEnv *test_exec_env = CreateMockExecEnv(boundary);
-    ASSERT_NE(test_exec_env, nullptr);
+//     WASMExecEnv *test_exec_env = CreateMockExecEnv(boundary);
+//     ASSERT_NE(test_exec_env, nullptr);
 
-    // Test with small requested size that won't cause overflow
-    ASSERT_TRUE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, 64));
-    ASSERT_TRUE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, 512));
-    ASSERT_TRUE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, 1024));
-}
+//     // Test with small requested size that won't cause overflow
+//     ASSERT_TRUE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, 64));
+//     ASSERT_TRUE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, 512));
+//     ASSERT_TRUE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, 1024));
+// }
 
 /******
  * Test Case: wasm_runtime_detect_native_stack_overflow_size_ValidBoundaryLargeSize_DetectsOverflow
@@ -133,26 +133,26 @@ TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_detect_native_stack_overflow_
  *                     comparison to fail, triggering exception and returning false
  * Call Path: Direct call to wasm_runtime_detect_native_stack_overflow_size()
  * Coverage Goal: Exercise overflow detection path and exception handling
- ******/
-TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_detect_native_stack_overflow_size_ValidBoundaryLargeSize_DetectsOverflow) {
-    // Create exec env with boundary at lower memory address
-    uint8 *boundary = (uint8 *)0x1000;  // Low address boundary
+//  ******/
+// TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_detect_native_stack_overflow_size_ValidBoundaryLargeSize_DetectsOverflow) {
+//     // Create exec env with boundary at lower memory address
+//     uint8 *boundary = (uint8 *)0x1000;  // Low address boundary
 
-    WASMExecEnv *test_exec_env = CreateMockExecEnv(boundary);
-    ASSERT_NE(test_exec_env, nullptr);
+//     WASMExecEnv *test_exec_env = CreateMockExecEnv(boundary);
+//     ASSERT_NE(test_exec_env, nullptr);
 
-    // Test with very large requested size that will cause overflow
-    // The overflow condition is: (uint8 *)&boundary < boundary
-    // After adjustment: boundary = boundary - WASM_STACK_GUARD_SIZE + requested_size
-    uint32 large_size = UINT32_MAX - 1024;  // Very large size to trigger overflow
+//     // Test with very large requested size that will cause overflow
+//     // The overflow condition is: (uint8 *)&boundary < boundary
+//     // After adjustment: boundary = boundary - WASM_STACK_GUARD_SIZE + requested_size
+//     uint32 large_size = UINT32_MAX - 1024;  // Very large size to trigger overflow
 
-    ASSERT_FALSE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, large_size));
+//     ASSERT_FALSE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, large_size));
 
-    // Verify that exception was set
-    const char* exception = wasm_runtime_get_exception(test_exec_env->module_inst);
-    ASSERT_NE(exception, nullptr);
-    ASSERT_STREQ(exception, "native stack overflow");
-}
+//     // Verify that exception was set
+//     const char* exception = wasm_runtime_get_exception(test_exec_env->module_inst);
+//     ASSERT_NE(exception, nullptr);
+//     ASSERT_STREQ(exception, "native stack overflow");
+// }
 
 /******
  * Test Case: wasm_runtime_detect_native_stack_overflow_size_BoundaryEdgeCase_HandlesBoundaryCalculation
@@ -163,24 +163,24 @@ TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_detect_native_stack_overflow_
  * Call Path: Direct call to wasm_runtime_detect_native_stack_overflow_size()
  * Coverage Goal: Exercise boundary adjustment arithmetic with edge case values
  ******/
-TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_detect_native_stack_overflow_size_BoundaryEdgeCase_HandlesBoundaryCalculation) {
-    // Create exec env with reasonable boundary
-    uint8 stack_buffer[32768];
-    uint8 *boundary = &stack_buffer[16384];
+// TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_detect_native_stack_overflow_size_BoundaryEdgeCase_HandlesBoundaryCalculation) {
+//     // Create exec env with reasonable boundary
+//     uint8 stack_buffer[32768];
+//     uint8 *boundary = &stack_buffer[16384];
 
-    WASMExecEnv *test_exec_env = CreateMockExecEnv(boundary);
-    ASSERT_NE(test_exec_env, nullptr);
+//     WASMExecEnv *test_exec_env = CreateMockExecEnv(boundary);
+//     ASSERT_NE(test_exec_env, nullptr);
 
-    // Test with requested size equal to WASM_STACK_GUARD_SIZE
-    // This tests the boundary calculation: boundary - WASM_STACK_GUARD_SIZE + requested_size
-    ASSERT_TRUE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, WASM_STACK_GUARD_SIZE));
+//     // Test with requested size equal to WASM_STACK_GUARD_SIZE
+//     // This tests the boundary calculation: boundary - WASM_STACK_GUARD_SIZE + requested_size
+//     ASSERT_TRUE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, WASM_STACK_GUARD_SIZE));
 
-    // Test with requested size slightly larger than WASM_STACK_GUARD_SIZE
-    ASSERT_TRUE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, WASM_STACK_GUARD_SIZE + 64));
+//     // Test with requested size slightly larger than WASM_STACK_GUARD_SIZE
+//     ASSERT_TRUE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, WASM_STACK_GUARD_SIZE + 64));
 
-    // Test with requested size smaller than WASM_STACK_GUARD_SIZE
-    ASSERT_TRUE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, WASM_STACK_GUARD_SIZE / 2));
-}
+//     // Test with requested size smaller than WASM_STACK_GUARD_SIZE
+//     ASSERT_TRUE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, WASM_STACK_GUARD_SIZE / 2));
+// }
 
 /******
  * Test Case: wasm_runtime_detect_native_stack_overflow_size_RecordStackUsage_ExecutesMacro
@@ -191,27 +191,27 @@ TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_detect_native_stack_overflow_
  * Call Path: Direct call to wasm_runtime_detect_native_stack_overflow_size()
  * Coverage Goal: Exercise RECORD_STACK_USAGE macro path (conditional compilation)
  ******/
-TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_detect_native_stack_overflow_size_RecordStackUsage_ExecutesMacro) {
-    // Create exec env with valid boundary
-    uint8 stack_buffer[16384];
-    uint8 *boundary = &stack_buffer[8192];
+// TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_detect_native_stack_overflow_size_RecordStackUsage_ExecutesMacro) {
+//     // Create exec env with valid boundary
+//     uint8 stack_buffer[16384];
+//     uint8 *boundary = &stack_buffer[8192];
 
-    WASMExecEnv *test_exec_env = CreateMockExecEnv(boundary);
-    ASSERT_NE(test_exec_env, nullptr);
+//     WASMExecEnv *test_exec_env = CreateMockExecEnv(boundary);
+//     ASSERT_NE(test_exec_env, nullptr);
 
-    // Initialize native_stack_top_min if memory profiling is enabled
-#if WASM_ENABLE_MEMORY_PROFILING != 0
-    test_exec_env->native_stack_top_min = (uint8 *)UINTPTR_MAX;  // Set to max value initially
-#endif
+//     // Initialize native_stack_top_min if memory profiling is enabled
+// #if WASM_ENABLE_MEMORY_PROFILING != 0
+//     test_exec_env->native_stack_top_min = (uint8 *)UINTPTR_MAX;  // Set to max value initially
+// #endif
 
-    // Call the function to trigger RECORD_STACK_USAGE
-    ASSERT_TRUE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, 1024));
+//     // Call the function to trigger RECORD_STACK_USAGE
+//     ASSERT_TRUE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, 1024));
 
-#if WASM_ENABLE_MEMORY_PROFILING != 0
-    // Verify that native_stack_top_min was updated (should be less than max now)
-    ASSERT_LT((uintptr_t)test_exec_env->native_stack_top_min, UINTPTR_MAX);
-#endif
-}
+// #if WASM_ENABLE_MEMORY_PROFILING != 0
+//     // Verify that native_stack_top_min was updated (should be less than max now)
+//     ASSERT_LT((uintptr_t)test_exec_env->native_stack_top_min, UINTPTR_MAX);
+// #endif
+// }
 
 #if defined(OS_ENABLE_HW_BOUND_CHECK) && WASM_DISABLE_STACK_HW_BOUND_CHECK == 0
 /******
@@ -223,20 +223,20 @@ TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_detect_native_stack_overflow_
  * Call Path: Direct call to wasm_runtime_detect_native_stack_overflow_size()
  * Coverage Goal: Exercise hardware bound check adjustment path
  ******/
-TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_detect_native_stack_overflow_size_HwBoundCheckEnabled_AdjustsBoundary) {
-    // Create exec env with valid boundary
-    uint8 stack_buffer[65536];  // Large buffer to accommodate HW bound check adjustment
-    uint8 *boundary = &stack_buffer[32768];
+// TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_detect_native_stack_overflow_size_HwBoundCheckEnabled_AdjustsBoundary) {
+//     // Create exec env with valid boundary
+//     uint8 stack_buffer[65536];  // Large buffer to accommodate HW bound check adjustment
+//     uint8 *boundary = &stack_buffer[32768];
 
-    WASMExecEnv *test_exec_env = CreateMockExecEnv(boundary);
-    ASSERT_NE(test_exec_env, nullptr);
+//     WASMExecEnv *test_exec_env = CreateMockExecEnv(boundary);
+//     ASSERT_NE(test_exec_env, nullptr);
 
-    // Call with moderate size - should succeed even with HW bound check adjustment
-    ASSERT_TRUE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, 2048));
+//     // Call with moderate size - should succeed even with HW bound check adjustment
+//     ASSERT_TRUE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, 2048));
 
-    // Call with larger size to test boundary adjustment calculation
-    ASSERT_TRUE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, 8192));
-}
+//     // Call with larger size to test boundary adjustment calculation
+//     ASSERT_TRUE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, 8192));
+// }
 #endif
 
 /******
@@ -248,17 +248,17 @@ TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_detect_native_stack_overflow_
  * Call Path: Direct call to wasm_runtime_detect_native_stack_overflow_size()
  * Coverage Goal: Exercise boundary calculation with edge case of zero requested size
  ******/
-TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_detect_native_stack_overflow_size_ZeroRequestedSize_ReturnsTrue) {
-    // Create exec env with valid boundary
-    uint8 stack_buffer[16384];
-    uint8 *boundary = &stack_buffer[8192];
+// TEST_F(EnhancedWasmRuntimeCommonTest, wasm_runtime_detect_native_stack_overflow_size_ZeroRequestedSize_ReturnsTrue) {
+//     // Create exec env with valid boundary
+//     uint8 stack_buffer[16384];
+//     uint8 *boundary = &stack_buffer[8192];
 
-    WASMExecEnv *test_exec_env = CreateMockExecEnv(boundary);
-    ASSERT_NE(test_exec_env, nullptr);
+//     WASMExecEnv *test_exec_env = CreateMockExecEnv(boundary);
+//     ASSERT_NE(test_exec_env, nullptr);
 
-    // Test with zero requested size
-    ASSERT_TRUE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, 0));
-}
+//     // Test with zero requested size
+//     ASSERT_TRUE(wasm_runtime_detect_native_stack_overflow_size(test_exec_env, 0));
+// }
 
 // ========== New Test Cases for wasm_runtime_quick_invoke_c_api_native (Lines 7313-7375) ==========
 

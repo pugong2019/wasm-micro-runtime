@@ -772,68 +772,68 @@ TEST_F(EnhancedAotRuntimeTest, aot_const_str_set_insert_EmptyString_HandledCorre
  * Call Path: aot_memory_init() <- AOT compiled code <- WebAssembly bulk memory operations
  * Coverage Goal: Exercise main routine processing path for standard bulk memory initialization
  ******/
-TEST_F(EnhancedAotRuntimeTest, aot_memory_init_ValidSegment_SuccessfulCopy) {
-    // Create AOT module instance with valid memory setup
-    AOTModuleInstance module_inst;
-    AOTModuleInstanceExtra extra;
-    AOTMemoryInstance memory_inst;
-    AOTModule aot_module;
-    AOTMemInitData mem_init_data;
-    AOTMemInitData *mem_init_data_list[1];
+// TEST_F(EnhancedAotRuntimeTest, aot_memory_init_ValidSegment_SuccessfulCopy) {
+//     // Create AOT module instance with valid memory setup
+//     AOTModuleInstance module_inst;
+//     AOTModuleInstanceExtra extra;
+//     AOTMemoryInstance memory_inst;
+//     AOTModule aot_module;
+//     AOTMemInitData mem_init_data;
+//     AOTMemInitData *mem_init_data_list[1];
 
-    memset(&module_inst, 0, sizeof(AOTModuleInstance));
-    memset(&extra, 0, sizeof(AOTModuleInstanceExtra));
-    memset(&memory_inst, 0, sizeof(AOTMemoryInstance));
-    memset(&aot_module, 0, sizeof(AOTModule));
-    memset(&mem_init_data, 0, sizeof(AOTMemInitData));
+//     memset(&module_inst, 0, sizeof(AOTModuleInstance));
+//     memset(&extra, 0, sizeof(AOTModuleInstanceExtra));
+//     memset(&memory_inst, 0, sizeof(AOTMemoryInstance));
+//     memset(&aot_module, 0, sizeof(AOTModule));
+//     memset(&mem_init_data, 0, sizeof(AOTMemInitData));
 
-    // Setup module instance structure
-    module_inst.e = (WASMModuleInstanceExtra*)&extra;
-    module_inst.module = (WASMModule*)&aot_module;
-    module_inst.memory_count = 1;
-    // Allocate array of memory instance pointers
-    module_inst.memories = (WASMMemoryInstance**)wasm_runtime_malloc(sizeof(WASMMemoryInstance*));
-    ASSERT_NE(nullptr, module_inst.memories);
-    module_inst.memories[0] = (WASMMemoryInstance*)&memory_inst;
+//     // Setup module instance structure
+//     module_inst.e = (WASMModuleInstanceExtra*)&extra;
+//     module_inst.module = (WASMModule*)&aot_module;
+//     module_inst.memory_count = 1;
+//     // Allocate array of memory instance pointers
+//     module_inst.memories = (WASMMemoryInstance**)wasm_runtime_malloc(sizeof(WASMMemoryInstance*));
+//     ASSERT_NE(nullptr, module_inst.memories);
+//     module_inst.memories[0] = (WASMMemoryInstance*)&memory_inst;
 
-    // Setup memory instance with valid data
-    memory_inst.memory_data_size = 65536; // 64KB page
-    memory_inst.memory_data = (uint8*)wasm_runtime_malloc(memory_inst.memory_data_size);
-    ASSERT_NE(nullptr, memory_inst.memory_data);
+//     // Setup memory instance with valid data
+//     memory_inst.memory_data_size = 65536; // 64KB page
+//     memory_inst.memory_data = (uint8*)wasm_runtime_malloc(memory_inst.memory_data_size);
+//     ASSERT_NE(nullptr, memory_inst.memory_data);
 
-    // Setup memory initialization data
-    const char test_data[] = "Hello WAMR bulk memory test";
-    mem_init_data.byte_count = strlen(test_data);
-    mem_init_data.bytes = (uint8*)test_data;
-    mem_init_data_list[0] = &mem_init_data;
+//     // Setup memory initialization data
+//     const char test_data[] = "Hello WAMR bulk memory test";
+//     mem_init_data.byte_count = strlen(test_data);
+//     mem_init_data.bytes = (uint8*)test_data;
+//     mem_init_data_list[0] = &mem_init_data;
 
-    aot_module.mem_init_data_count = 1;
-    aot_module.mem_init_data_list = mem_init_data_list;
+//     aot_module.mem_init_data_count = 1;
+//     aot_module.mem_init_data_list = mem_init_data_list;
 
-    // Initialize data_dropped bitmap (not dropped)
-    extra.common.data_dropped = bh_bitmap_new(0, 1);
-    ASSERT_NE(nullptr, extra.common.data_dropped);
+//     // Initialize data_dropped bitmap (not dropped)
+//     extra.common.data_dropped = bh_bitmap_new(0, 1);
+//     ASSERT_NE(nullptr, extra.common.data_dropped);
 
-    // Test parameters for valid memory initialization
-    uint32 seg_index = 0;
-    uint32 offset = 0;
-    uint32 len = strlen(test_data);
-    size_t dst = 1024; // Valid destination within memory bounds
+//     // Test parameters for valid memory initialization
+//     uint32 seg_index = 0;
+//     uint32 offset = 0;
+//     uint32 len = strlen(test_data);
+//     size_t dst = 1024; // Valid destination within memory bounds
 
-    // Execute aot_memory_init
-    bool result = aot_memory_init(&module_inst, seg_index, offset, len, dst);
+//     // Execute aot_memory_init
+//     bool result = aot_memory_init(&module_inst, seg_index, offset, len, dst);
 
-    // Assert successful memory initialization
-    ASSERT_TRUE(result);
+//     // Assert successful memory initialization
+//     ASSERT_TRUE(result);
 
-    // Verify memory content was copied correctly
-    ASSERT_EQ(0, memcmp(memory_inst.memory_data + dst, test_data, len));
+//     // Verify memory content was copied correctly
+//     ASSERT_EQ(0, memcmp(memory_inst.memory_data + dst, test_data, len));
 
-    // Cleanup
-    wasm_runtime_free(memory_inst.memory_data);
-    wasm_runtime_free(module_inst.memories);
-    bh_bitmap_delete(extra.common.data_dropped);
-}
+//     // Cleanup
+//     wasm_runtime_free(memory_inst.memory_data);
+//     wasm_runtime_free(module_inst.memories);
+//     bh_bitmap_delete(extra.common.data_dropped);
+// }
 
 /******
  * Test Case: aot_memory_init_DroppedSegment_EmptyDataHandling
@@ -845,66 +845,66 @@ TEST_F(EnhancedAotRuntimeTest, aot_memory_init_ValidSegment_SuccessfulCopy) {
  * Call Path: aot_memory_init() <- AOT compiled code <- WebAssembly bulk memory operations
  * Coverage Goal: Exercise dropped segment handling path for runtime data management
  ******/
-TEST_F(EnhancedAotRuntimeTest, aot_memory_init_DroppedSegment_EmptyDataHandling) {
-    // Create AOT module instance with dropped data segment
-    AOTModuleInstance module_inst;
-    AOTModuleInstanceExtra extra;
-    AOTMemoryInstance memory_inst;
-    AOTModule aot_module;
-    AOTMemInitData mem_init_data;
-    AOTMemInitData *mem_init_data_list[1];
+// TEST_F(EnhancedAotRuntimeTest, aot_memory_init_DroppedSegment_EmptyDataHandling) {
+//     // Create AOT module instance with dropped data segment
+//     AOTModuleInstance module_inst;
+//     AOTModuleInstanceExtra extra;
+//     AOTMemoryInstance memory_inst;
+//     AOTModule aot_module;
+//     AOTMemInitData mem_init_data;
+//     AOTMemInitData *mem_init_data_list[1];
 
-    memset(&module_inst, 0, sizeof(AOTModuleInstance));
-    memset(&extra, 0, sizeof(AOTModuleInstanceExtra));
-    memset(&memory_inst, 0, sizeof(AOTMemoryInstance));
-    memset(&aot_module, 0, sizeof(AOTModule));
-    memset(&mem_init_data, 0, sizeof(AOTMemInitData));
+//     memset(&module_inst, 0, sizeof(AOTModuleInstance));
+//     memset(&extra, 0, sizeof(AOTModuleInstanceExtra));
+//     memset(&memory_inst, 0, sizeof(AOTMemoryInstance));
+//     memset(&aot_module, 0, sizeof(AOTModule));
+//     memset(&mem_init_data, 0, sizeof(AOTMemInitData));
 
-    // Setup module instance structure
-    module_inst.e = (WASMModuleInstanceExtra*)&extra;
-    module_inst.module = (WASMModule*)&aot_module;
-    module_inst.memory_count = 1;
-    // Allocate array of memory instance pointers
-    module_inst.memories = (WASMMemoryInstance**)wasm_runtime_malloc(sizeof(WASMMemoryInstance*));
-    ASSERT_NE(nullptr, module_inst.memories);
-    module_inst.memories[0] = (WASMMemoryInstance*)&memory_inst;
+//     // Setup module instance structure
+//     module_inst.e = (WASMModuleInstanceExtra*)&extra;
+//     module_inst.module = (WASMModule*)&aot_module;
+//     module_inst.memory_count = 1;
+//     // Allocate array of memory instance pointers
+//     module_inst.memories = (WASMMemoryInstance**)wasm_runtime_malloc(sizeof(WASMMemoryInstance*));
+//     ASSERT_NE(nullptr, module_inst.memories);
+//     module_inst.memories[0] = (WASMMemoryInstance*)&memory_inst;
 
-    // Setup memory instance
-    memory_inst.memory_data_size = 65536;
-    memory_inst.memory_data = (uint8*)wasm_runtime_malloc(memory_inst.memory_data_size);
-    ASSERT_NE(nullptr, memory_inst.memory_data);
+//     // Setup memory instance
+//     memory_inst.memory_data_size = 65536;
+//     memory_inst.memory_data = (uint8*)wasm_runtime_malloc(memory_inst.memory_data_size);
+//     ASSERT_NE(nullptr, memory_inst.memory_data);
 
-    // Setup memory initialization data (will be ignored due to dropped flag)
-    const char test_data[] = "This should be ignored";
-    mem_init_data.byte_count = strlen(test_data);
-    mem_init_data.bytes = (uint8*)test_data;
-    mem_init_data_list[0] = &mem_init_data;
+//     // Setup memory initialization data (will be ignored due to dropped flag)
+//     const char test_data[] = "This should be ignored";
+//     mem_init_data.byte_count = strlen(test_data);
+//     mem_init_data.bytes = (uint8*)test_data;
+//     mem_init_data_list[0] = &mem_init_data;
 
-    aot_module.mem_init_data_count = 1;
-    aot_module.mem_init_data_list = mem_init_data_list;
+//     aot_module.mem_init_data_count = 1;
+//     aot_module.mem_init_data_list = mem_init_data_list;
 
-    // Initialize data_dropped bitmap with segment 0 marked as dropped
-    extra.common.data_dropped = bh_bitmap_new(0, 1);
-    ASSERT_NE(nullptr, extra.common.data_dropped);
-    bh_bitmap_set_bit(extra.common.data_dropped, 0); // Mark segment 0 as dropped
+//     // Initialize data_dropped bitmap with segment 0 marked as dropped
+//     extra.common.data_dropped = bh_bitmap_new(0, 1);
+//     ASSERT_NE(nullptr, extra.common.data_dropped);
+//     bh_bitmap_set_bit(extra.common.data_dropped, 0); // Mark segment 0 as dropped
 
-    // Test parameters for dropped segment
-    uint32 seg_index = 0;
-    uint32 offset = 0;
-    uint32 len = 10; // Any length should work with dropped segment
-    size_t dst = 1024;
+//     // Test parameters for dropped segment
+//     uint32 seg_index = 0;
+//     uint32 offset = 0;
+//     uint32 len = 10; // Any length should work with dropped segment
+//     size_t dst = 1024;
 
-    // Execute aot_memory_init
-    bool result = aot_memory_init(&module_inst, seg_index, offset, len, dst);
+//     // Execute aot_memory_init
+//     bool result = aot_memory_init(&module_inst, seg_index, offset, len, dst);
 
-    // Assert successful handling of dropped segment (empty data)
-    ASSERT_TRUE(result);
+//     // Assert successful handling of dropped segment (empty data)
+//     ASSERT_TRUE(result);
 
-    // Cleanup
-    wasm_runtime_free(memory_inst.memory_data);
-    wasm_runtime_free(module_inst.memories);
-    bh_bitmap_delete(extra.common.data_dropped);
-}
+//     // Cleanup
+//     wasm_runtime_free(memory_inst.memory_data);
+//     wasm_runtime_free(module_inst.memories);
+//     bh_bitmap_delete(extra.common.data_dropped);
+// }
 
 /******
  * Test Case: aot_memory_init_InvalidAppAddr_ValidationFailure

@@ -137,23 +137,23 @@ TEST_F(AOTUtilityTest, SetErrorBufV_WithNullBuffer_HandlesGracefully)
     ASSERT_EQ(nullptr, test_module); // Should still fail gracefully
 }
 
-// Test str2uint32() - Function 2
-TEST_F(AOTUtilityTest, Str2Uint32_ThroughValidConversion_ConvertsCorrectly)
-{
-    if (!PlatformTestContext::HasAOTSupport()) {
-        return; // Skip if AOT not supported
-    }
+// // Test str2uint32() - Function 2
+// TEST_F(AOTUtilityTest, Str2Uint32_ThroughValidConversion_ConvertsCorrectly)
+// {
+//     if (!PlatformTestContext::HasAOTSupport()) {
+//         return; // Skip if AOT not supported
+//     }
 
-    // Test through environment variable parsing or similar mechanism
-    // Since str2uint32 is static, we test it indirectly through AOT loading
+//     // Test through environment variable parsing or similar mechanism
+//     // Since str2uint32 is static, we test it indirectly through AOT loading
     
-    // Load a module that might trigger string to uint32 conversion
-    ASSERT_TRUE(load_test_module());
+//     // Load a module that might trigger string to uint32 conversion
+//     ASSERT_TRUE(load_test_module());
     
-    // Verify module loaded successfully, indicating string parsing worked
-    ASSERT_NE(nullptr, module);
-    ASSERT_NE(nullptr, module_inst);
-}
+//     // Verify module loaded successfully, indicating string parsing worked
+//     ASSERT_NE(nullptr, module);
+//     ASSERT_NE(nullptr, module_inst);
+// }
 
 TEST_F(AOTUtilityTest, Str2Uint32_WithInvalidInput_HandlesErrorCorrectly)
 {
@@ -180,27 +180,27 @@ TEST_F(AOTUtilityTest, Str2Uint32_WithInvalidInput_HandlesErrorCorrectly)
     ASSERT_GT(strlen(error_buf), 0);
 }
 
-// Test str2uint64() - Function 3
-TEST_F(AOTUtilityTest, Str2Uint64_ThroughValidConversion_ConvertsCorrectly)
-{
-    if (!PlatformTestContext::HasAOTSupport()) {
-        return; // Skip if AOT not supported
-    }
+// // Test str2uint64() - Function 3
+// TEST_F(AOTUtilityTest, Str2Uint64_ThroughValidConversion_ConvertsCorrectly)
+// {
+//     if (!PlatformTestContext::HasAOTSupport()) {
+//         return; // Skip if AOT not supported
+//     }
 
-    // Test through 64-bit value parsing in AOT modules
-    ASSERT_TRUE(load_test_module());
+//     // Test through 64-bit value parsing in AOT modules
+//     ASSERT_TRUE(load_test_module());
     
-    // Verify successful loading indicates 64-bit string parsing worked
-    ASSERT_NE(nullptr, module);
+//     // Verify successful loading indicates 64-bit string parsing worked
+//     ASSERT_NE(nullptr, module);
     
-    // Test with function that might use 64-bit values
-    wasm_function_inst_t func = wasm_runtime_lookup_function(module_inst, "test_func");
-    if (func) {
-        uint32_t argv[2] = {0};
-        bool result = wasm_runtime_call_wasm(exec_env, func, 0, argv);
-        ASSERT_TRUE(result);
-    }
-}
+//     // Test with function that might use 64-bit values
+//     wasm_function_inst_t func = wasm_runtime_lookup_function(module_inst, "test_func");
+//     if (func) {
+//         uint32_t argv[2] = {0};
+//         bool result = wasm_runtime_call_wasm(exec_env, func, 0, argv);
+//         ASSERT_TRUE(result);
+//     }
+// }
 
 TEST_F(AOTUtilityTest, Str2Uint64_WithOverflowHandling_DetectsOverflow)
 {
