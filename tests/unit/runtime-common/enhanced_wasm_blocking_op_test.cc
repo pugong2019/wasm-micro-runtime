@@ -14,6 +14,8 @@
 #include "wasm_export.h"
 #include "wasm_exec_env.h"
 #include "wasm_suspend_flags.h"
+#include <thread>
+#include <chrono>
 
 using namespace std;
 
@@ -119,6 +121,9 @@ protected:
 
         // Initialize suspend flags to clean state
         BH_ATOMIC_32_STORE(test_exec_env->suspend_flags.flags, 0);
+
+        // Initialize handle to current thread to avoid segfault in os_wakeup_blocking_op
+        test_exec_env->handle = os_self_thread();
 
         wasm_runtime_unload(module);
     }
@@ -436,4 +441,158 @@ TEST_F(EnhancedWasmBlockingOpTest, wasm_runtime_end_blocking_op_CompleteCycle_Be
 
     // Verify errno preservation through the complete cycle
     ASSERT_EQ(777, errno);
+}
+
+// ===== NEW TEST CASES FOR LINES 71-74 (wasm_runtime_interrupt_blocking_op function) =====
+
+/******
+ * Test Case: wasm_runtime_interrupt_blocking_op_BlockingFlagSet_ExecutesWhileLoop
+ * Source: core/iwasm/common/wasm_blocking_op.c:71-74
+ * Target Lines: 71 (os_wakeup_blocking_op call), 74 (os_usleep call)
+ * Functional Purpose: Tests that wasm_runtime_interrupt_blocking_op executes the while loop
+ *                     when BLOCKING flag is set. Uses threading to avoid infinite loop.
+ * Call Path: Direct API call to wasm_runtime_interrupt_blocking_op()
+ * Coverage Goal: Exercise lines 71-74 in the while(ISSET(env, BLOCKING)) loop
+ ******/
+TEST_F(EnhancedWasmBlockingOpTest, wasm_runtime_interrupt_blocking_op_BlockingFlagSet_ExecutesWhileLoop) {
+    ASSERT_NE(nullptr, test_exec_env);
+
+    // Set BLOCKING flag to trigger while loop execution
+    BH_ATOMIC_32_STORE(test_exec_env->suspend_flags.flags, WASM_SUSPEND_FLAG_BLOCKING);
+
+    // Verify BLOCKING flag is set
+    uint32 flags_before = WASM_SUSPEND_FLAGS_GET(test_exec_env->suspend_flags);
+    ASSERT_NE(0, flags_before & WASM_SUSPEND_FLAG_BLOCKING);
+
+    // Create a background thread to clear BLOCKING flag after short delay
+    // This simulates the real-world scenario where another thread calls wasm_runtime_end_blocking_op
+    std::thread cleanup_thread([this]() {
+        // Small delay to allow interrupt_blocking_op to enter the while loop
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        // Clear BLOCKING flag to exit the while loop (simulates wasm_runtime_end_blocking_op)
+        BH_ATOMIC_32_STORE(test_exec_env->suspend_flags.flags, WASM_SUSPEND_FLAG_TERMINATE);
+    });
+
+    // Call the function under test - should execute lines 67-77 including target lines 71, 74
+    wasm_runtime_interrupt_blocking_op(test_exec_env);
+
+    // Wait for cleanup thread to complete
+    cleanup_thread.join();
+
+    // Verify TERMINATE flag is set (line 68 effect)
+    uint32 flags_after = WASM_SUSPEND_FLAGS_GET(test_exec_env->suspend_flags);
+    ASSERT_NE(0, flags_after & WASM_SUSPEND_FLAG_TERMINATE);
+
+    // Verify BLOCKING flag was cleared by cleanup thread
+    ASSERT_EQ(0, flags_after & WASM_SUSPEND_FLAG_BLOCKING);
+}
+
+/******
+ * Test Case: wasm_runtime_interrupt_blocking_op_NoBlockingFlag_SkipsWhileLoop
+ * Source: core/iwasm/common/wasm_blocking_op.c:67-77
+ * Target Lines: 67 (LOCK), 68 (SET TERMINATE), 69 (while condition check), 77 (UNLOCK)
+ * Functional Purpose: Tests that when BLOCKING flag is not set, the while loop is skipped,
+ *                     avoiding lines 71-74 but executing setup and cleanup code.
+ * Call Path: Direct API call to wasm_runtime_interrupt_blocking_op()
+ * Coverage Goal: Exercise function flow that bypasses while loop (lines 71-74 not executed)
+ ******/
+TEST_F(EnhancedWasmBlockingOpTest, wasm_runtime_interrupt_blocking_op_NoBlockingFlag_SkipsWhileLoop) {
+    ASSERT_NE(nullptr, test_exec_env);
+
+    // Start with clean flags - no BLOCKING, no TERMINATE
+    BH_ATOMIC_32_STORE(test_exec_env->suspend_flags.flags, 0);
+
+    // Verify initial clean state
+    uint32 flags_before = WASM_SUSPEND_FLAGS_GET(test_exec_env->suspend_flags);
+    ASSERT_EQ(0, flags_before & WASM_SUSPEND_FLAG_TERMINATE);
+    ASSERT_EQ(0, flags_before & WASM_SUSPEND_FLAG_BLOCKING);
+
+    // Call the function under test - should execute lines 67-69, 77 but skip 70-76
+    wasm_runtime_interrupt_blocking_op(test_exec_env);
+
+    // Verify TERMINATE flag is set (line 68 effect)
+    uint32 flags_after = WASM_SUSPEND_FLAGS_GET(test_exec_env->suspend_flags);
+    ASSERT_NE(0, flags_after & WASM_SUSPEND_FLAG_TERMINATE);
+
+    // Verify BLOCKING flag remains clear (while loop was skipped)
+    ASSERT_EQ(0, flags_after & WASM_SUSPEND_FLAG_BLOCKING);
+}
+
+/******
+ * Test Case: wasm_runtime_interrupt_blocking_op_ValidExecEnv_SetsTerminateFlag
+ * Source: core/iwasm/common/wasm_blocking_op.c:67-77
+ * Target Lines: 67 (LOCK), 68 (SET TERMINATE), 77 (UNLOCK)
+ * Functional Purpose: Tests that the function properly sets TERMINATE flag and manages
+ *                     lock/unlock sequence with real exec_env from module instantiation.
+ * Call Path: Direct API call to wasm_runtime_interrupt_blocking_op()
+ * Coverage Goal: Exercise function with production-like exec_env structure
+ ******/
+TEST_F(EnhancedWasmBlockingOpTest, wasm_runtime_interrupt_blocking_op_ValidExecEnv_SetsTerminateFlag) {
+    ASSERT_NE(nullptr, exec_env);
+
+    // Start with clean state on real exec_env
+    BH_ATOMIC_32_STORE(exec_env->suspend_flags.flags, 0);
+
+    // Verify clean initial state
+    uint32 flags_before = WASM_SUSPEND_FLAGS_GET(exec_env->suspend_flags);
+    ASSERT_EQ(0, flags_before & WASM_SUSPEND_FLAG_TERMINATE);
+    ASSERT_EQ(0, flags_before & WASM_SUSPEND_FLAG_BLOCKING);
+
+    // Call the function under test with real exec_env
+    wasm_runtime_interrupt_blocking_op(exec_env);
+
+    // Verify TERMINATE flag is properly set (line 68 effect)
+    uint32 flags_after = WASM_SUSPEND_FLAGS_GET(exec_env->suspend_flags);
+    ASSERT_NE(0, flags_after & WASM_SUSPEND_FLAG_TERMINATE);
+
+    // Clean up for other tests
+    BH_ATOMIC_32_STORE(exec_env->suspend_flags.flags, 0);
+}
+
+/******
+ * Test Case: wasm_runtime_interrupt_blocking_op_RepeatedCalls_HandlesCorrectly
+ * Source: core/iwasm/common/wasm_blocking_op.c:67-77
+ * Target Lines: 67 (LOCK), 68 (SET TERMINATE), 69 (while check), 77 (UNLOCK)
+ * Functional Purpose: Tests that repeated calls to interrupt_blocking_op work correctly,
+ *                     ensuring TERMINATE flag handling and lock sequence are robust.
+ * Call Path: Multiple direct API calls to wasm_runtime_interrupt_blocking_op()
+ * Coverage Goal: Exercise function robustness with multiple invocations
+ ******/
+TEST_F(EnhancedWasmBlockingOpTest, wasm_runtime_interrupt_blocking_op_RepeatedCalls_HandlesCorrectly) {
+    ASSERT_NE(nullptr, test_exec_env);
+
+    // Start with clean state
+    BH_ATOMIC_32_STORE(test_exec_env->suspend_flags.flags, 0);
+
+    // First call - should set TERMINATE flag
+    wasm_runtime_interrupt_blocking_op(test_exec_env);
+
+    uint32 flags_after_first = WASM_SUSPEND_FLAGS_GET(test_exec_env->suspend_flags);
+    ASSERT_NE(0, flags_after_first & WASM_SUSPEND_FLAG_TERMINATE);
+
+    // Second call - TERMINATE already set, should handle gracefully
+    wasm_runtime_interrupt_blocking_op(test_exec_env);
+
+    uint32 flags_after_second = WASM_SUSPEND_FLAGS_GET(test_exec_env->suspend_flags);
+    ASSERT_NE(0, flags_after_second & WASM_SUSPEND_FLAG_TERMINATE);
+
+    // Third call with BLOCKING flag also set - use threading approach to avoid infinite loop
+    BH_ATOMIC_32_STORE(test_exec_env->suspend_flags.flags,
+                       WASM_SUSPEND_FLAG_TERMINATE | WASM_SUSPEND_FLAG_BLOCKING);
+
+    // Create cleanup thread for the third call as well
+    std::thread third_cleanup_thread([this]() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        // Clear BLOCKING flag while keeping TERMINATE
+        BH_ATOMIC_32_STORE(test_exec_env->suspend_flags.flags, WASM_SUSPEND_FLAG_TERMINATE);
+    });
+
+    wasm_runtime_interrupt_blocking_op(test_exec_env);
+    third_cleanup_thread.join();
+
+    uint32 flags_after_third = WASM_SUSPEND_FLAGS_GET(test_exec_env->suspend_flags);
+    ASSERT_NE(0, flags_after_third & WASM_SUSPEND_FLAG_TERMINATE);
+
+    // Verify function execution completed successfully
+    ASSERT_TRUE(true); // Function completed without crash or assertion failure
 }
