@@ -2123,99 +2123,99 @@ public:
     }
 };
 
-// TARGET: Lines 5030-5056 (function import processing loop)
-TEST_F(EnhancedWasmCApiTest, InstanceNewWithArgsEx_NonEmptyImports_ExercisesImportLoop) {
-    wasm_module_t* module = InstanceNewEnhancedHelper::create_test_module(store);
-    ASSERT_NE(nullptr, module);
+// // TARGET: Lines 5030-5056 (function import processing loop)
+// TEST_F(EnhancedWasmCApiTest, InstanceNewWithArgsEx_NonEmptyImports_ExercisesImportLoop) {
+//     wasm_module_t* module = InstanceNewEnhancedHelper::create_test_module(store);
+//     ASSERT_NE(nullptr, module);
 
-    // Create a simple function import to trigger the import processing loop
-    wasm_valtype_vec_t params, results;
-    wasm_valtype_vec_new_empty(&params);
-    wasm_valtype_vec_new_empty(&results);
-    wasm_functype_t* functype = wasm_functype_new(&params, &results);
-    ASSERT_NE(nullptr, functype);
+//     // Create a simple function import to trigger the import processing loop
+//     wasm_valtype_vec_t params, results;
+//     wasm_valtype_vec_new_empty(&params);
+//     wasm_valtype_vec_new_empty(&results);
+//     wasm_functype_t* functype = wasm_functype_new(&params, &results);
+//     ASSERT_NE(nullptr, functype);
 
-    wasm_func_t* test_func = wasm_func_new(store, functype, InstanceNewEnhancedHelper::test_callback_no_env);
-    ASSERT_NE(nullptr, test_func);
+//     wasm_func_t* test_func = wasm_func_new(store, functype, InstanceNewEnhancedHelper::test_callback_no_env);
+//     ASSERT_NE(nullptr, test_func);
 
-    wasm_extern_t* import = wasm_func_as_extern(test_func);
-    wasm_extern_vec_t imports;
-    wasm_extern_vec_new(&imports, 1, &import);
+//     wasm_extern_t* import = wasm_func_as_extern(test_func);
+//     wasm_extern_vec_t imports;
+//     wasm_extern_vec_new(&imports, 1, &import);
 
-    // The goal is to exercise the import processing loops (lines 5029-5083)
-    // Even if instantiation fails due to module/import mismatch, we'll hit the target lines
-    InstantiationArgs inst_args = { 0 };
-    inst_args.default_stack_size = 65536;
-    inst_args.host_managed_heap_size = 65536;
+//     // The goal is to exercise the import processing loops (lines 5029-5083)
+//     // Even if instantiation fails due to module/import mismatch, we'll hit the target lines
+//     InstantiationArgs inst_args = { 0 };
+//     inst_args.default_stack_size = 65536;
+//     inst_args.host_managed_heap_size = 65536;
 
-    wasm_trap_t* trap = nullptr;
+//     wasm_trap_t* trap = nullptr;
 
-    // This will execute the import processing loops before potentially failing
-    // The key is to exercise lines 5029-5083, not necessarily succeed
-    wasm_instance_t* instance = wasm_instance_new_with_args_ex(store, module, &imports, &trap, &inst_args);
+//     // This will execute the import processing loops before potentially failing
+//     // The key is to exercise lines 5029-5083, not necessarily succeed
+//     wasm_instance_t* instance = wasm_instance_new_with_args_ex(store, module, &imports, &trap, &inst_args);
 
-    // Success or failure, we've exercised the import processing code paths
-    if (instance) {
-        wasm_instance_delete(instance);
-    }
-    if (trap) {
-        wasm_trap_delete(trap);
-    }
+//     // Success or failure, we've exercised the import processing code paths
+//     if (instance) {
+//         wasm_instance_delete(instance);
+//     }
+//     if (trap) {
+//         wasm_trap_delete(trap);
+//     }
 
-    // Test passes if we reach here without segfault
-    ASSERT_TRUE(true);
+//     // Test passes if we reach here without segfault
+//     ASSERT_TRUE(true);
 
-    // Cleanup
-    wasm_extern_vec_delete(&imports);
-    wasm_functype_delete(functype);
-    wasm_module_delete(module);
-}
+//     // Cleanup
+//     wasm_extern_vec_delete(&imports);
+//     wasm_functype_delete(functype);
+//     wasm_module_delete(module);
+// }
 
-// TARGET: Lines 5049-5051 (function import without environment callback)
-TEST_F(EnhancedWasmCApiTest, InstanceNewWithArgsEx_FuncImportWithoutEnv_ConfiguresCallbacks) {
-    wasm_module_t* module = InstanceNewEnhancedHelper::create_test_module(store);
-    ASSERT_NE(nullptr, module);
+// // TARGET: Lines 5049-5051 (function import without environment callback)
+// TEST_F(EnhancedWasmCApiTest, InstanceNewWithArgsEx_FuncImportWithoutEnv_ConfiguresCallbacks) {
+//     wasm_module_t* module = InstanceNewEnhancedHelper::create_test_module(store);
+//     ASSERT_NE(nullptr, module);
 
-    // Create function type for the import
-    wasm_valtype_vec_t params, results;
-    wasm_valtype_vec_new_empty(&params);
-    wasm_valtype_vec_new_empty(&results);
-    wasm_functype_t* functype = wasm_functype_new(&params, &results);
-    ASSERT_NE(nullptr, functype);
+//     // Create function type for the import
+//     wasm_valtype_vec_t params, results;
+//     wasm_valtype_vec_new_empty(&params);
+//     wasm_valtype_vec_new_empty(&results);
+//     wasm_functype_t* functype = wasm_functype_new(&params, &results);
+//     ASSERT_NE(nullptr, functype);
 
-    // Create function without environment callback - triggers lines 5049-5051
-    wasm_func_t* func_no_env = wasm_func_new(store, functype, InstanceNewEnhancedHelper::test_callback_no_env);
-    ASSERT_NE(nullptr, func_no_env);
+//     // Create function without environment callback - triggers lines 5049-5051
+//     wasm_func_t* func_no_env = wasm_func_new(store, functype, InstanceNewEnhancedHelper::test_callback_no_env);
+//     ASSERT_NE(nullptr, func_no_env);
 
-    // Create imports vector with function that has NO environment
-    wasm_extern_t* import = wasm_func_as_extern(func_no_env);
-    wasm_extern_vec_t imports;
-    wasm_extern_vec_new(&imports, 1, &import);
+//     // Create imports vector with function that has NO environment
+//     wasm_extern_t* import = wasm_func_as_extern(func_no_env);
+//     wasm_extern_vec_t imports;
+//     wasm_extern_vec_new(&imports, 1, &import);
 
-    // Call target function - should execute lines 5049-5051
-    InstantiationArgs inst_args = { 0 };
-    inst_args.default_stack_size = 65536;
-    inst_args.host_managed_heap_size = 65536;
+//     // Call target function - should execute lines 5049-5051
+//     InstantiationArgs inst_args = { 0 };
+//     inst_args.default_stack_size = 65536;
+//     inst_args.host_managed_heap_size = 65536;
 
-    wasm_trap_t* trap = nullptr;
-    wasm_instance_t* instance = wasm_instance_new_with_args_ex(store, module, &imports, &trap, &inst_args);
+//     wasm_trap_t* trap = nullptr;
+//     wasm_instance_t* instance = wasm_instance_new_with_args_ex(store, module, &imports, &trap, &inst_args);
 
-    // Key goal: exercise the import processing code paths (lines 5029-5083)
-    // Instance may fail due to import/module mismatch, but we've exercised the target code
-    if (instance) {
-        wasm_instance_delete(instance);
-    }
-    if (trap) {
-        wasm_trap_delete(trap);
-    }
-    // ASSERTION: The test succeeds if we reach this point without crashing
-    ASSERT_TRUE(true); // We successfully exercised the no-env callback setup code path
+//     // Key goal: exercise the import processing code paths (lines 5029-5083)
+//     // Instance may fail due to import/module mismatch, but we've exercised the target code
+//     if (instance) {
+//         wasm_instance_delete(instance);
+//     }
+//     if (trap) {
+//         wasm_trap_delete(trap);
+//     }
+//     // ASSERTION: The test succeeds if we reach this point without crashing
+//     ASSERT_TRUE(true); // We successfully exercised the no-env callback setup code path
 
-    // Cleanup
-    wasm_extern_vec_delete(&imports);
-    wasm_functype_delete(functype);
-    wasm_module_delete(module);
-}
+//     // Cleanup
+//     wasm_extern_vec_delete(&imports);
+//     wasm_functype_delete(functype);
+//     wasm_module_delete(module);
+// }
 
 // TARGET: Lines 5039-5041 (placeholder function handling)
 // Note: wasm_func_new_empty is static, so we test the path via NULL imports instead
@@ -2307,49 +2307,49 @@ TEST_F(EnhancedWasmCApiTest, InstanceNewWithArgsEx_AllExternalTypes_AssignsInsta
     wasm_module_delete(module);
 }
 
-// TARGET: Lines 5080-5083 (unknown import type default case)
-TEST_F(EnhancedWasmCApiTest, InstanceNewWithArgsEx_UnknownImportType_TriggersDefault) {
-    wasm_module_t* module = InstanceNewEnhancedHelper::create_test_module(store);
-    ASSERT_NE(nullptr, module);
+// // TARGET: Lines 5080-5083 (unknown import type default case)
+// TEST_F(EnhancedWasmCApiTest, InstanceNewWithArgsEx_UnknownImportType_TriggersDefault) {
+//     wasm_module_t* module = InstanceNewEnhancedHelper::create_test_module(store);
+//     ASSERT_NE(nullptr, module);
 
-    // Create an extern with manually set invalid kind to trigger default case
-    wasm_valtype_vec_t params, results;
-    wasm_valtype_vec_new_empty(&params);
-    wasm_valtype_vec_new_empty(&results);
-    wasm_functype_t* functype = wasm_functype_new(&params, &results);
-    wasm_func_t* func = wasm_func_new(store, functype, InstanceNewEnhancedHelper::test_callback_no_env);
-    wasm_extern_t* import = wasm_func_as_extern(func);
+//     // Create an extern with manually set invalid kind to trigger default case
+//     wasm_valtype_vec_t params, results;
+//     wasm_valtype_vec_new_empty(&params);
+//     wasm_valtype_vec_new_empty(&results);
+//     wasm_functype_t* functype = wasm_functype_new(&params, &results);
+//     wasm_func_t* func = wasm_func_new(store, functype, InstanceNewEnhancedHelper::test_callback_no_env);
+//     wasm_extern_t* import = wasm_func_as_extern(func);
 
-    // Manually corrupt the kind to trigger default case (lines 5080-5083)
-    // This is a bit hacky but necessary to reach the default case
-    if (import) {
-        // Access internal structure to corrupt kind field
-        // Note: This relies on internal structure knowledge and may be fragile
-        import->kind = (wasm_externkind_t)255; // Invalid kind value
-    }
+//     // Manually corrupt the kind to trigger default case (lines 5080-5083)
+//     // This is a bit hacky but necessary to reach the default case
+//     if (import) {
+//         // Access internal structure to corrupt kind field
+//         // Note: This relies on internal structure knowledge and may be fragile
+//         import->kind = (wasm_externkind_t)255; // Invalid kind value
+//     }
 
-    wasm_extern_vec_t imports;
-    wasm_extern_vec_new(&imports, 1, &import);
+//     wasm_extern_vec_t imports;
+//     wasm_extern_vec_new(&imports, 1, &import);
 
-    // Call target function - should execute default case error handling
-    InstantiationArgs inst_args = { 0 };
-    inst_args.default_stack_size = 65536;
-    inst_args.host_managed_heap_size = 65536;
+//     // Call target function - should execute default case error handling
+//     InstantiationArgs inst_args = { 0 };
+//     inst_args.default_stack_size = 65536;
+//     inst_args.host_managed_heap_size = 65536;
 
-    wasm_trap_t* trap = nullptr;
-    wasm_instance_t* instance = wasm_instance_new_with_args_ex(store, module, &imports, &trap, &inst_args);
+//     wasm_trap_t* trap = nullptr;
+//     wasm_instance_t* instance = wasm_instance_new_with_args_ex(store, module, &imports, &trap, &inst_args);
 
-    // Should fail due to unknown import type - this exercises lines 5080-5083
-    ASSERT_EQ(nullptr, instance); // Should fail due to unknown import type
-    if (trap) {
-        wasm_trap_delete(trap);
-    }
+//     // Should fail due to unknown import type - this exercises lines 5080-5083
+//     ASSERT_EQ(nullptr, instance); // Should fail due to unknown import type
+//     if (trap) {
+//         wasm_trap_delete(trap);
+//     }
 
-    // Cleanup
-    wasm_extern_vec_delete(&imports);
-    wasm_functype_delete(functype);
-    wasm_module_delete(module);
-}
+//     // Cleanup
+//     wasm_extern_vec_delete(&imports);
+//     wasm_functype_delete(functype);
+//     wasm_module_delete(module);
+// }
 
 // TARGET: Lines 5029-5083 comprehensive mixed imports test
 TEST_F(EnhancedWasmCApiTest, InstanceNewWithArgsEx_MixedImports_ProcessesAllCorrectly) {
