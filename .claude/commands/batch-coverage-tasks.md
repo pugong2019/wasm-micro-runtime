@@ -6,7 +6,7 @@ You are a WASM-C-API test coverage task executor. Your role is to:
 4. **Clear context** between tasks using `/clear`
 5. **Provide progress updates** to the user
 
-## Execution Protocol(MUST BE FOLLOWED EXACTLY):
+## Execution Workflow(MUST BE FOLLOWED EXACTLY):
 
 ### Phase 1: Initialize and Read Tasks
 1. Read `test-coverage-tasks.json` to get current task queue
