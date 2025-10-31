@@ -20,21 +20,33 @@
  * Expected Coverage: Focus on MODULE_INST_CONTEXT functionality
  */
 
-class EnhancedThreadManagerTest : public testing::Test {
-protected:
+// Global test environment to initialize WAMR once for all tests
+class WAMRTestEnvironment : public ::testing::Environment {
+public:
     void SetUp() override {
-        // Initialize WAMR runtime first with proper configuration
         RuntimeInitArgs init_args;
         memset(&init_args, 0, sizeof(RuntimeInitArgs));
         init_args.mem_alloc_type = Alloc_With_System_Allocator;
         init_args.max_thread_num = 4;
 
         ASSERT_TRUE(wasm_runtime_full_init(&init_args));
-
-        // Initialize thread manager after WAMR is ready
         ASSERT_TRUE(thread_manager_init());
+    }
 
-        // Now create DummyExecEnv (it won't reinit WAMR since it's already initialized)
+    void TearDown() override {
+        thread_manager_destroy();
+        wasm_runtime_destroy();
+    }
+};
+
+class EnhancedThreadManagerTest : public testing::Test {
+protected:
+    void SetUp() override {
+        // Create context key for testing
+        context_key = wasm_runtime_create_context_key(context_destructor);
+        ASSERT_NE(context_key, nullptr);
+
+        // Create DummyExecEnv
         dummy_env = std::make_unique<DummyExecEnv>();
         ASSERT_NE(dummy_env.get(), nullptr);
 
@@ -43,10 +55,6 @@ protected:
 
         module_inst = wasm_runtime_get_module_inst(exec_env);
         ASSERT_NE(module_inst, nullptr);
-
-        // Create context key for testing
-        context_key = wasm_runtime_create_context_key(context_destructor);
-        ASSERT_NE(context_key, nullptr);
     }
 
     void TearDown() override {
@@ -56,8 +64,6 @@ protected:
         }
 
         dummy_env.reset();
-        thread_manager_destroy();
-        wasm_runtime_destroy();
     }
 
     static void context_destructor(WASMModuleInstanceCommon *inst, void *ctx) {
