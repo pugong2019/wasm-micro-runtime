@@ -47,7 +47,7 @@ Upon receiving any coverage enhancement request, the subagent MUST instantiate t
 - [ ] 4.4 Rebuild and rerun coverage to measure improvement
 - [ ] 4.5 Iterate until satisfactory coverage or technical limits reached
 
-### Phase 5: Git Repository Integration
+### Phase 5: Git Repository Integration(Only on coverage rate achieved)
 - [ ] 5.1 Add proper files to repository (no temporary or documentation files)
 - [ ] 5.2 Execute pre-commit cleanup protocol (remove all *.info and temporary files)
 - [ ] 5.3 Create standardized commit message using EXACT template format (no additional content)
@@ -370,11 +370,12 @@ if (module) {  // VIOLATION - Missing ASSERT validation
 
 **Step 1**: Verify CMakeLists.txt includes enhanced file
 **Step 2**: Build and resolve compilation errors
+* **MUST** Build code in the tests/unit/, not in detailed sub-module: tests/unit/[module]
 ```bash
-#**MUST NOT**: Build code in the deatailed module tests/unit/[module]
 cd tests/unit/
 cmake -S . -B build -DCOLLECT_CODE_COVERAGE=1
-cmake --build build --target [module]_test
+# cmake --build build --target [module]_test  | grep -E "Built target"
+cmake --build build --target [module]_test 2>&1 | grep -E "(Built target.*|error|Error|failed|Failed|\[100%\]|ninja: build stopped)"
 ```
 **Step 3**: Execute tests and verify success
 ```bash
@@ -382,7 +383,7 @@ cd tests/unit/
 ./build/[module]/[module]_test --gtest_filter="Enhanced*"
 ```
 **Step 4**: Fix runtime failures - ZERO tolerance for failing tests
-**Step 5**: Mandatory Test Failure Resolution - If any test cases fail after gtest execution, MUST analyze failure causes and fix them to achieve 100% test success rate
+**Step 5**: Mandatory Test Failure Resolution - If any test cases failed after gtest execution, MUST analyze failure causes and fix them to achieve 100% test success rate
 
 ### Phase 4: Coverage Analysis & Iteration (Tasks 4.1-4.5)
 
@@ -405,7 +406,7 @@ overall_coverage=$(echo "scale=2; $covered_lines * 100 / $total_lines" | bc -l)
 # OPTIMIZATION: Analyze coverage metrics directly from .info files without generating HTML reports
 # DO NOT USE: genhtml commands for report generation during analysis phase
 ```
-**MUST**: Double confirm the coverage data is correct
+**MUST**: Double confirm if the coverage data is correct
 
 **Step 3: Iterative Enhancement Protocol**
 If coverage target (>60%) is not achieved:
@@ -413,6 +414,14 @@ If coverage target (>60%) is not achieved:
 2. Repeat Tasks 3.2 through 3.3
 3. Re-execute Task 4.1
 4. Continue until satisfactory coverage or technical limits are reached
+5. **LOW COVERAGE FAILURE RULE**: When final coverage rate is low (0 lines coverage) or <> 10%, MUST NOT commit the message, drop any code modifications and mark the task as FAIL and **SKIP Phase 5**
+```bash
+# Revert any uncommitted test file changes if coverage failed completely
+cd tests/unit/
+git status
+git checkout -- [module]/enhanced_[source_file_name]_test.cc 2>/dev/null || true
+# Keep ONLY: final report summary if any progress was made
+```
 
 **Step 4: Cleanup Preparation**
 ```bash
@@ -423,14 +432,12 @@ echo "Lines covered: ${covered_lines}/${total_lines}" >> coverage_summary.tmp
 **Step 4: Cleanup Tempoary File Protocol**
 ```bash
 # MANDATORY: Remove all temporary coverage files before commit
-cd tests/unit/[module]
+cd tests/unit/[target_module]
 rm -f *.info 2>/dev/null || true
-rm -f *_coverage.info 2>/dev/null || true
-rm -f final_*.info 2>/dev/null || true
-rm -f coverage_summary.tmp 2>/dev/null || true
+rm -f *.gcov 2>/dev/null || true
+rm -f *.tmp 2>/dev/null || true
 rm -f call_chain_analysis.md 2>/dev/null || true
 rm -rf coverage_output/ 2>/dev/null || true
-rm -f *_coverage_improve_metadata.json 2>/dev/null || true
 # Keep ONLY: enhanced test files and report summary
 ```
 
@@ -444,43 +451,31 @@ cd tests/unit/
 git status
 git add [module]/enhanced_[source_file_name]_test.cc
 # Examples:
-# git aot/enhanced_aot_loader_test.cc
-# git aot/enhanced_aot_runtime_test.cc
+# git add aot/enhanced_aot_loader_test.cc
+# git add aot/enhanced_aot_runtime_test.cc
 # Add CMakeLists.txt only if modified
 ```
 
 **Step 2: Standardized Commit Message Template**
 
 **CRITICAL REQUIREMENT: EXACT COMMIT MESSAGE FORMAT**
+* COMMIT MESSAGE TEMPLATE (USE EXACTLY AS SHOWN):  
+```bash
+[module] Enhanced unit tests for [source_code_filename]
+
+- Module: [module_name]
+- Target cover lines: [target_lines_range]
+- Generated [N] new test cases targeting uncovered lines in [source_code_filename]
+- Improved coverage from baseline to [XX%]
+- All [X] target lines now covered
+- Modified files: [code_file]， [CMakeLists.txt](If has)
+```
 
 **MANDATORY COMPLIANCE RULES:**
 1. **EXACT TEMPLATE MATCH**: Use the template below EXACTLY as specified - no additions, modifications, or extra lines
 2. **PROHIBITED CONTENT**: Do NOT add any additional details, explanations, or descriptive content
 3. **CONTENT RESTRICTION**: Only include the specified template format - nothing more
 4. **FORMATTING REQUIREMENT**: Follow the exact structure and spacing shown below
-5. **LOW COVERAGE FAILURE RULE**: When coverage rate is low (0 lines coverage), MUST NOT commit the message, drop any code modifications and mark the task as FAIL
-    ```bash
-    # Revert any uncommitted test file changes if coverage failed completely
-    cd tests/unit/
-    git status
-    git checkout -- [module]/enhanced_[source_file_name]_test.cc 2>/dev/null || true
-    # Keep ONLY: final report summary if any progress was made
-    ```
-
-**COMMIT MESSAGE TEMPLATE (USE EXACTLY AS SHOWN):**
-```bash
-[module] Enhanced unit tests - Cover X lines of [target_lines] in [function_name]/source_code_filename
-
-- Generated N new test cases targeting uncovered lines in [source_code_filename]
-- Improved coverage from baseline to XX%
-- All X target lines now covered
-- Zero test failures, all assertions meaningful
-
-Coverage Enhancement Details:
-- Module: [module_name]
-- Target Lines: [line_numbers]
-- Enhanced Tests: [N] test cases
-```
 
 ### Phase 6: Final Documentation and Summary
 
@@ -502,7 +497,7 @@ Output summary to an `enhanced_[source_file_name]_test_report.md` file. If the f
 
 **FINAL REPORT TEMPLATE (USE EXACTLY AS SHOWN):**
 ```markdown
-### Coverage Metrics For in [source_file_name] - [Year-Month-Day-Minutes]
+### Coverage Metrics For in [source_file_name] - [Year-Month-Day-Hour-Minutes]
 - **Module**: [module_name]
 - **File Name**: [source_file_name]
 - **Function Name**: [function_tested]
