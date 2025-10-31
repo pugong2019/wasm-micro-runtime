@@ -423,13 +423,9 @@ git checkout -- [module]/enhanced_[source_file_name]_test.cc 2>/dev/null || true
 # Keep ONLY: final report summary if any progress was made
 ```
 
-**Step 4: Cleanup Preparation**
-```bash
-# Collect final coverage metrics before cleanup
-echo "Final coverage: ${overall_coverage}%" > coverage_summary.tmp
-echo "Lines covered: ${covered_lines}/${total_lines}" >> coverage_summary.tmp
-```
 **Step 4: Cleanup Tempoary File Protocol**
+* MUST NOT delete any commited files in enhanced_coverage_report 
+* MUST NOT delete test-coverage-tasks.json
 ```bash
 # MANDATORY: Remove all temporary coverage files before commit
 cd tests/unit/[target_module]
