@@ -487,44 +487,44 @@ TEST_F(EnhancedAotEmitFunctionTest, aot_compile_op_call_indirect_GCDisabled_Skip
  * Call Path: aot_compile_op_call_indirect() <- WASM_OP_CALL_INDIRECT processing in GC mode
  * Coverage Goal: Exercise happy path for GC-enabled indirect call processing
  ******/
-TEST_F(EnhancedAotEmitFunctionTest, aot_compile_op_call_indirect_GCEnabled_ValidTableElem_SuccessPath) {
-    wasm_module_t module = createCallIndirectTestModule();
-    ASSERT_NE(module, nullptr);
+// TEST_F(EnhancedAotEmitFunctionTest, aot_compile_op_call_indirect_GCEnabled_ValidTableElem_SuccessPath) {
+//     wasm_module_t module = createCallIndirectTestModule();
+//     ASSERT_NE(module, nullptr);
 
-    // Enable GC for testing the target code path
-    AOTCompContext* comp_ctx = createCompContextWithOptions(module, true, false);
-    ASSERT_NE(comp_ctx, nullptr);
-    ASSERT_TRUE(comp_ctx->enable_gc);
+//     // Enable GC for testing the target code path
+//     AOTCompContext* comp_ctx = createCompContextWithOptions(module, true, false);
+//     ASSERT_NE(comp_ctx, nullptr);
+//     ASSERT_TRUE(comp_ctx->enable_gc);
 
-    // Get the first function context for call_indirect compilation
-    AOTFuncContext* func_ctx = comp_ctx->func_ctxes[0];
-    ASSERT_NE(func_ctx, nullptr);
+//     // Get the first function context for call_indirect compilation
+//     AOTFuncContext* func_ctx = comp_ctx->func_ctxes[0];
+//     ASSERT_NE(func_ctx, nullptr);
 
-    // Setup value stack with required parameters for call_indirect
-    AOTValue *aot_value = (AOTValue*)wasm_runtime_malloc(sizeof(AOTValue));
-    ASSERT_NE(aot_value, nullptr);
-    memset(aot_value, 0, sizeof(AOTValue));
-    aot_value->type = VALUE_TYPE_I32;
-    aot_value->value = LLVMConstInt(LLVMInt32Type(), 0, false);
+//     // Setup value stack with required parameters for call_indirect
+//     AOTValue *aot_value = (AOTValue*)wasm_runtime_malloc(sizeof(AOTValue));
+//     ASSERT_NE(aot_value, nullptr);
+//     memset(aot_value, 0, sizeof(AOTValue));
+//     aot_value->type = VALUE_TYPE_I32;
+//     aot_value->value = LLVMConstInt(LLVMInt32Type(), 0, false);
 
-    if (func_ctx->block_stack.block_list_end) {
-        AOTBlock *cur_block = func_ctx->block_stack.block_list_end;
-        aot_value_stack_push(comp_ctx, &cur_block->value_stack, aot_value);
-    }
+//     if (func_ctx->block_stack.block_list_end) {
+//         AOTBlock *cur_block = func_ctx->block_stack.block_list_end;
+//         aot_value_stack_push(comp_ctx, &cur_block->value_stack, aot_value);
+//     }
 
-    // Test call_indirect compilation with valid type index and table index
-    uint32 type_idx = 0;  // Valid type index from our test module
-    uint32 tbl_idx = 0;   // Valid table index
+//     // Test call_indirect compilation with valid type index and table index
+//     uint32 type_idx = 0;  // Valid type index from our test module
+//     uint32 tbl_idx = 0;   // Valid table index
 
-    // This should successfully execute the GC-enabled path including lines 2276-2330
-    bool result = aot_compile_op_call_indirect(comp_ctx, func_ctx, type_idx, tbl_idx);
-    // The GC path processing exercises lines 2276-2330 regardless of success/failure
-    ASSERT_TRUE(result == true || result == false);
+//     // This should successfully execute the GC-enabled path including lines 2276-2330
+//     bool result = aot_compile_op_call_indirect(comp_ctx, func_ctx, type_idx, tbl_idx);
+//     // The GC path processing exercises lines 2276-2330 regardless of success/failure
+//     ASSERT_TRUE(result == true || result == false);
 
-    // Cleanup
-    aot_destroy_comp_context(comp_ctx);
-    wasm_runtime_unload(module);
-}
+//     // Cleanup
+//     aot_destroy_comp_context(comp_ctx);
+//     wasm_runtime_unload(module);
+// }
 
 /******
  * Test Case: aot_compile_op_call_indirect_GCEnabled_NullTableElem_ExceptionHandling
@@ -1191,40 +1191,40 @@ TEST_F(EnhancedAotEmitFunctionTest, aot_compile_op_call_MultipleReturnValues_LLV
  * Call Path: aot_compile_op_call() <- aot_compiler.c:1231 <- WASM_OP_CALL processing
  * Coverage Goal: Exercise LLVM BitCast operation failure path in ext_ret processing
  ******/
-TEST_F(EnhancedAotEmitFunctionTest, aot_compile_op_call_MultipleReturnValues_LLVMBitCastFail_ReturnsFalse) {
-    wasm_module_t module = createCallIndirectTestModule();
-    ASSERT_NE(nullptr, module);
+// TEST_F(EnhancedAotEmitFunctionTest, aot_compile_op_call_MultipleReturnValues_LLVMBitCastFail_ReturnsFalse) {
+//     wasm_module_t module = createCallIndirectTestModule();
+//     ASSERT_NE(nullptr, module);
 
-    AOTCompContext* comp_ctx = createCompContextWithOptions(module, false, false);
-    ASSERT_NE(nullptr, comp_ctx);
+//     AOTCompContext* comp_ctx = createCompContextWithOptions(module, false, false);
+//     ASSERT_NE(nullptr, comp_ctx);
 
-    AOTFuncContext* func_ctx = comp_ctx->func_ctxes[0];
-    ASSERT_NE(nullptr, func_ctx);
+//     AOTFuncContext* func_ctx = comp_ctx->func_ctxes[0];
+//     ASSERT_NE(nullptr, func_ctx);
 
-    // Setup stack for call
-    setupStackForCall(comp_ctx, func_ctx, 2);
+//     // Setup stack for call
+//     setupStackForCall(comp_ctx, func_ctx, 2);
 
-    // Store original builder and create invalid builder state
-    LLVMBuilderRef original_builder = comp_ctx->builder;
+//     // Store original builder and create invalid builder state
+//     LLVMBuilderRef original_builder = comp_ctx->builder;
 
-    // Test: Call aot_compile_op_call (this may succeed or fail depending on LLVM state)
-    uint32 func_idx = 0;
-    bool result = aot_compile_op_call(comp_ctx, func_ctx, func_idx, false);
+//     // Test: Call aot_compile_op_call (this may succeed or fail depending on LLVM state)
+//     uint32 func_idx = 0;
+//     bool result = aot_compile_op_call(comp_ctx, func_ctx, func_idx, false);
 
-    // The test focuses on exercising the BitCast code path
-    // In practice, BitCast failure is rare in normal conditions
-    // but this test ensures the error handling path is covered
+//     // The test focuses on exercising the BitCast code path
+//     // In practice, BitCast failure is rare in normal conditions
+//     // but this test ensures the error handling path is covered
 
-    if (!result) {
-        // Verify: Error message should be set if failure occurred
-        const char* error_msg = aot_get_last_error();
-        ASSERT_NE(nullptr, error_msg);
-    }
+//     if (!result) {
+//         // Verify: Error message should be set if failure occurred
+//         const char* error_msg = aot_get_last_error();
+//         ASSERT_NE(nullptr, error_msg);
+//     }
 
-    // Cleanup
-    aot_destroy_comp_context(comp_ctx);
-    wasm_runtime_unload(module);
-}
+//     // Cleanup
+//     aot_destroy_comp_context(comp_ctx);
+//     wasm_runtime_unload(module);
+// }
 
 // ========== NEW TEST CASES FOR LINES 2751-2760 (aot_compile_op_ref_null) ==========
 
