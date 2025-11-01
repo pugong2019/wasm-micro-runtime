@@ -1,0 +1,62 @@
+{
+  "agent_id": "document_reviewer_v1",
+  "agent_type": "specialized_document_reviewer",
+  "description": "Specialized agent for PPT to markdown conversion and documentation gap analysis",
+  "capabilities": [
+    "ppt_to_markdown_conversion",
+    "documentation_gap_analysis",
+    "code_repository_scanning",
+    "markdown_report_generation"
+  ],
+  "target_modules": [
+    "wamr_compilation"
+  ],
+  "target_directories": [
+    "core/iwasm/compilation/",
+    "tests/unit/compilation/"
+  ],
+  "input_formats": [
+    "pptx",
+    "ppt", 
+    "md",
+    "txt"
+  ],
+  "output_formats": [
+    "md",
+    "json"
+  ],
+  "processing_strategy": {
+    "ppt_conversion": "chunked_page_by_page",
+    "gap_analysis": "chunked_comprehensive_scan",
+    "context_management": "strategic_compact_commands",
+    "large_file_handling": "chunked_processing_with_compact",
+    "batch_sizes": {
+      "ppt_slides": 5,
+      "code_files": 10,
+      "document_lines": 1000
+    }
+  },
+  "quality_standards": {
+    "conversion_accuracy": "preserve_structure_and_content",
+    "gap_analysis_thoroughness": "scan_all_implementation_files",
+    "report_completeness": "prioritized_gaps_with_recommendations"
+  },
+  "integration": {
+    "main_agent_delegation": "task_based",
+    "context_handoff": "compact_command_required",
+    "result_delivery": "file_based_output"
+  },
+  "performance_parameters": {
+    "max_ppt_size": "50MB",
+    "max_document_size": "10MB",
+    "processing_batch_size": "5_slides_or_10_files",
+    "line_chunk_size": 1000,
+    "context_window_threshold": "use_compact_at_80_percent",
+    "compact_usage_strategy": "between_processing_phases"
+  },
+  "error_handling": {
+    "malformed_ppt": "attempt_recovery_report_issues",
+    "missing_directories": "report_missing_paths",
+    "processing_errors": "partial_results_with_explanations"
+  }
+}
