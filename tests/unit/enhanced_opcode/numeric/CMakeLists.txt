@@ -76,9 +76,9 @@ add_custom_command(TARGET enhanced_numeric_opcodes_test POST_BUILD
 )
 
 # Copy i32_rotr WASM test files to build directory for test execution
-add_custom_command(TARGET enhanced_numeric_opcodes_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/i32_rotr/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying i32_rotr WASM test files to build directory"
-)
+# add_custom_command(TARGET enhanced_numeric_opcodes_test POST_BUILD
+#     COMMAND ${CMAKE_COMMAND} -E copy_directory
+#     ${CMAKE_CURRENT_SOURCE_DIR}/i32_rotr/wasm-apps
+#     ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
+#     COMMENT "Copying i32_rotr WASM test files to build directory"
+# )
