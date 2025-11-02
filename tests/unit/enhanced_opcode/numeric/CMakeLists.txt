@@ -60,6 +60,9 @@ add_executable(enhanced_numeric_opcodes_test ${unit_test_sources})
 # Link required libraries
 target_link_libraries(enhanced_numeric_opcodes_test ${LLVM_AVAILABLE_LIBS} gtest_main)
 
+# Add subdirectories for individual test suites
+add_subdirectory(i32_rotr)
+
 # Enable test discovery
 include(GoogleTest)
 gtest_discover_tests(enhanced_numeric_opcodes_test)
