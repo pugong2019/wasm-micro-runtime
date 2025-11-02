@@ -61,7 +61,7 @@ add_executable(enhanced_numeric_opcodes_test ${unit_test_sources})
 target_link_libraries(enhanced_numeric_opcodes_test ${LLVM_AVAILABLE_LIBS} gtest_main)
 
 # Add subdirectories for individual test suites
-add_subdirectory(i32_rotr)
+# add_subdirectory(i32_rotr)  # Integrated into main executable
 
 # Enable test discovery
 include(GoogleTest)
@@ -73,4 +73,12 @@ add_custom_command(TARGET enhanced_numeric_opcodes_test POST_BUILD
     ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
     ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
     COMMENT "Copying WASM test files to build directory"
+)
+
+# Copy i32_rotr WASM test files to build directory for test execution
+add_custom_command(TARGET enhanced_numeric_opcodes_test POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/i32_rotr/wasm-apps
+    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
+    COMMENT "Copying i32_rotr WASM test files to build directory"
 )
