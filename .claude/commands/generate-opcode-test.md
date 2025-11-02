@@ -295,6 +295,32 @@ Group related scenarios to reduce method proliferation:
 | **Edge** | Consolidate mathematical properties | Group identity/inverse operations |
 | **Exception** | Group error scenarios | Combine similar trap conditions |
 
+**🚨 CRITICAL RULE: Avoid Redundant Test Cases**
+
+**MANDATORY TEST EFFICIENCY PRINCIPLE**:
+- **Generate TYPICAL cases only** - One representative test per category is sufficient
+- **Do NOT generate exhaustive permutations** of similar test scenarios
+- **Focus on DISTINCT validation concepts** rather than input variations
+
+**Examples:**
+```cpp
+// ✅ CORRECT: Single representative test per concept
+TEST_P(I32AddTest, BasicAddition_ReturnsCorrectSum) {
+    ASSERT_EQ(call_i32_add(1, 1), 2);        // One typical positive case is sufficient
+}
+
+// ❌ FORBIDDEN: Multiple similar cases for same concept
+TEST_P(I32AddTest, BasicAddition_Case1) { ASSERT_EQ(call_i32_add(1, 1), 2); }
+TEST_P(I32AddTest, BasicAddition_Case2) { ASSERT_EQ(call_i32_add(1, 2), 3); }
+TEST_P(I32AddTest, BasicAddition_Case3) { ASSERT_EQ(call_i32_add(1, 3), 4); }
+```
+
+**EFFICIENCY GUIDELINES:**
+- **Boundary values**: Test MIN/MAX, not intermediate values
+- **Sign variations**: Test positive/negative/zero, not multiple positive numbers
+- **Type patterns**: Test one example per data type combination
+- **Mathematical properties**: Validate the property once, not with multiple examples
+
 **Implementation Example:**
 ```cpp
 // ✅ RECOMMENDED: Consolidated approach
