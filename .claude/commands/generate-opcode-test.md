@@ -355,11 +355,17 @@ tests/unit/enhanced_opcode/{CATEGORY}/
 
 #### Step 3.2: GTest Framework File Generation
 Generate the main C++ test file `enhanced_{opcode}_test.cc`:
+
+**File Structure and Headers:**
 - **Include proper headers**: WAMR runtime, GTest, test utilities
-- **Implement test fixture class**: Inherit from `testing::TestWithParam<RunningMode>`
-- **SetUp/TearDown methods**: WAMR initialization and cleanup with RAII
-- **Test parameter setup**: Configure interpreter and AOT modes
-- **Helper functions**: Common test utilities and WASM module loaders
+- **Header comments**: Add comprehensive file header with description, purpose, and coverage goals
+- **Import line comments**: Document the purpose of each critical #include directive
+
+**Class and Method Documentation:**
+- **Test fixture class**: Inherit from `testing::TestWithParam<RunningMode>` with comprehensive class documentation
+- **SetUp/TearDown methods**: WAMR initialization and cleanup with RAII, including method documentation
+- **Test parameter setup**: Configure interpreter and AOT modes with parameter documentation
+- **Helper functions**: Common test utilities and WASM module loaders with detailed function documentation
 
 #### Step 3.3: Common Header File Generation (if needed)
 Generate `{opcode}_common.h` if shared definitions are needed:
@@ -396,6 +402,56 @@ Generate comprehensive build configuration:
 #### Step 3.6: Test Case Implementation
 Implement ALL test cases from Phase 2 with mandatory quality standards:
 
+**🚨 MANDATORY: Test Function Documentation Requirements**
+Every test case function MUST include comprehensive documentation:
+
+**Required Test Function Documentation Format:**
+```cpp
+/**
+ * @test {TestCategory}_{TestScenario}_{ExpectedOutcome}
+ * @brief {Brief description of what this test validates}
+ * @details {Detailed explanation of test purpose and validation logic}
+ * @test_category {Main/Corner/Edge/Error} - Test category from Phase 2 planning
+ * @coverage_target {Specific WAMR source functions being tested}
+ * @input_conditions {Description of test input setup and conditions}
+ * @expected_behavior {Exact expected behavior and validation criteria}
+ * @validation_method {How the test verifies correct behavior}
+ */
+TEST_P({Opcode}Test, {TestCategory}_{TestScenario}_{ExpectedOutcome}) {
+    // Test implementation with documented steps
+}
+```
+
+**Documentation Example:**
+```cpp
+/**
+ * @test BasicAddition_ReturnsCorrectSum
+ * @brief Validates i32.add produces correct arithmetic results for typical inputs
+ * @details Tests fundamental addition operation with positive, negative, and mixed-sign integers.
+ *          Verifies that i32.add correctly computes a + b for various input combinations.
+ * @test_category Main - Basic functionality validation
+ * @coverage_target core/iwasm/interpreter/wasm_interp_classic.c:i32_add_operation
+ * @input_conditions Standard integer pairs: (5,3), (-10,-15), (20,-8)
+ * @expected_behavior Returns mathematical sum: 8, -25, 12 respectively
+ * @validation_method Direct comparison of WASM function result with expected values
+ */
+TEST_P(I32AddTest, BasicAddition_ReturnsCorrectSum) {
+    // Load WASM module with i32.add test function
+    wasm_module_t module = load_test_module("i32_add_test.wasm");
+    ASSERT_NE(nullptr, module) << "Failed to load i32.add test module";
+
+    // Execute test cases with documented validation
+    ASSERT_EQ(8, call_i32_add(5, 3))      << "Addition of positive integers failed";
+    ASSERT_EQ(-25, call_i32_add(-10, -15)) << "Addition of negative integers failed";
+    ASSERT_EQ(12, call_i32_add(20, -8))    << "Addition of mixed-sign integers failed";
+}
+```
+
+**Implementation Requirements:**
+- **Test function documentation**: Every TEST_P function must have comprehensive header documentation
+- **Inline code comments**: Document critical operations, WASM module loading, function calls
+- **Assertion documentation**: Include descriptive messages for all ASSERT_* statements
+
 **CRITICAL: Mandatory ASSERT Usage Rule**
 Eliminate ALL conditional blocks in GTest cases - Use ASSERT_* exclusively:
 
@@ -427,6 +483,9 @@ ASSERT_EQ(nullptr, underflow_module)
 - **Corner case tests**: Implement all boundary condition test cases
 - **Edge case tests**: Implement all extreme scenario test cases
 - **Error exception tests**: Implement all invalid scenario test cases
+- **🚨 MANDATORY DOCUMENTATION**: Every TEST_P function must have comprehensive header documentation with @test, @brief, @details, @test_category, @coverage_target, @input_conditions, @expected_behavior, @validation_method tags
+- **Code comments**: Add inline comments for critical operations, module loading, and function calls
+- **Import documentation**: Document the purpose of each #include directive with inline comments
 - **ASSERT-only validation**: Use ASSERT_* statements exclusively (never EXPECT_*)
 - **Descriptive messages**: Include context in all assertion failure messages
 - **No conditional logic**: Eliminate all if/else blocks in test methods
@@ -546,6 +605,7 @@ Document build and test execution results:
 - **UPDATE TODO AFTER EACH STEP**: Mark step as completed in TODO list immediately after finishing
 - **ITERATIVE REQUIREMENT**: Repeat steps 5.3-5.5 until ALL issues are resolved
 - **ESCALATION LIMIT**: Maximum 3 resolution attempts before declaring FAILURE
+- **🚨 CRITICAL: PRESERVE TEST INTENTION**: When fixing issues, NEVER change the test's original purpose or validation logic - only fix technical problems while maintaining the exact same test objectives and coverage goals
 
 Execute systematic issue resolution through iterative steps:
 
@@ -567,11 +627,27 @@ Classify each identified issue into specific categories:
 
 #### Step 5.3: Targeted Resolution Application
 Apply specific fixes based on issue categorization:
+
+**🚨 CRITICAL RULE: PRESERVE TEST INTENTION AT ALL TIMES**
+- **NEVER modify test objectives**: The original test purpose MUST remain unchanged
+- **NEVER weaken test coverage**: Do not reduce the scope or rigor of test validation
+- **NEVER change expected behavior**: Maintain the exact same validation logic and assertions
+- **ONLY fix technical problems**: Address syntax, compilation, runtime issues without changing test goals
+
+**Permitted Fix Categories:**
 - **For compilation issues**: Add missing includes, fix syntax, resolve dependencies
 - **For runtime issues**: Add null checks, fix memory management, validate pointers
-- **For test logic issues**: Correct expected values, fix test setup, improve assertions
+- **For test logic issues**: Correct expected values ONLY if they were factually wrong, fix test setup, improve assertion messages (but not assertion logic)
 - **For coverage issues**: Fix coverage configuration, ensure proper tool installation
 - **For build issues**: Update CMakeLists.txt, add missing flags, resolve dependencies
+
+**FORBIDDEN Fix Actions:**
+- ❌ Changing test scenarios to make them "easier" to pass
+- ❌ Reducing the number of test cases or assertions
+- ❌ Modifying expected values to match incorrect implementation behavior
+- ❌ Removing "difficult" test cases that expose real issues
+- ❌ Weakening validation criteria to avoid failures
+- ❌ Adding GTEST_SKIP() to bypass failing tests
 
 #### Step 5.4: Iterative Verification
 Re-run build and test to confirm issue resolution:
@@ -588,6 +664,7 @@ ctest --test-dir build/enhanced_opcode/{CATEGORY} --output-on-failure --verbose
 - Confirm specific fixes resolve identified issues
 - Ensure no new issues are introduced
 - Validate that all previously passing tests still pass
+- **🚨 VERIFY TEST INTENTION PRESERVED**: Confirm that all test objectives, coverage goals, and validation logic remain exactly as originally designed
 
 #### Step 5.5: Resolution Iteration
 Continue resolution cycles until complete success:
@@ -707,7 +784,12 @@ Validate ALL items before completion:
 - [ ] **Test Quality**: Zero GTEST_SKIP() calls or placeholder assertions
 - [ ] **Build Success**: Build process completes without errors or warnings
 - [ ] **Test Success**: All generated test cases pass (100% success rate)
-- [ ] **Documentation**: Function comments with source locations included
+- [ ] **🚨 COMPREHENSIVE DOCUMENTATION**:
+  - [ ] File header with @file, @brief, @details, @coverage_target, @test_modes documentation
+  - [ ] All #include directives have inline comments explaining their purpose
+  - [ ] Every TEST_P function has complete @test documentation block
+  - [ ] All critical code sections have inline comments
+  - [ ] Function comments include source locations and coverage targets
 - [ ] **Resource Management**: Proper SetUp/TearDown implementation
 - [ ] **Repository Integration**: Git commit using EXACT template format
 
@@ -728,6 +810,7 @@ The LLM executing this workflow is **STRICTLY REQUIRED** to follow every step in
 3. **COMPLETE STEP VALIDATION**: Each step must meet ALL specified criteria before proceeding
 4. **NO CREATIVE ADDITIONS**: Do not add steps, modify requirements, or deviate from prescribed methods
 5. **EXACT TEMPLATE USAGE**: Use only the specified templates, commands, and formats provided
+6. **🚨 PRESERVE TEST INTENTION**: Throughout ALL phases, especially during issue resolution, NEVER compromise the original test objectives, coverage goals, or validation logic - only fix technical problems while maintaining the exact same test purpose
 
 ### VIOLATION CONSEQUENCES:
 - **IMMEDIATE TERMINATION**: Any step skipping results in immediate workflow termination
