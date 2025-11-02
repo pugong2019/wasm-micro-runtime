@@ -46,7 +46,7 @@ Generate complete, production-ready WASM opcode test suites using a systematic 6
 - [ ] 3.2 enhanced_{opcode}_test.cc generation with GTest framework
 - [ ] 3.3 {opcode}_common.h header file generation (if needed)
 - [ ] 3.4 Comprehensive WASM test files generation ({opcode}_test.wat and .wasm)
-- [ ] 3.5 CMakeLists.txt generation with proper dependencies and coverage support
+- [ ] 3.5 CMakeLists.txt generation with proper dependencies
 - [ ] 3.6 ALL test cases implementation with meaningful ASSERT_* statements (NO GTEST_SKIP/SUCCEED/FAIL)
 
 ### Phase 4: Build & Test Execution
@@ -58,17 +58,16 @@ Generate complete, production-ready WASM opcode test suites using a systematic 6
 
 ### Phase 5: Issue Detection & Resolution (Conditional - Only if Phase 4 fails)
 - [ ] 5.1 Compilation errors, runtime crashes, or assertion failures analysis
-- [ ] 5.2 Issue categorization (compilation, runtime, test logic, coverage)
+- [ ] 5.2 Issue categorization (compilation, runtime, test logic, ...)
 - [ ] 5.3 Targeted fixes application (missing includes, null checks, correct expected values)
 - [ ] 5.4 Re-run build and test to confirm resolution
 - [ ] 5.5 Iterate until all issues resolved and tests pass
 
 ### Phase 6: Code Review & Standardized Commit
 - [ ] 6.1 Comprehensive code quality review
-- [ ] 6.2 Test coverage validation across all scenarios
-- [ ] 6.3 Performance and resource usage assessment
-- [ ] 6.4 Files staging and standardized commit message creation
-- [ ] 6.5 Commit execution and repository state validation
+- [ ] 6.2 Performance and resource usage assessment
+- [ ] 6.3 Files staging and standardized commit message creation
+- [ ] 6.4 Commit execution and repository state validation
 ```
 
 ### TODO Update Protocol
@@ -124,7 +123,7 @@ After EVERY task completion:
 
 8. Generating partial test suites or missing test categories  
 9. Accepting compilation warnings, test failures, or runtime crashes  
-10. Missing function comments with source location and coverage goals  
+10. Missing function comments with source location
 11. Adding content beyond specified commit message template  
 
 ### Critical Success Gates
@@ -132,7 +131,7 @@ After EVERY task completion:
 - **Gate 1 (Phase 1)**: Comprehensive opcode analysis with category classification
 - **Gate 2 (Phase 2)**: Complete test strategy with all 4 test categories
 - **Gate 3 (Phase 3)**: Production-ready code with proper directory structure
-- **Gate 4 (Phase 4)**: Build successful with 100% test pass rate and measurable coverage
+- **Gate 4 (Phase 4)**: Build successful with 100% test pass rate
 - **Gate 5 (Phase 5)**: All issues resolved (conditional - only if Phase 4 fails)
 - **Gate 6 (Phase 6)**: Quality review passed and standardized commit created
 
@@ -394,8 +393,6 @@ Generate the main C++ test file `enhanced_{opcode}_test.cc`:
 
 **File Structure and Headers:**
 - **Include proper headers**: WAMR runtime, GTest, test utilities
-- **Header comments**: Add comprehensive file header with description, purpose, and coverage goals
-- **Import line comments**: Document the purpose of each critical #include directive
 
 **Class and Method Documentation:**
 - **Test fixture class**: Inherit from `testing::TestWithParam<RunningMode>` with comprehensive class documentation
@@ -674,7 +671,6 @@ Apply specific fixes based on issue categorization:
 - **For compilation issues**: Add missing includes, fix syntax, resolve dependencies
 - **For runtime issues**: Add null checks, fix memory management, validate pointers
 - **For test logic issues**: Correct expected values ONLY if they were factually wrong, fix test setup, improve assertion messages (but not assertion logic)
-- **For coverage issues**: Fix coverage configuration, ensure proper tool installation
 - **For build issues**: Update CMakeLists.txt, add missing flags, resolve dependencies
 
 **FORBIDDEN Fix Actions:**
@@ -700,7 +696,7 @@ ctest --test-dir build/enhanced_opcode/{CATEGORY} --output-on-failure --verbose
 - Confirm specific fixes resolve identified issues
 - Ensure no new issues are introduced
 - Validate that all previously passing tests still pass
-- **🚨 VERIFY TEST INTENTION PRESERVED**: Confirm that all test objectives, coverage goals, and validation logic remain exactly as originally designed
+- **🚨 VERIFY TEST INTENTION PRESERVED**: Confirm that all test objectives, and validation logic remain exactly as originally designed
 
 #### Step 5.5: Resolution Iteration
 Continue resolution cycles until complete success:
@@ -738,16 +734,7 @@ Perform thorough code quality assessment:
 - **Code organization**: Review file structure, includes, and function organization
 - **Documentation completeness**: Verify function comments with source locations
 
-#### Step 6.2: Test Coverage Validation
-Analyze comprehensive test coverage across all scenarios:
-- **Main routine coverage**: Confirm all basic functionality scenarios are tested
-- **Corner case coverage**: Verify all boundary conditions are covered
-- **Edge case coverage**: Ensure all extreme scenarios are tested
-- **Error exception coverage**: Validate all error conditions are properly tested
-- **Cross-mode coverage**: Confirm testing across interpreter and AOT modes
-- **Coverage metrics**: Document coverage percentage improvement
-
-#### Step 6.3: Performance and Resource Assessment
+#### Step 6.2: Performance and Resource Assessment
 Evaluate execution efficiency and resource utilization:
 - **Execution time validation**: Ensure reasonable test execution duration
 - **Memory usage assessment**: Confirm efficient memory utilization
@@ -755,7 +742,7 @@ Evaluate execution efficiency and resource utilization:
 - **Build time evaluation**: Document compilation time requirements
 - **Test scalability**: Assess performance with larger test datasets
 
-#### Step 6.4: Files Staging and Commit Message Creation
+#### Step 6.3: Files Staging and Commit Message Creation
 Prepare files for commit with standardized process:
 ```bash
 cd tests/unit/
@@ -771,7 +758,7 @@ git add {OPCODE_NAME}_common.h  # if exists
 git add enhanced_opcode/CMakeLists.txt  # if modified
 ```
 
-#### Step 6.5: Commit Execution and Repository State Validation
+#### Step 6.4: Commit Execution and Repository State Validation
 **MUST** execute commit with exact template format, no any other extra content:
 ```bash
 git commit -s -m "Enhanced unit tests for {OPCODE_NAME} opcode - Comprehensive test coverage
@@ -822,7 +809,6 @@ Validate ALL items before completion:
 - [ ] **🚨 COMPREHENSIVE DOCUMENTATION**:
 - [ ] Every TEST_P function has complete @test documentation block
 - [ ] All critical code sections have inline comments
-- [ ] Function comments include source locations and coverage targets
 - [ ] **Resource Management**: Proper SetUp/TearDown implementation
 - [ ] **Repository Integration**: Git commit using EXACT template format
 
@@ -843,7 +829,7 @@ The LLM executing this workflow is **STRICTLY REQUIRED** to follow every step in
 3. **COMPLETE STEP VALIDATION**: Each step must meet ALL specified criteria before proceeding
 4. **NO CREATIVE ADDITIONS**: Do not add steps, modify requirements, or deviate from prescribed methods
 5. **EXACT TEMPLATE USAGE**: Use only the specified templates, commands, and formats provided
-6. **🚨 PRESERVE TEST INTENTION**: Throughout ALL phases, especially during issue resolution, NEVER compromise the original test objectives, coverage goals, or validation logic - only fix technical problems while maintaining the exact same test purpose
+6. **🚨 PRESERVE TEST INTENTION**: Throughout ALL phases, especially during issue resolution, NEVER compromise the original test objectives, or validation logic - only fix technical problems while maintaining the exact same test purpose
 
 ### VIOLATION CONSEQUENCES:
 - **IMMEDIATE TERMINATION**: Any step skipping results in immediate workflow termination
