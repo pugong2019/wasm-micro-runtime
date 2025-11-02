@@ -190,6 +190,13 @@ tests/unit/enhanced_opcode/{CATEGORY}/
 - NO GTEST_SKIP(), SUCCEED(), or FAIL() calls
 - Generate comprehensive WASM test files (.wat and .wasm)
 - Create proper CMakeLists.txt with dependencies and coverage support
+- **CMakeLists.txt Build Structure**: Follow the build structure pattern from `memory64/CMakeLists.txt` including:
+  - Proper WAMR build flags (WAMR_BUILD_INTERP, WAMR_BUILD_AOT, etc.)
+  - Add or modify related build MACRO flags to enable the opcode feature being tested
+  - Include `unit_common.cmake` for shared build configuration
+  - Set appropriate definitions (e.g., `-DRUN_ON_LINUX`)
+  - Link against required libraries (gtest_main, LLVM if needed)
+  - Copy WASM test files to build directory with POST_BUILD commands
 
 **After Phase 3**: Update TODO list marking tasks 3.1-3.6 as completed, display progress percentage, declare Phase 4 as next.
 
