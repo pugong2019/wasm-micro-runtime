@@ -1,0 +1,67 @@
+{
+  "opcodes": [
+    {
+      "opcode": "i32.shr_s",
+      "status": "in_progress",
+      "execution_date": "2025-11-03T00:00:00",
+      "commit_message": "Enhanced unit tests for i32.shr_s opcode - Comprehensive test coverage",
+      "test_count": "",
+      "commit_hash": "",
+      "notes": "Starting test generation..."
+    },
+    {
+      "opcode": "i32.shr_u",
+      "status": " pending",
+      "execution_date": " ",
+      "commit_message": " ",
+      "test_count": 8,
+      "commit_hash": " ",
+      "notes": " "
+    },
+    {
+      "opcode": "i32.shl",
+      "status": "pending",
+      "execution_date": " ",
+      "commit_message": " ",
+      "test_count": 0,
+      "commit_hash": "",
+      "notes": ""
+    },
+    {
+      "opcode": "i32.rtor",
+      "status": " pending",
+      "execution_date": " ",
+      "commit_message": " ",
+      "test_count": 8,
+      "commit_hash": " ",
+      "notes": " "
+    },
+    {
+      "opcode": "i64.clz",
+      "status": " pending",
+      "execution_date": " ",
+      "commit_message": " ",
+      "test_count": 8,
+      "commit_hash": " ",
+      "notes": " "
+    },
+    {
+      "opcode": "i64.ctz",
+      "status": " pending",
+      "execution_date": " ",
+      "commit_message": " ",
+      "test_count": 8,
+      "commit_hash": " ",
+      "notes": " "
+    },
+    {
+      "opcode": "i64.popcnt",
+      "status": " pending",
+      "execution_date": " ",
+      "commit_message": " ",
+      "test_count": 8,
+      "commit_hash": " ",
+      "notes": " "
+    }
+  ]
+}
