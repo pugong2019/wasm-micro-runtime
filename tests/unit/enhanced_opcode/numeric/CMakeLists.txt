@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.14)
 
 project(test-enhanced-numeric-opcodes)
 
-# Enable required WAMR build flags for numeric opcode testing (i32.add, i32.ctz, i32.popcnt, i64.clz)
+# Enable required WAMR build flags for numeric opcode testing (i32.add, i32.ctz, i32.popcnt, i32.rotr, i64.clz, i64.rotl, i64.rotr)
 set(WAMR_BUILD_INTERP 1)
 set(WAMR_BUILD_AOT 1)
 set(WAMR_BUILD_JIT 1)
