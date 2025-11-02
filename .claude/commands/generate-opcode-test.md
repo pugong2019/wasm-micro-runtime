@@ -134,9 +134,6 @@ After EVERY task completion:
 - **Gate 4 (Phase 4)**: Build successful with 100% test pass rate
 - **Gate 5 (Phase 5)**: All issues resolved (conditional - only if Phase 4 fails)
 - **Gate 6 (Phase 6)**: Quality review passed and standardized commit created
-
-**FAILURE ESCALATION**: If any gate fails after 3 attempts, mark task as FAILED and document blocking issues.
-
 ---
 
 ## Sequential Execution Workflow
@@ -699,7 +696,7 @@ ctest --test-dir build/enhanced_opcode/{CATEGORY} --output-on-failure --verbose
 - **🚨 VERIFY TEST INTENTION PRESERVED**: Confirm that all test objectives, and validation logic remain exactly as originally designed
 
 #### Step 5.5: Resolution Iteration
-Continue resolution cycles until complete success:
+**Continue resolution cycles until complete success or max 3 iteration arrived:**
 - **Issue tracking**: Maintain list of resolved vs. remaining issues
 - **Progress monitoring**: Document resolution progress after each iteration
 - **Escalation criteria**: If 3 resolution attempts fail, escalate to FAILURE status
@@ -712,7 +709,46 @@ Continue resolution cycles until complete success:
 - ✅ All test assertions pass
 - ✅ Build system operates correctly
 
-**Phase 5 Completion**: Update TODO list marking tasks 5.1-5.5 as completed, then declare Phase 6 as next.
+
+**FAILURE ESCALATION**: If issue not fixed after max attempts, mark task as FAILED and document blocking issues.
+
+### Critical Failure Recovery Protocol
+
+**🚨 MAXIMUM FIX ITERATION RULE**: If maximum fix iterations are achieved but task still fails:
+
+1. **Revert All Modifications**: Drop all changes made during the test generation:
+   - **If committed files modified** (code, CMakeLists.txt, WASM/WAT files): Execute `git checkout` to revert modifications to original state
+   - **If new files generated**: Delete all newly created files completely
+   - **🚨 CRITICAL**: NEVER delete committed files - only revert modifications or remove newly generated files
+
+2. **Clean Repository State**: Ensure working directory returns to pre-task state:
+```bash
+# Revert modifications to committed files (DO NOT DELETE committed files)
+git checkout -- {modified_files}
+
+# Remove ONLY newly generated files (not committed files)
+rm -f tests/unit/enhanced_opcode/{CATEGORY}/enhanced_{opcode}_test.cc
+rm -f tests/unit/enhanced_opcode/{CATEGORY}/wasm-apps/{opcode}_test.wat
+rm -f tests/unit/enhanced_opcode/{CATEGORY}/wasm-apps/{opcode}_test.wasm
+# Remove newly created CMakeLists.txt only if it was newly created (not modified)
+# If CMakeLists.txt existed and was modified, use git checkout instead
+
+# Check git status to distinguish between new and modified files
+git status --porcelain
+```
+
+3. **Generate Failure Summary**: Document comprehensive failure report including:
+   - Root cause analysis of persistent failures
+   - Attempted resolution strategies and their outcomes
+   - Technical barriers that prevented successful completion
+   - Recommendations for alternative approaches or manual intervention
+
+4. **Skip Remaining Tasks**: After failure recovery:
+   - **SKIP all remaining Phases/steps** in the current workflow
+   - **TERMINATE the task immediately** - do not attempt further work
+   - Mark TODO list items as "SKIPPED due to irrecoverable failure"
+
+**Phase 5 Completion**: Update TODO list marking tasks 5.1-5.5 as completed, then declare Phase 6 as next if not fail.
 
 ### PHASE 6: Code Review & Standardized Commit
 
