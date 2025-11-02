@@ -476,6 +476,8 @@ TEST_P(I32AddTest, BasicAddition_ReturnsCorrectSum) {
 **Implementation Requirements:**
 - **Test function documentation**: Every TEST_P function must have comprehensive header documentation
 - **Assertion documentation**: Include descriptive messages for all ASSERT_* statements
+- **Header file documentation**: DO NOT add comment for included header file
+
 
 **CRITICAL: Mandatory ASSERT Usage Rule**
 Eliminate ALL conditional blocks in GTest cases - Use ASSERT_* exclusively:
