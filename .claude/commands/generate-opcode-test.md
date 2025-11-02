@@ -143,12 +143,42 @@ After EVERY task completion:
 
 ## Sequential Execution Workflow
 
-**CRITICAL FIRST STEP**:  
+## 🚨 ABSOLUTE COMPLIANCE REQUIREMENTS 🚨
+
+**MANDATORY EXECUTION ORDER - NO EXCEPTIONS PERMITTED:**
+
+### STRICT ADHERENCE RULES (NON-NEGOTIABLE):
+1. **SEQUENTIAL EXECUTION ONLY**: Execute phases in EXACT order: 1→2→3→4→(5 if needed)→6
+2. **NO STEP SKIPPING**: Complete EVERY sub-step within each phase before proceeding
+3. **NO SHORTCUTS**: Follow ALL validation criteria and checkpoints
+4. **NO IMPROVISATION**: Do not deviate from prescribed methods or add unlisted steps
+5. **MANDATORY TODO TRACKING**: Update TODO list after EVERY single step completion
+
+### ZERO TOLERANCE VIOLATIONS:
+- ❌ Starting any phase without completing the previous phase entirely
+- ❌ Skipping any numbered sub-step within a phase
+- ❌ Proceeding without proper validation at each checkpoint
+- ❌ Bypassing TODO list updates after step completion
+- ❌ Adding custom steps or modifications to the prescribed workflow
+
+### ENFORCEMENT PROTOCOL:
+- **IMMEDIATE FAILURE**: Any deviation from prescribed steps results in IMMEDIATE task failure
+- **NO RECOVERY**: Violations cannot be corrected - task must be restarted from Phase 1
+- **STRICT VALIDATION**: Each step must meet ALL specified criteria before proceeding
+
+---
+
+**CRITICAL FIRST STEP**:
 Create the standardized TODO list using the TodoWrite tool before starting any work.
 
-Execute this workflow for the opcode `${1}` with mandatory TODO list management:
+**EXECUTE THIS WORKFLOW FOR THE OPCODE `${1}` WITH ABSOLUTE ADHERENCE TO EVERY STEP:**
 
 ### PHASE 1: Ultra-Deep Opcode Analysis
+
+**🔒 MANDATORY PHASE 1 COMPLIANCE:**
+- **EXECUTE ALL 6 STEPS IN ORDER**: Steps 1.1 → 1.2 → 1.3 → 1.4 → 1.5 → 1.6 (NO EXCEPTIONS)
+- **COMPLETE EACH STEP FULLY**: Do not proceed to next step until current step is 100% complete
+- **UPDATE TODO AFTER EACH STEP**: Mark step as completed in TODO list immediately after finishing
 
 Perform comprehensive analysis of the target opcode through sequential steps:
 
@@ -197,6 +227,12 @@ Classify into one of these categories based on analysis:
 Update TODO list marking tasks 1.1-1.6 as completed, display progress percentage, declare Phase 2 as next.
 
 ### PHASE 2: Strategic Test Planning
+
+**🔒 MANDATORY PHASE 2 COMPLIANCE:**
+- **EXECUTE ALL 6 STEPS IN ORDER**: Steps 2.1 → 2.2 → 2.3 → 2.4 → 2.5 → 2.6 (NO EXCEPTIONS)
+- **COMPLETE EACH STEP FULLY**: Do not proceed to next step until current step is 100% complete
+- **UPDATE TODO AFTER EACH STEP**: Mark step as completed in TODO list immediately after finishing
+- **PREREQUISITE CHECK**: Ensure Phase 1 is 100% complete before starting Phase 2
 
 Generate comprehensive test strategy through systematic planning steps:
 
@@ -283,6 +319,13 @@ TEST_P(I32AddTest, BasicAddition_SmallNegatives_ReturnsCorrectSum) { ... }
 Update TODO list marking tasks 2.1-2.6 as completed, display progress percentage, declare Phase 3 as next.
 
 ### PHASE 3: Complete Code Generation
+
+**🔒 MANDATORY PHASE 3 COMPLIANCE:**
+- **EXECUTE ALL 6 STEPS IN ORDER**: Steps 3.1 → 3.2 → 3.3 → 3.4 → 3.5 → 3.6 (NO EXCEPTIONS)
+- **COMPLETE EACH STEP FULLY**: Do not proceed to next step until current step is 100% complete
+- **UPDATE TODO AFTER EACH STEP**: Mark step as completed in TODO list immediately after finishing
+- **PREREQUISITE CHECK**: Ensure Phase 2 is 100% complete before starting Phase 3
+- **NO CODE SHORTCUTS**: Generate ALL required files as specified in each step
 
 Generate production-ready test suite through systematic implementation steps:
 
@@ -403,6 +446,13 @@ Update TODO list marking tasks 3.1-3.6 as completed, display progress percentage
 
 ### PHASE 4: Build & Test Execution
 
+**🔒 MANDATORY PHASE 4 COMPLIANCE:**
+- **EXECUTE ALL 6 STEPS IN ORDER**: Steps 4.1 → 4.2 → 4.3 → 4.4 → 4.5 → 4.6 (NO EXCEPTIONS)
+- **COMPLETE EACH STEP FULLY**: Do not proceed to next step until current step is 100% complete
+- **UPDATE TODO AFTER EACH STEP**: Mark step as completed in TODO list immediately after finishing
+- **PREREQUISITE CHECK**: Ensure Phase 3 is 100% complete before starting Phase 4
+- **MANDATORY SUCCESS**: All build and test steps MUST succeed before proceeding to Phase 6
+
 Execute the build and test process through systematic steps:
 
 #### Step 4.1: Build Environment Setup
@@ -490,6 +540,13 @@ Document build and test execution results:
 ### PHASE 5: Issue Detection & Resolution
 **(Conditional - Apply only if Phase 4 fails)**
 
+**🔒 MANDATORY PHASE 5 COMPLIANCE:**
+- **EXECUTE ALL 5 STEPS IN ORDER**: Steps 5.1 → 5.2 → 5.3 → 5.4 → 5.5 (NO EXCEPTIONS)
+- **COMPLETE EACH STEP FULLY**: Do not proceed to next step until current step is 100% complete
+- **UPDATE TODO AFTER EACH STEP**: Mark step as completed in TODO list immediately after finishing
+- **ITERATIVE REQUIREMENT**: Repeat steps 5.3-5.5 until ALL issues are resolved
+- **ESCALATION LIMIT**: Maximum 3 resolution attempts before declaring FAILURE
+
 Execute systematic issue resolution through iterative steps:
 
 #### Step 5.1: Comprehensive Issue Detection
@@ -550,6 +607,13 @@ Continue resolution cycles until complete success:
 **Phase 5 Completion**: Update TODO list marking tasks 5.1-5.5 as completed, then declare Phase 6 as next.
 
 ### PHASE 6: Code Review & Standardized Commit
+
+**🔒 MANDATORY PHASE 6 COMPLIANCE:**
+- **EXECUTE ALL 5 STEPS IN ORDER**: Steps 6.1 → 6.2 → 6.3 → 6.4 → 6.5 (NO EXCEPTIONS)
+- **COMPLETE EACH STEP FULLY**: Do not proceed to next step until current step is 100% complete
+- **UPDATE TODO AFTER EACH STEP**: Mark step as completed in TODO list immediately after finishing
+- **PREREQUISITE CHECK**: Ensure Phase 4 (or Phase 5 if applicable) is 100% complete before starting Phase 6
+- **EXACT COMMIT FORMAT**: Use ONLY the specified commit template - NO modifications allowed
 
 Execute comprehensive final review and commit process:
 
@@ -650,3 +714,33 @@ Validate ALL items before completion:
 **ENFORCEMENT**: Any unchecked item constitutes IMMEDIATE FAILURE of the generation process.
 
 **EXECUTION ORDER**: Execute all phases sequentially. Only proceed to next phase after current phase completes successfully. Phase 5 is conditional - only execute if Phase 4 reports failures.
+
+---
+
+## 🚨 FINAL STRICT ENFORCEMENT DECLARATION 🚨
+
+### ABSOLUTE COMPLIANCE MANDATE:
+The LLM executing this workflow is **STRICTLY REQUIRED** to follow every step in the exact sequence specified. Any deviation, shortcut, or improvisation is **STRICTLY FORBIDDEN** and will result in **IMMEDIATE TASK FAILURE**.
+
+### NON-NEGOTIABLE REQUIREMENTS:
+1. **SEQUENTIAL STEP EXECUTION**: Complete steps 1.1→1.2→1.3→1.4→1.5→1.6, then 2.1→2.2→2.3→2.4→2.5→2.6, etc.
+2. **MANDATORY TODO UPDATES**: Update TODO list after EVERY single step completion - NO EXCEPTIONS
+3. **COMPLETE STEP VALIDATION**: Each step must meet ALL specified criteria before proceeding
+4. **NO CREATIVE ADDITIONS**: Do not add steps, modify requirements, or deviate from prescribed methods
+5. **EXACT TEMPLATE USAGE**: Use only the specified templates, commands, and formats provided
+
+### VIOLATION CONSEQUENCES:
+- **IMMEDIATE TERMINATION**: Any step skipping results in immediate workflow termination
+- **NO PARTIAL CREDIT**: Incomplete steps do not count toward phase completion
+- **RESTART REQUIREMENT**: Violations require complete restart from Phase 1
+- **ZERO TOLERANCE**: No exceptions or special circumstances permitted
+
+### SUCCESS VALIDATION:
+Task is complete ONLY when:
+- ✅ ALL 6 phases executed in exact sequence(Conditional for Phase 5 if Phase 4 Success)
+- ✅ ALL sub-steps within each phase completed fully
+- ✅ TODO list properly maintained throughout entire process
+- ✅ ALL quality gates and success criteria met
+- ✅ Commit created using EXACT template format
+
+**This workflow demands absolute precision and complete adherence to every specified requirement.**
