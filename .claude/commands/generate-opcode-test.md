@@ -12,7 +12,6 @@ Generate complete, production-ready WASM opcode test suites using a systematic 6
 /generate-opcode-test memory.grow
 /generate-opcode-test v128.add
 ```
-
 ---
 
 ## 🔐 MANDATORY: TODO List Management Protocol
@@ -151,17 +150,40 @@ Execute this workflow for the opcode `${1}` with mandatory TODO list management:
 
 ### PHASE 1: Ultra-Deep Opcode Analysis
 
-Perform comprehensive analysis of the target opcode:
+Perform comprehensive analysis of the target opcode through sequential steps:
 
-**Core Analysis Tasks:**
-1. **Semantic Analysis**: Identify primary function, purpose, and operation
-2. **Type System Analysis**: Determine input/output types, conversions, polymorphism
-3. **Stack Effect Analysis**: Document stack transformations (pop/push counts, positions)
-4. **Edge Case Discovery**: Identify boundary values, special numeric values, overflow conditions
-5. **Error Condition Mapping**: Map type mismatches, stack underflow, out-of-bounds access, traps
-6. **Category Classification**: Classify into appropriate category
+#### Step 1.1: Semantic Analysis
+- **Research opcode specification** from WebAssembly documentation
+- **Identify primary function**: What does this opcode do?
+- **Document operation purpose**: Why does this opcode exist?
+- **Map to runtime behavior**: How does WAMR implement this operation?
 
-**Opcode Categories:**
+#### Step 1.2: Type System Analysis
+- **Input types identification**: What types does the opcode consume from stack?
+- **Output types determination**: What types does the opcode produce on stack?
+- **Type conversion rules**: Any implicit conversions or validations?
+- **Polymorphism handling**: Does the opcode work with multiple types?
+
+#### Step 1.3: Stack Effect Analysis
+- **Stack pop behavior**: How many values removed and from which positions?
+- **Stack push behavior**: How many values added and to which positions?
+- **Net stack height change**: Calculate overall stack impact
+- **Stack state validation**: Document pre/post conditions
+
+#### Step 1.4: Edge Case Discovery
+- **Boundary value identification**: MIN/MAX values for numeric types
+- **Special numeric values**: NaN, Infinity, -0.0 for floating-point
+- **Overflow/underflow conditions**: When does arithmetic wrap or trap?
+- **Zero operand scenarios**: Behavior with zero inputs
+
+#### Step 1.5: Error Condition Mapping
+- **Type mismatch scenarios**: Wrong types on stack
+- **Stack underflow cases**: Insufficient stack values
+- **Out-of-bounds access**: Memory/table/element access violations
+- **Trap conditions**: When does the opcode cause execution traps?
+
+#### Step 1.6: Category Classification
+Classify into one of these categories based on analysis:
 - **Numeric**: `i32.add`, `f64.mul`, `i64.eqz` - Arithmetic, comparison, bitwise operations
 - **Memory**: `i32.load`, `memory.grow` - Load, store, memory control operations
 - **Control Flow**: `br_if`, `call`, `loop` - Branching, loops, function calls
@@ -171,38 +193,71 @@ Perform comprehensive analysis of the target opcode:
 
 **Reference**: Complete WebAssembly instruction set at https://webassembly.github.io/spec/core/appendix/index-instructions.html
 
-**Phase 1 Completion**:  
+**Phase 1 Completion**:
 Update TODO list marking tasks 1.1-1.6 as completed, display progress percentage, declare Phase 2 as next.
 
 ### PHASE 2: Strategic Test Planning
 
-Generate comprehensive test strategy with four distinct test categories:
+Generate comprehensive test strategy through systematic planning steps:
 
-**Test Categories:**
-1. **Main Routine Tests**: Basic functionality with typical input values
-2. **Corner Case Tests**: Boundary conditions, overflow/underflow, signed/unsigned boundaries
-3. **Edge Case Tests**: Zero operands, identity operations, extreme values (MIN/MAX, NaN, Infinity)
-4. **Error Exception Tests**: Invalid operand types, stack underflow, out-of-bounds access
+#### Step 2.1: Main Routine Test Case Design
+Design tests for basic opcode functionality:
+- **Typical input scenarios**: Common, expected use cases
+- **Standard value ranges**: Normal operational parameters
+- **Positive test cases**: Verify correct behavior under normal conditions
+- **Cross-execution mode validation**: Ensure consistency between interpreter and AOT modes
+- **Expected success outcomes**: Document anticipated results for valid inputs
 
-**Test Specification Requirements:**
-For each category, document:
-- Detailed test case descriptions
-- Specific input conditions and setup requirements
-- Expected outcomes and behaviors
-- Meaningful assertion statements
-- WASM module requirements
+#### Step 2.2: Corner Case Test Design
+Design tests for boundary conditions:
+- **Numeric boundaries**: MIN_VALUE, MAX_VALUE for integer types
+- **Signed/unsigned boundaries**: Test edge cases around zero and limits
+- **Overflow/underflow scenarios**: Values that cause arithmetic wrapping
+- **Type boundary conditions**: Largest/smallest values for each supported type
+- **Memory boundary cases**: Edge of valid memory ranges (for memory opcodes)
+
+#### Step 2.3: Edge Case Test Design
+Design tests for extreme and special scenarios:
+- **Zero operand scenarios**: Behavior with zero inputs
+- **Identity operations**: Operations that should return input unchanged
+- **Extreme values**: MIN/MAX, NaN, Infinity, -0.0 for floating-point
+- **Mathematical properties**: Commutative, associative, distributive validation
+- **Special numeric behaviors**: Denormal numbers, rounding modes
+
+#### Step 2.4: Error Exception Test Design
+Design tests for invalid scenarios and error conditions:
+- **Invalid operand types**: Wrong types on stack (type mismatch)
+- **Stack underflow scenarios**: Insufficient values on execution stack
+- **Out-of-bounds access**: Invalid memory/table/element indices
+- **Trap condition triggers**: Scenarios that should cause execution traps
+- **Runtime error validation**: Proper error handling and reporting
+
+#### Step 2.5: Cross-Execution Mode Validation Strategy Planning
+Plan validation across WAMR execution modes:
+- **Interpreter mode testing**: Direct bytecode interpretation validation
+- **AOT mode testing**: Ahead-of-time compiled module validation
+- **Consistency verification**: Ensure identical results across modes
+- **Performance comparison**: Document any behavioral differences
+- **Mode-specific optimizations**: Test optimized code paths
+
+#### Step 2.6: Detailed Test Case Specifications
+For each test category, document comprehensive specifications:
+- **Test case descriptions**: Clear, specific test scenario explanations
+- **Input conditions**: Exact parameter values and setup requirements
+- **Expected outcomes**: Precise anticipated results and behaviors
+- **Assertion statements**: Meaningful ASSERT_* validations with descriptive messages
+- **WASM module requirements**: Module structure, exports, and dependencies
 
 **Consolidated Test Case Design Strategy**
 
-Group related scenarios in single test methods to reduce method proliferation:
+Group related scenarios to reduce method proliferation:
 
-| Category | Implementation Strategy | Pattern |
-|----------|------------------------|---------|
+| Category | Implementation Strategy | Consolidation Pattern |
+|----------|------------------------|----------------------|
 | **Main** | Combine related scenarios | Group by operation type |
-| **Corner** | Group boundary conditions | Combine overflow/underflow |
-| **Edge** | Consolidate mathematical properties | Group identity/inverse |
-| **Exception** | Consolidate | Group |
-
+| **Corner** | Group boundary conditions | Combine overflow/underflow cases |
+| **Edge** | Consolidate mathematical properties | Group identity/inverse operations |
+| **Exception** | Group error scenarios | Combine similar trap conditions |
 
 **Implementation Example:**
 ```cpp
@@ -218,21 +273,33 @@ TEST_P(I32AddTest, BasicAddition_SmallPositives_ReturnsCorrectSum) { ... }
 TEST_P(I32AddTest, BasicAddition_SmallNegatives_ReturnsCorrectSum) { ... }
 ```
 
-**Naming Guidelines:**
-- Use broader, category-based names
+**Test Naming Guidelines:**
+- Use broader, category-based names (e.g., `BasicAddition_ReturnsCorrectSum`)
 - Focus on validation concept rather than specific input variations
 - Each method validates one primary concept through multiple assertions
+- Follow pattern: `TEST_P(OpcodeTest, Concept_ExpectedOutcome)`
 
-**Phase 2 Completion**:  
+**Phase 2 Completion**:
 Update TODO list marking tasks 2.1-2.6 as completed, display progress percentage, declare Phase 3 as next.
 
 ### PHASE 3: Complete Code Generation
 
-Generate production-ready test suite following this systematic approach:
+Generate production-ready test suite through systematic implementation steps:
 
-#### Step 1: Directory Structure Setup
-Create the required directory structure in `tests/unit/enhanced_opcode/{CATEGORY}/`:
-The directory structure should be like below:
+#### Step 3.1: Directory Structure Creation
+Create the complete directory structure in `tests/unit/enhanced_opcode/{CATEGORY}/`:
+```bash
+# Navigate to target location
+cd tests/unit/enhanced_opcode/
+
+# Create category directory if it doesn't exist
+mkdir -p {CATEGORY}
+
+# Create subdirectories
+mkdir -p {CATEGORY}/wasm-apps
+```
+
+**Required directory structure:**
 ```
 tests/unit/enhanced_opcode/{CATEGORY}/
 ├── CMakeLists.txt
@@ -243,11 +310,48 @@ tests/unit/enhanced_opcode/{CATEGORY}/
     └── {opcode}_test.wasm
 ```
 
-#### Step 2: CMakeLists Integration
-Add the newly generated directory to the parent CMakeLists.txt:
-- Update `tests/unit/enhanced_opcode/CMakeLists.txt` to include the new subdirectory
+#### Step 3.2: GTest Framework File Generation
+Generate the main C++ test file `enhanced_{opcode}_test.cc`:
+- **Include proper headers**: WAMR runtime, GTest, test utilities
+- **Implement test fixture class**: Inherit from `testing::TestWithParam<RunningMode>`
+- **SetUp/TearDown methods**: WAMR initialization and cleanup with RAII
+- **Test parameter setup**: Configure interpreter and AOT modes
+- **Helper functions**: Common test utilities and WASM module loaders
 
-#### Step 3: Code Generation Requirements
+#### Step 3.3: Common Header File Generation (if needed)
+Generate `{opcode}_common.h` if shared definitions are needed:
+- **Common constants**: Test values, buffer sizes, error codes
+- **Shared structures**: Test data containers, helper structs
+- **Utility macros**: Common assertions, test setup patterns
+- **Function declarations**: Shared helper function prototypes
+
+#### Step 3.4: WASM Test Module Generation
+Generate comprehensive WASM test files:
+
+**WAT file (`{opcode}_test.wat`):**
+- **Module structure**: Complete WASM module with all required sections
+- **Test functions**: Functions exercising the target opcode
+- **Export declarations**: Make test functions accessible from C++
+- **Memory/table setup**: Required memory or table sections (if applicable)
+- **Edge case scenarios**: Include all test cases from Phase 2 planning
+
+**WASM binary (`{opcode}_test.wasm`):**
+- **Compile WAT to WASM**: Use `wat2wasm` or equivalent tool
+- **Validate binary**: Ensure proper WASM format and structure
+- **Test loading**: Verify WAMR can load the generated module
+
+#### Step 3.5: CMakeLists.txt Build Configuration
+Generate comprehensive build configuration:
+- **WAMR build flags**: Enable required features (WAMR_BUILD_INTERP, WAMR_BUILD_AOT, etc.)
+- **Feature-specific flags**: Add macros to enable the opcode being tested
+- **Include unit_common.cmake**: Shared build configuration
+- **Platform definitions**: Set OS-specific flags
+- **Library linking**: Link against gtest_main, LLVM (if needed)
+- **WASM file copying**: POST_BUILD commands to copy test files
+- **Coverage support**: Enable code coverage collection flags
+
+#### Step 3.6: Test Case Implementation
+Implement ALL test cases from Phase 2 with mandatory quality standards:
 
 **CRITICAL: Mandatory ASSERT Usage Rule**
 Eliminate ALL conditional blocks in GTest cases - Use ASSERT_* exclusively:
@@ -275,73 +379,225 @@ ASSERT_EQ(nullptr, underflow_module)
     << "Expected module load to fail for invalid bytecode, but got valid module";
 ```
 
-**Code Generation Standards:**
-- **Framework**: Use GTest with TestWithParam<RunningMode>
-- **Assertions**: ASSERT_* statements exclusively (never EXPECT_*)
-- **No Conditional Logic**: Eliminate all if/else blocks in test methods
-- **Descriptive Messages**: Include context in assertion failure messages
-- **Resource Management**: Proper SetUp/TearDown with WAMR initialization
-- **Test Coverage**: Implement ALL test cases from Phase 2 strategy
-- **Prohibited Constructs**: NO GTEST_SKIP(), SUCCEED(), or FAIL() calls
+**Implementation Requirements:**
+- **Main routine tests**: Implement all basic functionality test cases
+- **Corner case tests**: Implement all boundary condition test cases
+- **Edge case tests**: Implement all extreme scenario test cases
+- **Error exception tests**: Implement all invalid scenario test cases
+- **ASSERT-only validation**: Use ASSERT_* statements exclusively (never EXPECT_*)
+- **Descriptive messages**: Include context in all assertion failure messages
+- **No conditional logic**: Eliminate all if/else blocks in test methods
+- **Prohibited constructs**: NO GTEST_SKIP(), SUCCEED(), or FAIL() calls
 
-**CMakeLists.txt Build Structure:**
-Follow `memory64/CMakeLists.txt` pattern:
-- **WAMR Build Flags**: Enable WAMR_BUILD_INTERP, WAMR_BUILD_AOT, etc.
-- **Feature Flags**: Add/modify build macros to enable the opcode feature being tested
-- **Configuration**: Include `unit_common.cmake` for shared build setup
-- **Definitions**: Set platform-specific definitions if the opcode is platform-specific (e.g., `-DRUN_ON_LINUX`)
-- **Libraries**: Link against gtest_main, LLVM (if needed)
-- **WASM Files**: Copy test files to build directory with POST_BUILD commands
+**CMakeLists.txt Integration Requirements:**
+- **Parent CMakeLists update**: Add subdirectory to `tests/unit/enhanced_opcode/CMakeLists.txt`
+- **WAMR build flags**: Enable WAMR_BUILD_INTERP, WAMR_BUILD_AOT, etc.
+- **Feature-specific flags**: Add macros to enable the opcode being tested
+- **Shared configuration**: Include `unit_common.cmake` for common setup
+- **Platform definitions**: Set OS-specific flags if needed (e.g., `-DRUN_ON_LINUX`)
+- **Library dependencies**: Link against gtest_main, LLVM (if needed)
+- **WASM file deployment**: POST_BUILD commands to copy test files to build directory
 
-**Phase 3 Completion**:   
+**Phase 3 Completion**:
 Update TODO list marking tasks 3.1-3.6 as completed, display progress percentage, declare Phase 4 as next.
 
 ### PHASE 4: Build & Test Execution
 
-Execute the build and test process systematically:
+Execute the build and test process through systematic steps:
 
-**Build Commands:**
+#### Step 4.1: Build Environment Setup
+Navigate to the unit test directory and configure the build:
 ```bash
+# Navigate to unit test root
 cd tests/unit/
-cmake -S enhanced_opcode/{CATEGORY} -B build/enhanced_opcode/{CATEGORY} -DCOLLECT_CODE_COVERAGE=1
-cmake --build build/enhanced_opcode/{CATEGORY} --parallel $(nproc)
-ctest --test-dir build/enhanced_opcode/{CATEGORY} --output-on-failure --verbose
+
+# Verify directory structure exists
+ls -la enhanced_opcode/{CATEGORY}/
 ```
+**Setup validation:**
+- Confirm all generated files exist in correct locations
+- Verify CMakeLists.txt files are properly configured
+- Check WASM test files are present in wasm-apps/ directory
 
-**Validation Criteria:**
-- All source files compile without warnings
-- All unit tests pass (0 failures)
-- No runtime crashes or memory leaks
-- Coverage improvement is measurable
+#### Step 4.2: CMake Configuration
+Configure the build system with coverage support:
+```bash
+# Configure CMake with coverage enabled
+cmake -S enhanced_opcode/{CATEGORY} -B build/enhanced_opcode/{CATEGORY} \
+      -DCOLLECT_CODE_COVERAGE=1
+```
+**Configuration validation:**
+- Verify CMake configuration completes without errors
+- Confirm all required WAMR features are enabled
+- Check coverage collection is properly configured
 
-**Phase 4 Completion**: Update TODO list marking tasks 4.1-4.6 as completed. If successful, proceed to Phase 6. If failed, declare Phase 5 as next.
+#### Step 4.3: Parallel Compilation
+Build the test suite using parallel compilation:
+```bash
+# Build with parallel jobs for faster compilation
+cmake --build build/enhanced_opcode/{CATEGORY} --parallel $(nproc)
+```
+**Compilation validation:**
+- Ensure zero compilation errors
+- Verify zero compilation warnings
+- Confirm all test executables are generated
+
+#### Step 4.4: Test Execution
+Execute the complete test suite with detailed output:
+```bash
+# Run tests with verbose output and failure details
+ctest --test-dir build/enhanced_opcode/{CATEGORY} \
+      --output-on-failure \
+      --verbose \
+      --parallel $(nproc)
+```
+**Execution validation:**
+- Verify all tests pass (0 failures)
+- Confirm no runtime crashes occur
+- Check no memory leaks are detected
+- Validate test output shows expected assertions
+
+#### Step 4.5: Coverage Report Generation
+Generate and analyze code coverage:
+```bash
+# Generate coverage report (if configured)
+cd build/enhanced_opcode/{CATEGORY}
+make coverage  # or appropriate coverage target
+```
+**Coverage validation:**
+- Confirm measurable coverage improvement
+- Verify coverage report generation succeeds
+- Document coverage percentage increase
+- Identify any uncovered code paths
+
+#### Step 4.6: Results Documentation
+Document build and test execution results:
+- **Compilation status**: Record successful compilation
+- **Test results**: Document pass/fail counts and specific test outcomes
+- **Performance metrics**: Note execution times and resource usage
+- **Coverage metrics**: Record coverage percentage and improvements
+- **Issue identification**: Log any failures for Phase 5 resolution (if needed)
+
+**Success Criteria Verification:**
+- ✅ All source files compile without warnings
+- ✅ All unit tests pass (100% success rate)
+- ✅ No runtime crashes or memory leaks detected
+- ✅ Coverage improvement is measurable and documented
+- ✅ Build completes in reasonable time
+
+**Phase 4 Completion**: Update TODO list marking tasks 4.1-4.6 as completed. If all criteria met, proceed to Phase 6. If any failures occurred, declare Phase 5 as next.
 
 ### PHASE 5: Issue Detection & Resolution
 **(Conditional - Apply only if Phase 4 fails)**
 
-**Resolution Process:**
-1. **Issue Detection**: Analyze compilation errors, runtime crashes, or assertion failures
-2. **Root Cause Analysis**: Categorize as compilation, runtime, test logic, or coverage issue
-3. **Targeted Resolution**: Apply appropriate fixes (missing includes, null checks, correct expected values)
-4. **Verification**: Re-run build and test to confirm resolution
-5. **Iteration**: Repeat until all issues are resolved
+Execute systematic issue resolution through iterative steps:
+
+#### Step 5.1: Comprehensive Issue Detection
+Analyze all failures from Phase 4:
+- **Compilation error analysis**: Parse compiler output for syntax, include, and linking errors
+- **Runtime crash investigation**: Examine crash dumps, stack traces, and error messages
+- **Test assertion failures**: Review failed test output and assertion messages
+- **Coverage analysis issues**: Identify problems with coverage collection or reporting
+- **Build system problems**: Check CMake configuration and dependency issues
+
+#### Step 5.2: Root Cause Categorization
+Classify each identified issue into specific categories:
+- **Compilation issues**: Missing headers, syntax errors, linking problems
+- **Runtime issues**: Null pointer dereferences, memory leaks, stack overflows
+- **Test logic issues**: Incorrect expected values, wrong test setup, assertion problems
+- **Coverage issues**: Missing coverage flags, tool configuration problems
+- **Build configuration issues**: Incorrect CMake settings, missing dependencies
+
+#### Step 5.3: Targeted Resolution Application
+Apply specific fixes based on issue categorization:
+- **For compilation issues**: Add missing includes, fix syntax, resolve dependencies
+- **For runtime issues**: Add null checks, fix memory management, validate pointers
+- **For test logic issues**: Correct expected values, fix test setup, improve assertions
+- **For coverage issues**: Fix coverage configuration, ensure proper tool installation
+- **For build issues**: Update CMakeLists.txt, add missing flags, resolve dependencies
+
+#### Step 5.4: Iterative Verification
+Re-run build and test to confirm issue resolution:
+```bash
+# Clean previous build artifacts
+rm -rf build/enhanced_opcode/{CATEGORY}
+
+# Reconfigure and rebuild
+cmake -S enhanced_opcode/{CATEGORY} -B build/enhanced_opcode/{CATEGORY} -DCOLLECT_CODE_COVERAGE=1
+cmake --build build/enhanced_opcode/{CATEGORY} --parallel $(nproc)
+ctest --test-dir build/enhanced_opcode/{CATEGORY} --output-on-failure --verbose
+```
+**Verification criteria:**
+- Confirm specific fixes resolve identified issues
+- Ensure no new issues are introduced
+- Validate that all previously passing tests still pass
+
+#### Step 5.5: Resolution Iteration
+Continue resolution cycles until complete success:
+- **Issue tracking**: Maintain list of resolved vs. remaining issues
+- **Progress monitoring**: Document resolution progress after each iteration
+- **Escalation criteria**: If 3 resolution attempts fail, escalate to FAILURE status
+- **Success validation**: Achieve same success criteria as Phase 4
+- **Documentation**: Record all applied fixes for future reference
+
+**Resolution Success Criteria:**
+- ✅ All compilation errors resolved
+- ✅ All runtime crashes eliminated
+- ✅ All test assertions pass
+- ✅ Coverage collection works properly
+- ✅ Build system operates correctly
 
 **Phase 5 Completion**: Update TODO list marking tasks 5.1-5.5 as completed, then declare Phase 6 as next.
 
 ### PHASE 6: Code Review & Standardized Commit
 
-**Final Review Process:**
-1. **Quality Review**: Verify WAMR coding standards, meaningful test descriptions, proper resource management
-2. **Coverage Analysis**: Confirm comprehensive test coverage across all scenarios
-3. **Performance Assessment**: Validate reasonable execution time and memory usage
-4. **Commit Creation**: Stage files and create commit using exact template
+Execute comprehensive final review and commit process:
 
-**Commit Process:**
+#### Step 6.1: Comprehensive Code Quality Review
+Perform thorough code quality assessment:
+- **WAMR coding standards compliance**: Verify adherence to project conventions
+- **Test description clarity**: Ensure meaningful, descriptive test names and comments
+- **Resource management validation**: Confirm proper SetUp/TearDown implementation
+- **Assertion quality check**: Validate meaningful ASSERT_* statements with descriptive messages
+- **Code organization**: Review file structure, includes, and function organization
+- **Documentation completeness**: Verify function comments with source locations
+
+#### Step 6.2: Test Coverage Validation
+Analyze comprehensive test coverage across all scenarios:
+- **Main routine coverage**: Confirm all basic functionality scenarios are tested
+- **Corner case coverage**: Verify all boundary conditions are covered
+- **Edge case coverage**: Ensure all extreme scenarios are tested
+- **Error exception coverage**: Validate all error conditions are properly tested
+- **Cross-mode coverage**: Confirm testing across interpreter and AOT modes
+- **Coverage metrics**: Document coverage percentage improvement
+
+#### Step 6.3: Performance and Resource Assessment
+Evaluate execution efficiency and resource utilization:
+- **Execution time validation**: Ensure reasonable test execution duration
+- **Memory usage assessment**: Confirm efficient memory utilization
+- **Resource leak detection**: Verify no memory or file handle leaks
+- **Build time evaluation**: Document compilation time requirements
+- **Test scalability**: Assess performance with larger test datasets
+
+#### Step 6.4: Files Staging and Commit Message Creation
+Prepare files for commit with standardized process:
 ```bash
-git add tests/unit/enhanced_opcode/{CATEGORY}/{OPCODE_NAME}* #Add code file
-git add tests/unit/enhanced_opcode/{CATEGORY}/wasm-apps/*.wat  #Add wat and wasm files
-git add tests/unit/enhanced_opcode/{CATEGORY}/wasm-apps/*.wasm  #Add wasm files
-git add tests/unit/enhanced_opcode/{CATEGORY}/CMakeLists.txt #Add CMakeLists if modifiled
+# Stage all generated test files
+git add tests/unit/enhanced_opcode/{CATEGORY}/enhanced_{OPCODE_NAME}_test.cc
+git add tests/unit/enhanced_opcode/{CATEGORY}/wasm-apps/{OPCODE_NAME}_test.wat
+git add tests/unit/enhanced_opcode/{CATEGORY}/wasm-apps/{OPCODE_NAME}_test.wasm
+git add tests/unit/enhanced_opcode/{CATEGORY}/CMakeLists.txt
+
+# Stage any header files if generated
+git add tests/unit/enhanced_opcode/{CATEGORY}/{OPCODE_NAME}_common.h  # if exists
+
+# Stage parent CMakeLists.txt if modified
+git add tests/unit/enhanced_opcode/CMakeLists.txt  # if modified
+```
+
+#### Step 6.5: Commit Execution and Repository State Validation
+Execute commit with exact template format:
+```bash
 git commit -s -m "Enhanced unit tests for {OPCODE_NAME} opcode - Comprehensive test coverage
 
 ## Summary
@@ -350,7 +606,21 @@ git commit -s -m "Enhanced unit tests for {OPCODE_NAME} opcode - Comprehensive t
 - Files Modified: {FILES_MODIFIED}"
 ```
 
-**Phase 6 Completion**:  
+**Post-commit validation:**
+- **Commit verification**: Confirm commit was created successfully
+- **Repository state check**: Verify working directory is clean
+- **Commit message validation**: Ensure exact template format was used
+- **File inclusion verification**: Confirm all required files are included in commit
+
+**Quality Assurance Checklist:**
+- ✅ Code follows WAMR standards and conventions
+- ✅ All test scenarios are comprehensively covered
+- ✅ Performance is acceptable and efficient
+- ✅ All files are properly staged and committed
+- ✅ Commit message follows exact template format
+- ✅ Repository state is clean and consistent
+
+**Phase 6 Completion**:
 Update TODO list marking tasks 6.1-6.5 as completed.
 
 ---
