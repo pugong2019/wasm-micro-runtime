@@ -54,8 +54,7 @@ Generate complete, production-ready WASM opcode test suites using a systematic 6
 - [ ] 4.2 Build test suite with parallel compilation
 - [ ] 4.3 Execute test suite and capture detailed output
 - [ ] 4.4 Validate all tests pass (0 failures) and no runtime crashes
-- [ ] 4.5 Generate coverage report and verify measurable improvement
-- [ ] 4.6 Document any build/test failures for Phase 5 resolution
+- [ ] 4.5 Document any build/test failures for Phase 5 resolution
 
 ### Phase 5: Issue Detection & Resolution (Conditional - Only if Phase 4 fails)
 - [ ] 5.1 Compilation errors, runtime crashes, or assertion failures analysis
@@ -629,7 +628,6 @@ Document build and test execution results:
 - ✅ All source files compile without warnings
 - ✅ All unit tests pass (100% success rate)
 - ✅ No runtime crashes or memory leaks detected
-- ✅ Coverage improvement is measurable and documented
 - ✅ Build completes in reasonable time
 
 **Phase 4 Completion**: Update TODO list marking tasks 4.1-4.6 as completed. If all criteria met, proceed to Phase 6. If any failures occurred, declare Phase 5 as next.
@@ -716,7 +714,6 @@ Continue resolution cycles until complete success:
 - ✅ All compilation errors resolved
 - ✅ All runtime crashes eliminated
 - ✅ All test assertions pass
-- ✅ Coverage collection works properly
 - ✅ Build system operates correctly
 
 **Phase 5 Completion**: Update TODO list marking tasks 5.1-5.5 as completed, then declare Phase 6 as next.
@@ -775,7 +772,7 @@ git add enhanced_opcode/CMakeLists.txt  # if modified
 ```
 
 #### Step 6.5: Commit Execution and Repository State Validation
-Execute commit with exact template format:
+**MUST** execute commit with exact template format, no any other extra content:
 ```bash
 git commit -s -m "Enhanced unit tests for {OPCODE_NAME} opcode - Comprehensive test coverage
 
