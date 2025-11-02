@@ -379,6 +379,17 @@ tests/unit/enhanced_opcode/{CATEGORY}/
     └── {opcode}_test.wasm
 ```
 
+**🚨 CRITICAL DIRECTORY RULE:**
+- **MUST NOT create opcode subdirectories**: All opcode test files must be placed directly in `enhanced_opcode/{CATEGORY}/`
+- **FORBIDDEN structure**: `tests/unit/enhanced_opcode/numeric/i32_rotr/` (creating subdirectory for individual opcode)
+- **REQUIRED structure**: `tests/unit/enhanced_opcode/numeric/` (placing all numeric opcode tests directly in category directory)
+- **C++ test files**: `enhanced_{opcode}_test.cc` must be at `tests/unit/enhanced_opcode/{CATEGORY}/enhanced_{opcode}_test.cc`
+- **WASM/WAT files**: Must be placed in `tests/unit/enhanced_opcode/{CATEGORY}/wasm-apps/{opcode}_test.wat` and `{opcode}_test.wasm`
+- **Example**:
+  - `enhanced_i32_rotr_test.cc` → `tests/unit/enhanced_opcode/numeric/enhanced_i32_rotr_test.cc`
+  - `i32_rotr_test.wat` → `tests/unit/enhanced_opcode/numeric/wasm-apps/i32_rotr_test.wat`
+  - `i32_rotr_test.wasm` → `tests/unit/enhanced_opcode/numeric/wasm-apps/i32_rotr_test.wasm`
+
 #### Step 3.2: GTest Framework File Generation
 Generate the main C++ test file `enhanced_{opcode}_test.cc`:
 
@@ -750,17 +761,17 @@ Evaluate execution efficiency and resource utilization:
 #### Step 6.4: Files Staging and Commit Message Creation
 Prepare files for commit with standardized process:
 ```bash
-# Stage all generated test files
-git add tests/unit/enhanced_opcode/{CATEGORY}/enhanced_{OPCODE_NAME}_test.cc
-git add tests/unit/enhanced_opcode/{CATEGORY}/wasm-apps/{OPCODE_NAME}_test.wat
-git add tests/unit/enhanced_opcode/{CATEGORY}/wasm-apps/{OPCODE_NAME}_test.wasm
-git add tests/unit/enhanced_opcode/{CATEGORY}/CMakeLists.txt
-
+cd tests/unit/
+# Stage all generated test files(*.cc, *.wat, *.wasm CMakeLists.txt) in enhanced_opcode/{CATEGORY}/
+git add enhanced_opcode/{CATEGORY}/enhanced_{OPCODE_NAME}_*.cc
+git add enhanced_opcode/{CATEGORY}/wasm-apps/{OPCODE_NAME}_*.wat
+git add enhanced_opcode/{CATEGORY}/wasm-apps/{OPCODE_NAME}_*.wasm
+git add enhanced_opcode/{CATEGORY}/CMakeLists.txt
 # Stage any header files if generated
-git add tests/unit/enhanced_opcode/{CATEGORY}/{OPCODE_NAME}_common.h  # if exists
+git add {OPCODE_NAME}_common.h  # if exists
 
 # Stage parent CMakeLists.txt if modified
-git add tests/unit/enhanced_opcode/CMakeLists.txt  # if modified
+git add enhanced_opcode/CMakeLists.txt  # if modified
 ```
 
 #### Step 6.5: Commit Execution and Repository State Validation
@@ -771,7 +782,7 @@ git commit -s -m "Enhanced unit tests for {OPCODE_NAME} opcode - Comprehensive t
 ## Summary
 - Opcode: {OPCODE_NAME} (Category: {CATEGORY})
 - Test Cases: {TEST_COUNT} comprehensive tests generated
-- Files Modified: {FILES_MODIFIED}"
+- Files Created(or Modified): {file1}, {file2}, ...
 ```
 
 **Post-commit validation:**
@@ -812,11 +823,9 @@ Validate ALL items before completion:
 - [ ] **Build Success**: Build process completes without errors or warnings
 - [ ] **Test Success**: All generated test cases pass (100% success rate)
 - [ ] **🚨 COMPREHENSIVE DOCUMENTATION**:
-  - [ ] File header with @file, @brief, @details, @coverage_target, @test_modes documentation
-  - [ ] All #include directives have inline comments explaining their purpose
-  - [ ] Every TEST_P function has complete @test documentation block
-  - [ ] All critical code sections have inline comments
-  - [ ] Function comments include source locations and coverage targets
+- [ ] Every TEST_P function has complete @test documentation block
+- [ ] All critical code sections have inline comments
+- [ ] Function comments include source locations and coverage targets
 - [ ] **Resource Management**: Proper SetUp/TearDown implementation
 - [ ] **Repository Integration**: Git commit using EXACT template format
 
