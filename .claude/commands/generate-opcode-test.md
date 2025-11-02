@@ -449,7 +449,6 @@ TEST_P(I32AddTest, BasicAddition_ReturnsCorrectSum) {
 
 **Implementation Requirements:**
 - **Test function documentation**: Every TEST_P function must have comprehensive header documentation
-- **Inline code comments**: Document critical operations, WASM module loading, function calls
 - **Assertion documentation**: Include descriptive messages for all ASSERT_* statements
 
 **CRITICAL: Mandatory ASSERT Usage Rule**
