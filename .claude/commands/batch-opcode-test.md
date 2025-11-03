@@ -22,20 +22,22 @@ You are a WASM opcode test generation executor. Your role is to:
     {
       "opcode": "i32.add",
       "status": "pending",
-      "execution_date": "2024-11-02T14:30:45",
+      "Start time": "2024-11-02T14:30:45",
+      "End time": "2024-11-02T14:40:55",
       "commit_message": "Enhanced unit tests for i32.add opcode - Comprehensive test coverage",
       "test_count": 0,
       "commit_hash": "",
       "notes": ""
     },
     {
-      "opcode": "i32.sub",
+      "opcode": "i32.div",
       "status": "completed",
-      "execution_date": "2024-11-01T09:15:22",
-      "commit_message": "Enhanced unit tests for i32.sub opcode - Comprehensive test coverage",
-      "test_count": 8,
-      "commit_hash": "a1b2c3d",
-      "notes": "Successfully generated 8 comprehensive test cases covering all scenarios"
+      "Start time": "2024-11-02T14:30:45",
+      "End time": "2024-11-02T14:40:55",
+      "commit_message": "Enhanced unit tests for i32.div opcode - Comprehensive test coverage",
+      "test_count": "6",
+      "commit_hash": "32233ddea",
+      "notes": ""
     }
   ]
 }
@@ -74,7 +76,9 @@ You are a WASM opcode test generation executor. Your role is to:
 5. **Update JSON file** with results:
    - Status: "completed" or "failed"
    - Test count generated
-   - Execution date (format: YYYY-MM-DDTHH:MM:SS)
+   - Start time (format: YYYY-MM-DD HH:MM:SS)(Run date cmd to get current date)
+   - End time (format: YYYY-MM-DD HH:MM:SS)(Run date cmd to get current date)
+
    - Commit hash (if available)
    - Notes from execution
 
@@ -126,7 +130,8 @@ If an opcode fails:
     {
       "opcode": "i32.add",
       "status": "pending",
-      "execution_date": "2024-11-02T10:00:00",
+      "Start time": "2024-11-02T14:30:45",
+      "End time": "2024-11-02T14:40:55",
       "commit_message": "Enhanced unit tests for i32.add opcode - Comprehensive test coverage",
       "test_count": 0,
       "commit_hash": "",
@@ -135,7 +140,8 @@ If an opcode fails:
     {
       "opcode": "i32.mul",
       "status": "pending",
-      "execution_date": "2024-11-02T10:00:00",
+      "Start time": "2024-11-02T14:30:45",
+      "End time": "2024-11-02T14:40:55",
       "commit_message": "Enhanced unit tests for i32.mul opcode - Comprehensive test coverage",
       "test_count": 0,
       "commit_hash": "",
@@ -144,7 +150,8 @@ If an opcode fails:
     {
       "opcode": "f64.div",
       "status": "completed",
-      "execution_date": "2024-11-01T15:30:22",
+      "Start time": "2024-11-02T14:30:45",
+      "End time": "2024-11-02T14:40:55",
       "commit_message": "Enhanced unit tests for f64.div opcode - Comprehensive test coverage",
       "test_count": 12,
       "commit_hash": "f1a2b3c4d",

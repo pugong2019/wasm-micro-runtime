@@ -59,7 +59,7 @@ Create complete test coverage for WASM opcodes through ultra-deep analysis, stra
 - [ ] 4.1 Navigate to tests/unit/ and configure CMake build
 - [ ] 4.2 Build test suite with parallel compilation
 - [ ] 4.3 Execute test suite and capture detailed output
-- [ ] 4.4 Validate all tests pass (0 failures) and no runtime crashes
+- [ ] 4.4 Validate all tests pass (0 failures) and no runtime crashes(crash like segment fault/core dump, etc)
 - [ ] 4.5 Document any build/test failures for Phase 5 resolution
 
 ### Phase 5: Issue Detection & Resolution (Conditional - Only if Phase 4 fails)
@@ -588,7 +588,8 @@ ctest --test-dir build/enhanced_opcode/{CATEGORY} \
 ```
 **Execution validation:**
 - Verify all tests pass (0 failures)
-- Confirm no runtime crashes occur
+- Confirm no runtime crashes occur (segmentation fault, core dump, etc.)
+- **🚨 MANDATORY CRASH RESOLUTION**: If any crash issues (segmentation fault, core dump, or any other runtime failures) occur during test execution, they MUST be fixed before proceeding
 - Check no memory leaks are detected
 - Validate test output shows expected assertions
 
@@ -637,7 +638,8 @@ Execute systematic issue resolution through iterative steps:
 #### Step 5.1: Comprehensive Issue Detection
 Analyze all failures from Phase 4:
 - **Compilation error analysis**: Parse compiler output for syntax, include, and linking errors
-- **Runtime crash investigation**: Examine crash dumps, stack traces, and error messages
+- **Runtime crash investigation**: Examine crash dumps, stack traces, and error messages (segmentation fault, core dump, etc.)
+- **🚨 MANDATORY CRASH ANALYSIS**: Thoroughly investigate and document any crash issues (segmentation fault, core dump, or any other runtime failures) that occurred during test execution
 - **Test assertion failures**: Review failed test output and assertion messages
 - **Coverage analysis issues**: Identify problems with coverage collection or reporting
 - **Build system problems**: Check CMake configuration and dependency issues
@@ -646,6 +648,7 @@ Analyze all failures from Phase 4:
 Classify each identified issue into specific categories:
 - **Compilation issues**: Missing headers, syntax errors, linking problems
 - **Runtime issues**: Null pointer dereferences, memory leaks, stack overflows
+- **🚨 CRASH ISSUES**: Segmentation faults, core dumps, access violations, and any other runtime crashes that cause test binary termination
 - **Test logic issues**: Incorrect expected values, wrong test setup, assertion problems
 - **Coverage issues**: Missing coverage flags, tool configuration problems
 - **Build configuration issues**: Incorrect CMake settings, missing dependencies
@@ -662,6 +665,12 @@ Apply specific fixes based on issue categorization:
 **Permitted Fix Categories:**
 - **For compilation issues**: Add missing includes, fix syntax, resolve dependencies
 - **For runtime issues**: Add null checks, fix memory management, validate pointers
+- **🚨 For crash issues**: Fix segmentation faults, core dumps, and access violations by:
+  - Adding proper null pointer checks and validation(No **if/else** block, USE ASSERT to check)
+  - Fixing buffer overflows and memory access violations
+  - Correcting stack overflow issues and recursive calls
+  - Validating WASM module loading and execution context
+  - Ensuring proper resource cleanup and memory management
 - **For test logic issues**: Correct expected values ONLY if they were factually wrong, fix test setup, improve assertion messages (but not assertion logic)
 - **For build issues**: Update CMakeLists.txt, add missing flags, resolve dependencies
 
@@ -686,6 +695,7 @@ ctest --test-dir build/enhanced_opcode/{CATEGORY} --output-on-failure --verbose
 ```
 **Verification criteria:**
 - Confirm specific fixes resolve identified issues
+- **🚨 VERIFY CRASH RESOLUTION**: Ensure all segmentation faults, core dumps, and runtime crashes are completely eliminated
 - Ensure no new issues are introduced
 - Validate that all previously passing tests still pass
 - **🚨 VERIFY TEST INTENTION PRESERVED**: Confirm that all test objectives, and validation logic remain exactly as originally designed
@@ -700,7 +710,8 @@ ctest --test-dir build/enhanced_opcode/{CATEGORY} --output-on-failure --verbose
 
 **Resolution Success Criteria:**
 - ✅ All compilation errors resolved
-- ✅ All runtime crashes eliminated
+- ✅ All runtime crashes eliminated (segmentation fault, core dump, access violations, etc.)
+- ✅ **🚨 MANDATORY**: Zero crash issues remain - all test binaries execute without any runtime termination failures
 - ✅ All test assertions pass
 - ✅ Build system operates correctly
 
