@@ -78,7 +78,7 @@ class I32TruncSatF32STest : public testing::TestWithParam<RunningMode> {
      */
     void load_module(RunningMode mode) {
         const char* module_path =
-            "/home/pugong/CC_WPE/wasm-micro-runtime/tests/unit/enhanced_opcode/numeric/wasm-apps/i32_trunc_sat_f32_s_test.wasm";
+            "wasm-apps/i32_trunc_sat_f32_s_test.wasm";
 
         // Read module file
         module_buf = (uint8*)bh_read_file_to_buffer(module_path, &module_buf_size);

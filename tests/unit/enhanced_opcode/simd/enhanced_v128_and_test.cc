@@ -37,7 +37,7 @@ protected:
         runtime_raii = std::make_unique<WAMRRuntimeRAII<>>();
 
         // Load the v128.and test module using absolute path
-        dummy_env = std::make_unique<DummyExecEnv>("/home/pugong/CC_WPE/wasm-micro-runtime/tests/unit/build/enhanced_opcode/simd/wasm-apps/v128_and_test.wasm");
+        dummy_env = std::make_unique<DummyExecEnv>("wasm-apps/v128_and_test.wasm");
         ASSERT_NE(nullptr, dummy_env->get())
             << "Failed to create execution environment for v128.and tests";
     }
