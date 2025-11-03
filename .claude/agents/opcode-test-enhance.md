@@ -71,9 +71,8 @@ Create complete test coverage for WASM opcodes through ultra-deep analysis, stra
 
 ### Phase 6: Code Review & Standardized Commit
 - [ ] 6.1 Comprehensive code quality review
-- [ ] 6.2 Performance and resource usage assessment
-- [ ] 6.3 Files staging and standardized commit message creation
-- [ ] 6.4 Commit execution and repository state validation
+- [ ] 6.2 Files staging and standardized commit message creation
+- [ ] 6.3 Commit execution and repository state validation
 ```
 
 ### TODO Update Protocol
@@ -87,7 +86,6 @@ After EVERY task completion:
 ## 🚨 Enforcement Policies
 
 ### ABSOLUTE REQUIREMENTS
-
 **Project Management:**  
 1. **TODO List Creation**: Create structured TODO list before initiating any work  
 2. **Phase Sequential Execution**: Complete phases in strict order (1→2→3→4→(5 if needed)→6)  
@@ -95,21 +93,20 @@ After EVERY task completion:
 
 **Code Quality Standards:**  
 
-4. **Assertion Standards**: Use ASSERT_* assertions exclusively (never EXPECT_*)  
-5. **No Test Skipping**: NEVER use GTEST_SKIP(), SUCCEED(), or FAIL()  
-6. **Functional Validation**: Validate actual WAMR runtime behavior, not just code execution  
-7. **Meaningful Assertions**: Include substantial assertions in every test case  
-8. **Naming Conventions**: Follow `TEST_F({opcode}_test_suite, Function_Scenario_ExpectedOutcome)` pattern  
-9. **Resource Management**: Implement proper SetUp/TearDown with RAII patterns  
+4. **No Test Skipping**: NEVER use GTEST_SKIP(), SUCCEED(), or FAIL()  
+5. **Functional Validation**: Validate actual WAMR runtime behavior, not just code execution  
+6. **Meaningful Assertions**: Include substantial assertions in every test case  
+7. **Naming Conventions**: Follow `TEST_F({opcode}_test_suite, Function_Scenario_ExpectedOutcome)` pattern  
+8. **Resource Management**: Implement proper SetUp/TearDown with RAII patterns  
 
 **Build and Testing:**  
 
-10. **Build Location**: Build exclusively in `tests/unit/` directory  
-11. **Directory Structure**: Create files in `tests/unit/enhanced_opcode/{CATEGORY}/` following exact patterns  
-12. **Test Completeness**: Implement ALL test cases from Phase 2 strategy  
-13. **Build Success**: Achieve zero compilation errors and warnings  
-14. **Test Success**: Achieve 100% test pass rate (zero failures)  
-15. **Commit Compliance**: Use EXACT commit message template  
+9. **Build Location**: Build exclusively in `tests/unit/` directory  
+10. **Directory Structure**: Create files in `tests/unit/enhanced_opcode/{CATEGORY}/` following exact patterns  
+11. **Test Completeness**: Implement ALL test cases from Phase 2 strategy  
+12. **Build Success**: Achieve zero compilation errors and warnings  
+13. **Test Success**: Achieve 100% test pass rate (zero failures)  
+14. **Commit Compliance**: Use EXACT commit message template  
 
 ### ABSOLUTE PROHIBITIONS
 
@@ -275,8 +272,13 @@ For each test category, document comprehensive specifications:
 - **Assertion statements**: Meaningful ASSERT_* validations with descriptive messages
 - **WASM module requirements**: Module structure, exports, and dependencies
 
-**Consolidated Test Case Design Strategy**
+**Test Naming Guidelines:**
+- Use broader, category-based names (e.g., `BasicAddition_ReturnsCorrectSum`)
+- Focus on validation concept rather than specific input variations
+- Each method validates one primary concept through multiple assertions
+- Follow pattern: `TEST_P(OpcodeTest, Concept_ExpectedOutcome)`
 
+**Consolidated Test Case Design Strategy**  
 Group related scenarios to reduce method proliferation:
 
 | Category | Implementation Strategy | Consolidation Pattern |
@@ -285,6 +287,20 @@ Group related scenarios to reduce method proliferation:
 | **Corner** | Group boundary conditions | Combine overflow/underflow cases |
 | **Edge** | Consolidate mathematical properties | Group identity/inverse operations |
 | **Exception** | Group error scenarios | Combine similar trap conditions |
+
+**Implementation Example:**
+```cpp
+// ✅ RECOMMENDED: Consolidated approach
+TEST_P(I32AddTest, BasicAddition_ReturnsCorrectSum) {
+    ASSERT_EQ(call_i32_add(5, 3), 8);        // Positive numbers
+    ASSERT_EQ(call_i32_add(-10, -15), -25);  // Negative numbers
+    ASSERT_EQ(call_i32_add(20, -8), 12);     // Mixed signs
+}
+
+// ❌ AVOID: Separate methods for similar scenarios
+TEST_P(I32AddTest, BasicAddition_SmallPositives_ReturnsCorrectSum) { ... }
+TEST_P(I32AddTest, BasicAddition_SmallNegatives_ReturnsCorrectSum) { ... }
+```
 
 **🚨 CRITICAL RULE: Avoid Redundant Test Cases**
 
@@ -312,26 +328,6 @@ TEST_P(I32AddTest, BasicAddition_Case3) { ASSERT_EQ(call_i32_add(1, 3), 4); }
 - **Type patterns**: Test one example per data type combination
 - **Mathematical properties**: Validate the property once, not with multiple examples
 
-**Implementation Example:**
-```cpp
-// ✅ RECOMMENDED: Consolidated approach
-TEST_P(I32AddTest, BasicAddition_ReturnsCorrectSum) {
-    ASSERT_EQ(call_i32_add(5, 3), 8);        // Positive numbers
-    ASSERT_EQ(call_i32_add(-10, -15), -25);  // Negative numbers
-    ASSERT_EQ(call_i32_add(20, -8), 12);     // Mixed signs
-}
-
-// ❌ AVOID: Separate methods for similar scenarios
-TEST_P(I32AddTest, BasicAddition_SmallPositives_ReturnsCorrectSum) { ... }
-TEST_P(I32AddTest, BasicAddition_SmallNegatives_ReturnsCorrectSum) { ... }
-```
-
-**Test Naming Guidelines:**
-- Use broader, category-based names (e.g., `BasicAddition_ReturnsCorrectSum`)
-- Focus on validation concept rather than specific input variations
-- Each method validates one primary concept through multiple assertions
-- Follow pattern: `TEST_P(OpcodeTest, Concept_ExpectedOutcome)`
-
 **Phase 2 Completion**:
 Update TODO list marking tasks 2.1-2.6 as completed, display progress percentage, declare Phase 3 as next.
 
@@ -351,10 +347,8 @@ Create the complete directory structure in `tests/unit/enhanced_opcode/{CATEGORY
 ```bash
 # Navigate to target location
 cd tests/unit/enhanced_opcode/
-
 # Create category directory if it doesn't exist
 mkdir -p {CATEGORY}
-
 # Create subdirectories if it doesn't exist
 mkdir -p {CATEGORY}/wasm-apps
 ```
@@ -417,37 +411,14 @@ Generate comprehensive WASM test files:
 
 **🚨 CRITICAL: WASM File Path Rules**
 
-**REQUIRED PATH PATTERN**: Use relative paths from `tests/unit/` execution directory:
+**REQUIRED PATH PATTERN**: Use relative paths from binnary execution directory:
 
 ```cpp
 // ✅ CORRECT: Simple relative path
 WASM_FILE = "wasm-apps/i32_add_test.wasm";
-
 // ❌ FORBIDDEN: Absolute paths (never use /home/user/... paths)
-WASM_FILE = "/home/user/wasm-micro-runtime/tests/unit/.../i32_add_test.wasm";
+WASM_FILE = "/home/user/wasm-micro-runtime/tests/unit/.../i32_add_test.wasm";```
 ```
-
-**RECOMMENDED IMPLEMENTATION**: Add defensive path initialization in SetUp():
-
-```cpp
-void SetUp() override {
-    // Initialize paths if empty (prevents constructor issues)
-    if (WASM_FILE.empty()) {
-        WASM_FILE = "wasm-apps/{opcode}_test.wasm";
-    }
-
-    // Load WASM module
-    buf = (uint8_t *)bh_read_file_to_buffer(WASM_FILE.c_str(), &buf_size);
-    ASSERT_NE(buf, nullptr) << "Failed to read WASM file: " << WASM_FILE;
-}
-```
-
-**KEY RULES**:
-- Tests run from `tests/unit/` directory
-- WASM files copied to `tests/unit/wasm-apps/` during build
-- Use `"wasm-apps/{opcode}_test.wasm"` pattern
-- Never use absolute paths starting with `/`
-- Always add defensive initialization in SetUp() method
 
 #### Step 3.5: CMakeLists.txt Build Configuration
 Generate comprehensive build configuration:
@@ -457,7 +428,6 @@ Generate comprehensive build configuration:
 - **Platform definitions**: Set OS-specific flags
 - **Library linking**: Link against gtest_main, LLVM (if needed)
 - **WASM file copying**: POST_BUILD commands to copy test files
-- **Coverage support**: Enable code coverage collection flags
 
 #### Step 3.6: Test Case Implementation
 Implement ALL test cases from Phase 2 with mandatory quality standards:
@@ -512,7 +482,6 @@ TEST_P(I32AddTest, BasicAddition_ReturnsCorrectSum) {
 - **Assertion documentation**: Include descriptive messages for all ASSERT_* statements
 - **Header file documentation**: DO NOT add comment for included header file
 
-
 **CRITICAL: Mandatory ASSERT Usage Rule**  
 Eliminate ALL conditional blocks in GTest cases - Use ASSERT_* exclusively:
 
@@ -558,7 +527,7 @@ ASSERT_EQ(nullptr, underflow_module)
 - **Shared configuration**: Include `unit_common.cmake` for common setup
 - **Platform definitions**: Set OS-specific flags if needed (e.g., `-DRUN_ON_LINUX`)
 - **Library dependencies**: Link against gtest_main, LLVM (if needed)
-- **WASM file deployment**: POST_BUILD commands to copy test files to build directory
+- **WASM file deployment**: POST_BUILD commands to copy test wasm files to build directory
 
 **Phase 3 Completion**:
 Update TODO list marking tasks 3.1-3.6 as completed, display progress percentage, declare Phase 4 as next.
@@ -579,7 +548,6 @@ Navigate to the unit test directory and configure the build:
 ```bash
 # Navigate to unit test root
 cd tests/unit/
-
 # Verify directory structure exists
 ls -la enhanced_opcode/{CATEGORY}/
 ```
@@ -627,26 +595,12 @@ ctest --test-dir build/enhanced_opcode/{CATEGORY} \
 - Check no memory leaks are detected
 - Validate test output shows expected assertions
 
-#### Step 4.5: Coverage Report Generation
-Generate and analyze code coverage:
-```bash
-# Generate coverage report (if configured)
-cd build/enhanced_opcode/{CATEGORY}
-make coverage  # or appropriate coverage target
-```
-**Coverage validation:**
-- Confirm measurable coverage improvement
-- Verify coverage report generation succeeds
-- Document coverage percentage increase
-- Identify any uncovered code paths
-
-#### Step 4.6: Results Documentation
+#### Step 4.5: Results Documentation
 Document build and test execution results:
 - **Compilation status**: Record successful compilation
 - **Test results**: Document pass/fail counts and specific test outcomes
 - **Performance metrics**: Note execution times and resource usage
-- **Coverage metrics**: Record coverage percentage and improvements
-- **Issue identification**: Log any failures for Phase 5 resolution (if needed)
+- **Issue identification**: Log any failures for Phase 4 resolution (if needed)
 
 **Success Criteria Verification:**
 - ✅ All source files compile without warnings
@@ -654,7 +608,7 @@ Document build and test execution results:
 - ✅ No runtime crashes or memory leaks detected
 - ✅ Build completes in reasonable time
 
-**Phase 4 Completion**: Update TODO list marking tasks 4.1-4.6 as completed. If all criteria met, proceed to Phase 6. If any failures occurred, declare Phase 5 as next.
+**Phase 4 Completion**: Update TODO list marking tasks 4.1-4.5 as completed. If all criteria met, proceed to Phase 5. If any failures occurred, declare Phase 4 as next.
 
 ### PHASE 5: Issue Detection & Resolution
 **(Conditional - Apply only if Phase 4 fails)**
@@ -673,7 +627,6 @@ Execute systematic issue resolution through iterative steps:
 Analyze all failures from Phase 4:
 - **Compilation error analysis**: Parse compiler output for syntax, include, and linking errors
 - **Runtime crash investigation**: Examine crash dumps, stack traces, and error messages (segmentation fault, core dump, etc.)
-- **🚨 MANDATORY CRASH ANALYSIS**: Thoroughly investigate and document any crash issues (segmentation fault, core dump, or any other runtime failures) that occurred during test execution
 - **Test assertion failures**: Review failed test output and assertion messages
 - **Coverage analysis issues**: Identify problems with coverage collection or reporting
 - **Build system problems**: Check CMake configuration and dependency issues
@@ -699,7 +652,8 @@ Apply specific fixes based on issue categorization:
 **Permitted Fix Categories:**
 - **For compilation issues**: Add missing includes, fix syntax, resolve dependencies
 - **For runtime issues**: Add null checks, fix memory management, validate pointers
-- **🚨 For crash issues**: Fix segmentation faults, core dumps, and access violations by:
+- **🚨 For crash issues**: 
+  - Fix segmentation faults, core dumps, and access violations by:
   - Adding proper null pointer checks and validation(No **if/else** block, USE ASSERT to check)
   - Fixing buffer overflows and memory access violations
   - Correcting stack overflow issues and recursive calls
@@ -748,7 +702,6 @@ ctest --test-dir build/enhanced_opcode/{CATEGORY} --output-on-failure --verbose
 - ✅ **🚨 MANDATORY**: Zero crash issues remain - all test binaries execute without any runtime termination failures
 - ✅ All test assertions pass
 - ✅ Build system operates correctly
-
 
 **FAILURE ESCALATION**: If issue not fixed after max attempts, mark task as FAILED and document blocking issues.
 
@@ -810,15 +763,7 @@ Perform thorough code quality assessment:
 - **Code organization**: Review file structure, includes, and function organization
 - **Documentation completeness**: Verify function comments with source locations
 
-#### Step 6.2: Performance and Resource Assessment
-Evaluate execution efficiency and resource utilization:
-- **Execution time validation**: Ensure reasonable test execution duration
-- **Memory usage assessment**: Confirm efficient memory utilization
-- **Resource leak detection**: Verify no memory or file handle leaks
-- **Build time evaluation**: Document compilation time requirements
-- **Test scalability**: Assess performance with larger test datasets
-
-#### Step 6.3: Files Staging and Commit Message Creation
+#### Step 6.2: Files Staging and Commit Message Creation
 Prepare files for commit with standardized process:
 ```bash
 cd tests/unit/
@@ -835,7 +780,7 @@ git add enhanced_opcode/CMakeLists.txt  # if modified
 rm -rf enhanced_opcode/{CATEGORY}/build # remove the tempory build files
 ```
 
-#### Step 6.4: Commit Execution and Repository State Validation
+#### Step 6.3: Commit Execution and Repository State Validation
 **MUST** execute commit with exact template format, DO NOT allow any other extra content append:
 * COMMIT MESSAGE TEMPLATE (USE EXACTLY AS SHOWN)   
 cmd: git commit -s -m {message}:  
@@ -864,14 +809,12 @@ Summary
 - ✅ Repository state is clean and consistent
 
 **Phase 6 Completion**:
-Update TODO list marking tasks 6.1-6.5 as completed.
-
+Update TODO list marking tasks 6.1-6.3 as completed.
 ---
 
 ## Success Criteria Checklist
 
 Validate ALL items before completion:
-
 **Phase Completion Requirements:**
 - [ ] **Phase 1**: Opcode analysis with 6 components completed
 - [ ] **Phase 2**: Test strategy with 4 categories documented
@@ -895,7 +838,6 @@ Validate ALL items before completion:
 **ENFORCEMENT**: Any unchecked item constitutes IMMEDIATE FAILURE of the generation process.
 
 **EXECUTION ORDER**: Execute all phases sequentially. Only proceed to next phase after current phase completes successfully. Phase 5 is conditional - only execute if Phase 4 reports failures.
-
 ---
 
 ## 🚨 FINAL STRICT ENFORCEMENT DECLARATION 🚨
