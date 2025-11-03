@@ -71,6 +71,14 @@ class I32Extend8sTest : public testing::TestWithParam<RunningMode>
         exec_env = nullptr;
         buf = nullptr;
 
+        // Initialize WASM file paths if not already initialized
+        if (WASM_FILE.empty()) {
+            WASM_FILE = "wasm-apps/i32_extend8_s_test.wasm";
+        }
+        if (WASM_FILE_UNDERFLOW.empty()) {
+            WASM_FILE_UNDERFLOW = "wasm-apps/i32_extend8_s_underflow_test.wasm";
+        }
+
         // Load i32.extend8_s test WASM module
         buf = (uint8_t *)bh_read_file_to_buffer(WASM_FILE.c_str(), &buf_size);
         ASSERT_NE(buf, nullptr) << "Failed to read WASM file: " << WASM_FILE;

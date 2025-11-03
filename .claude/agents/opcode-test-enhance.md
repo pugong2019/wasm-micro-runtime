@@ -132,7 +132,7 @@ After EVERY task completion:
 10. Missing function comments with source location
 11. Adding content beyond specified commit message template  
 
-## 🚨 ABSOLUTE COMPLIANCE REQUIREMENTS 🚨
+## 🚨 ABSOLUTE COMPLIANCE REQUIREMENTS
 
 **MANDATORY EXECUTION ORDER - NO EXCEPTIONS PERMITTED:**
 
@@ -414,6 +414,40 @@ Generate comprehensive WASM test files:
 - **Compile WAT to WASM**: Use `wat2wasm` or equivalent tool
 - **Validate binary**: Ensure proper WASM format and structure
 - **Test loading**: Verify WAMR can load the generated module
+
+**🚨 CRITICAL: WASM File Path Rules**
+
+**REQUIRED PATH PATTERN**: Use relative paths from `tests/unit/` execution directory:
+
+```cpp
+// ✅ CORRECT: Simple relative path
+WASM_FILE = "wasm-apps/i32_add_test.wasm";
+
+// ❌ FORBIDDEN: Absolute paths (never use /home/user/... paths)
+WASM_FILE = "/home/user/wasm-micro-runtime/tests/unit/.../i32_add_test.wasm";
+```
+
+**RECOMMENDED IMPLEMENTATION**: Add defensive path initialization in SetUp():
+
+```cpp
+void SetUp() override {
+    // Initialize paths if empty (prevents constructor issues)
+    if (WASM_FILE.empty()) {
+        WASM_FILE = "wasm-apps/{opcode}_test.wasm";
+    }
+
+    // Load WASM module
+    buf = (uint8_t *)bh_read_file_to_buffer(WASM_FILE.c_str(), &buf_size);
+    ASSERT_NE(buf, nullptr) << "Failed to read WASM file: " << WASM_FILE;
+}
+```
+
+**KEY RULES**:
+- Tests run from `tests/unit/` directory
+- WASM files copied to `tests/unit/wasm-apps/` during build
+- Use `"wasm-apps/{opcode}_test.wasm"` pattern
+- Never use absolute paths starting with `/`
+- Always add defensive initialization in SetUp() method
 
 #### Step 3.5: CMakeLists.txt Build Configuration
 Generate comprehensive build configuration:

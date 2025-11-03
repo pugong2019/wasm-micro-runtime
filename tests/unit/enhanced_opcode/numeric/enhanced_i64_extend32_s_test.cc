@@ -72,6 +72,14 @@ class I64Extend32sTest : public testing::TestWithParam<RunningMode>
         exec_env = nullptr;
         buf = nullptr;
 
+        // Initialize WASM file paths if not already initialized
+        if (WASM_FILE.empty()) {
+            WASM_FILE = "wasm-apps/i64_extend32_s_test.wasm";
+        }
+        if (WASM_FILE_UNDERFLOW.empty()) {
+            WASM_FILE_UNDERFLOW = "wasm-apps/i64_extend32_s_stack_underflow.wasm";
+        }
+
         // Load i64.extend32_s test WASM module
         buf = (uint8_t *)bh_read_file_to_buffer(WASM_FILE.c_str(), &buf_size);
         ASSERT_NE(buf, nullptr) << "Failed to read WASM file: " << WASM_FILE;
@@ -340,6 +348,6 @@ void init_test_paths() {
         CWD = std::string(cwd_buffer);
         free(cwd_buffer);
     }
-    WASM_FILE = "./wasm-apps/i64_extend32_s_test.wasm";
-    WASM_FILE_UNDERFLOW = "./wasm-apps/i64_extend32_s_stack_underflow.wasm";
+    WASM_FILE = "wasm-apps/i64_extend32_s_test.wasm";
+    WASM_FILE_UNDERFLOW = "wasm-apps/i64_extend32_s_stack_underflow.wasm";
 }
