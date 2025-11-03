@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.14)
 
 project(test-enhanced-simd-opcodes)
 
-# Enable required WAMR build flags for SIMD opcode testing (v128.not, v128.and, v128.andnot, v128.or, v128.xor, i8x16.eq)
+# Enable required WAMR build flags for SIMD opcode testing (v128.not, v128.and, v128.andnot, v128.or, v128.xor, v128.bitselect, i8x16.eq)
 set(WAMR_BUILD_INTERP 1)
 set(WAMR_BUILD_AOT 1)
 set(WAMR_BUILD_JIT 1)
@@ -14,7 +14,7 @@ set(WAMR_BUILD_LIBC_WASI 1)
 set(WAMR_BUILD_APP_FRAMEWORK 0)
 set(WAMR_BUILD_MEMORY_PROFILING 0)
 
-# CRITICAL: Enable SIMD support for v128.not, v128.and, v128.andnot, v128.or, v128.xor, and i8x16.eq opcode testing
+# CRITICAL: Enable SIMD support for v128.not, v128.and, v128.andnot, v128.or, v128.xor, v128.bitselect, and i8x16.eq opcode testing
 set(WAMR_BUILD_SIMD 1)
 
 # Platform-specific definitions
@@ -91,6 +91,12 @@ add_executable(enhanced_v128_xor_test
     ${unit_test_sources}
 )
 
+# Enhanced v128.bitselect opcode test executable
+add_executable(enhanced_v128_bitselect_test
+    enhanced_v128_bitselect_test.cc
+    ${unit_test_sources}
+)
+
 # Enhanced i8x16.eq opcode test executable
 add_executable(enhanced_i8x16_eq_test
     enhanced_i8x16_eq_test.cc
@@ -123,6 +129,12 @@ target_link_libraries(enhanced_v128_or_test
 
 # Link libraries and dependencies for v128.xor test
 target_link_libraries(enhanced_v128_xor_test
+    ${LLVM_AVAILABLE_LIBS}
+    gtest_main
+)
+
+# Link libraries and dependencies for v128.bitselect test
+target_link_libraries(enhanced_v128_bitselect_test
     ${LLVM_AVAILABLE_LIBS}
     gtest_main
 )
@@ -169,6 +181,13 @@ add_custom_command(TARGET enhanced_v128_xor_test POST_BUILD
     COMMENT "Copying WASM test files to build directory for v128.xor tests"
 )
 
+add_custom_command(TARGET enhanced_v128_bitselect_test POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
+    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
+    COMMENT "Copying WASM test files to build directory for v128.bitselect tests"
+)
+
 add_custom_command(TARGET enhanced_i8x16_eq_test POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
@@ -183,4 +202,5 @@ gtest_discover_tests(enhanced_v128_and_test)
 gtest_discover_tests(enhanced_v128_andnot_test)
 gtest_discover_tests(enhanced_v128_or_test)
 gtest_discover_tests(enhanced_v128_xor_test)
+gtest_discover_tests(enhanced_v128_bitselect_test)
 gtest_discover_tests(enhanced_i8x16_eq_test)
