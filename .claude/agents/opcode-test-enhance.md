@@ -809,7 +809,7 @@ cmd: git commit -s -m {message}:
 ```bash
 "Enhanced unit tests for {OPCODE_NAME} opcode - Comprehensive test coverage
 
-## Summary
+Summary
 - Opcode: {OPCODE_NAME} (Category: {CATEGORY})
 - Test Cases: {TEST_COUNT} comprehensive tests generated
 - Files Created(or Modified): {file1}, {file2}, ...

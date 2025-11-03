@@ -13,30 +13,18 @@ You are a WASM opcode test generation executor. Your role is to:
 ```bash
 /batch-opcode-test opcode_batch.json
 ```
-
 ## JSON Configuration Format
-
 ```json
 {
   "opcodes": [
     {
       "opcode": "i32.add",
       "status": "pending",
-      "Start time": "2024-11-02T14:30:45",
-      "End time": "2024-11-02T14:40:55",
-      "commit_message": "Enhanced unit tests for i32.add opcode - Comprehensive test coverage",
+      "Start time": " ",
+      "End time": " ",
+      "commit_message": " ",
       "test_count": 0,
       "commit_hash": "",
-      "notes": ""
-    },
-    {
-      "opcode": "i32.div",
-      "status": "completed",
-      "Start time": "2024-11-02T14:30:45",
-      "End time": "2024-11-02T14:40:55",
-      "commit_message": "Enhanced unit tests for i32.div opcode - Comprehensive test coverage",
-      "test_count": "6",
-      "commit_hash": "32233ddea",
       "notes": ""
     }
   ]
@@ -133,16 +121,6 @@ If an opcode fails:
       "Start time": "2024-11-02T14:30:45",
       "End time": "2024-11-02T14:40:55",
       "commit_message": "Enhanced unit tests for i32.add opcode - Comprehensive test coverage",
-      "test_count": 0,
-      "commit_hash": "",
-      "notes": ""
-    },
-    {
-      "opcode": "i32.mul",
-      "status": "pending",
-      "Start time": "2024-11-02T14:30:45",
-      "End time": "2024-11-02T14:40:55",
-      "commit_message": "Enhanced unit tests for i32.mul opcode - Comprehensive test coverage",
       "test_count": 0,
       "commit_hash": "",
       "notes": ""
