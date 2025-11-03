@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.14)
 
 project(test-enhanced-simd-opcodes)
 
-# Enable required WAMR build flags for SIMD opcode testing (v128.not, v128.and, v128.andnot)
+# Enable required WAMR build flags for SIMD opcode testing (v128.not, v128.and, v128.andnot, v128.or)
 set(WAMR_BUILD_INTERP 1)
 set(WAMR_BUILD_AOT 1)
 set(WAMR_BUILD_JIT 1)
@@ -14,7 +14,7 @@ set(WAMR_BUILD_LIBC_WASI 1)
 set(WAMR_BUILD_APP_FRAMEWORK 0)
 set(WAMR_BUILD_MEMORY_PROFILING 0)
 
-# CRITICAL: Enable SIMD support for v128.not, v128.and, and v128.andnot opcode testing
+# CRITICAL: Enable SIMD support for v128.not, v128.and, v128.andnot, and v128.or opcode testing
 set(WAMR_BUILD_SIMD 1)
 
 # Platform-specific definitions
@@ -79,6 +79,12 @@ add_executable(enhanced_v128_andnot_test
     ${unit_test_sources}
 )
 
+# Enhanced v128.or opcode test executable
+add_executable(enhanced_v128_or_test
+    enhanced_v128_or_test.cc
+    ${unit_test_sources}
+)
+
 # Link libraries and dependencies for v128.not test
 target_link_libraries(enhanced_v128_not_test
     ${LLVM_AVAILABLE_LIBS}
@@ -93,6 +99,12 @@ target_link_libraries(enhanced_v128_and_test
 
 # Link libraries and dependencies for v128.andnot test
 target_link_libraries(enhanced_v128_andnot_test
+    ${LLVM_AVAILABLE_LIBS}
+    gtest_main
+)
+
+# Link libraries and dependencies for v128.or test
+target_link_libraries(enhanced_v128_or_test
     ${LLVM_AVAILABLE_LIBS}
     gtest_main
 )
@@ -119,8 +131,16 @@ add_custom_command(TARGET enhanced_v128_andnot_test POST_BUILD
     COMMENT "Copying WASM test files to build directory for v128.andnot tests"
 )
 
+add_custom_command(TARGET enhanced_v128_or_test POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
+    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
+    COMMENT "Copying WASM test files to build directory for v128.or tests"
+)
+
 # Configure test discovery for CTest
 include(GoogleTest)
 gtest_discover_tests(enhanced_v128_not_test)
 gtest_discover_tests(enhanced_v128_and_test)
 gtest_discover_tests(enhanced_v128_andnot_test)
+gtest_discover_tests(enhanced_v128_or_test)
