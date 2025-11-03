@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.14)
 
 project(test-enhanced-numeric-opcodes)
 
-# Enable required WAMR build flags for numeric opcode testing (f32.copysign, f32.nearest, i32.add, i32.ctz, i32.popcnt, i32.reinterpret_f32, i32.rotr, i32.shr_s, i32.trunc_sat_f32_s, i32.trunc_sat_f32_u, i32.trunc_sat_f64_s, i32.trunc_sat_f64_u, i32.wrap_i64, i64.clz, i64.rotl, i64.rotr, i64.trunc_s, i64.trunc_sat_f32_s, i64.trunc_sat_f32_u, i64.trunc_sat_f64_s, i64.trunc_u)
+# Enable required WAMR build flags for numeric opcode testing (f32.copysign, f32.nearest, i32.add, i32.ctz, i32.popcnt, i32.reinterpret_f32, i32.rotr, i32.shr_s, i32.trunc_sat_f32_s, i32.trunc_sat_f32_u, i32.trunc_sat_f64_s, i32.trunc_sat_f64_u, i32.wrap_i64, i64.clz, i64.rotl, i64.rotr, i64.trunc_s, i64.trunc_sat_f32_s, i64.trunc_sat_f32_u, i64.trunc_sat_f64_s, i64.trunc_sat_f64_u, i64.trunc_u)
 set(WAMR_BUILD_INTERP 1)
 set(WAMR_BUILD_AOT 1)
 set(WAMR_BUILD_JIT 1)
