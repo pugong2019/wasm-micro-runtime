@@ -208,7 +208,8 @@ Perform comprehensive analysis of the target opcode through sequential steps:
 - **Trap conditions**: When does the opcode cause execution traps?
 
 #### Step 1.6: Category Classification
-Classify into one of these categories based on analysis:
+Classify into one of these categories based on analysis:  
+For example:
 - **Numeric**: `i32.add`, `f64.mul`, `i64.eqz` - Arithmetic, comparison, bitwise operations
 - **Memory**: `i32.load`, `memory.grow` - Load, store, memory control operations
 - **Control Flow**: `br_if`, `call`, `loop` - Branching, loops, function calls
@@ -359,7 +360,7 @@ cd tests/unit/enhanced_opcode/
 # Create category directory if it doesn't exist
 mkdir -p {CATEGORY}
 
-# Create subdirectories
+# Create subdirectories if it doesn't exist
 mkdir -p {CATEGORY}/wasm-apps
 ```
 
@@ -389,7 +390,7 @@ tests/unit/enhanced_opcode/{CATEGORY}/
 Generate the main C++ test file `enhanced_{opcode}_test.cc`:
 
 **File Structure and Headers:**
-- **Include proper headers**: WAMR runtime, GTest, test utilities
+- **Include proper headers**: WAMR runtime, GTest, test utilities or helper files
 
 **Class and Method Documentation:**
 - **Test fixture class**: Inherit from `testing::TestWithParam<RunningMode>` with comprehensive class documentation
@@ -432,7 +433,7 @@ Generate comprehensive build configuration:
 #### Step 3.6: Test Case Implementation
 Implement ALL test cases from Phase 2 with mandatory quality standards:
 
-**🚨 MANDATORY: Test Function Documentation Requirements**
+**🚨 MANDATORY: Test Function Documentation Requirements**  
 Every test case function MUST include comprehensive documentation:
 
 **Required Test Function Documentation Format:**
@@ -483,7 +484,7 @@ TEST_P(I32AddTest, BasicAddition_ReturnsCorrectSum) {
 - **Header file documentation**: DO NOT add comment for included header file
 
 
-**CRITICAL: Mandatory ASSERT Usage Rule**
+**CRITICAL: Mandatory ASSERT Usage Rule**  
 Eliminate ALL conditional blocks in GTest cases - Use ASSERT_* exclusively:
 
 ```cpp
@@ -516,11 +517,10 @@ ASSERT_EQ(nullptr, underflow_module)
 - **Error exception tests**: Implement all invalid scenario test cases
 - **🚨 MANDATORY DOCUMENTATION**: Every TEST_P function must have comprehensive header documentation with @test, @brief, @details, @test_category, @coverage_target, @input_conditions, @expected_behavior, @validation_method tags
 - **Code comments**: Add inline comments for critical operations, module loading, and function calls
-- **Import documentation**: Document the purpose of each #include directive with inline comments
 - **ASSERT-only validation**: Use ASSERT_* statements exclusively (never EXPECT_*)
 - **Descriptive messages**: Include context in all assertion failure messages
 - **No conditional logic**: Eliminate all if/else blocks in test methods
-- **Prohibited constructs**: NO GTEST_SKIP(), SUCCEED(), or FAIL() calls
+- **Prohibited constructs**: NO GTEST_SKIP(), SUCCEED(), or FAIL() calls or any meanless code like ASSERT(true)
 
 **CMakeLists.txt Integration Requirements:**
 - **Parent CMakeLists update**: Add subdirectory to `tests/unit/enhanced_opcode/CMakeLists.txt`
@@ -792,12 +792,16 @@ git add {OPCODE_NAME}_common.h  # if exists
 
 # Stage parent CMakeLists.txt if modified
 git add enhanced_opcode/CMakeLists.txt  # if modified
+rm -rf enhanced_opcode/{CATEGORY}/build # remove the tempory build files
 ```
 
 #### Step 6.4: Commit Execution and Repository State Validation
-**MUST** execute commit with exact template format, no any other extra content:
+**MUST** execute commit with exact template format, DO NOT allow any other extra content append:
+* COMMIT MESSAGE TEMPLATE (USE EXACTLY AS SHOWN)   
+cmd: git commit -s -m {message}:  
+
 ```bash
-git commit -s -m "Enhanced unit tests for {OPCODE_NAME} opcode - Comprehensive test coverage
+"Enhanced unit tests for {OPCODE_NAME} opcode - Comprehensive test coverage
 
 ## Summary
 - Opcode: {OPCODE_NAME} (Category: {CATEGORY})
@@ -857,7 +861,7 @@ Validate ALL items before completion:
 ## 🚨 FINAL STRICT ENFORCEMENT DECLARATION 🚨
 
 ### ABSOLUTE COMPLIANCE MANDATE:
-The LLM executing this workflow is **STRICTLY REQUIRED** to follow every step in the exact sequence specified. Any deviation, shortcut, or improvisation is **STRICTLY FORBIDDEN** and will result in **IMMEDIATE TASK FAILURE**.
+Executing this workflow is **STRICTLY REQUIRED** to follow every step in the exact sequence specified. Any deviation, shortcut, or improvisation is **STRICTLY FORBIDDEN** and will result in **IMMEDIATE TASK FAILURE**.
 
 ### NON-NEGOTIABLE REQUIREMENTS:
 1. **SEQUENTIAL STEP EXECUTION**: Complete steps 1.1→1.2→1.3→1.4→1.5→1.6, then 2.1→2.2→2.3→2.4→2.5→2.6, etc.
