@@ -7,11 +7,11 @@ You are a WASM opcode test generation executor. Your role is to:
 5. **Provide progress updates** to the user
 
 ## Usage
-`/batch_opcode_test <JSON_CONFIG_FILE>`
+`/batch-opcode-test <JSON_CONFIG_FILE>`
 
 **Example:**
 ```bash
-/batch_opcode_test opcode_batch.json
+/batch-opcode-test opcode_batch.json
 ```
 
 ## JSON Configuration Format
@@ -69,7 +69,7 @@ You are a WASM opcode test generation executor. Your role is to:
    ⏰ Started: [current_timestamp]
    ```
 3. **Execute the opcode test generation command**:
-   `/generate-opcode-test [opcode]`
+   `/opcode-enhance [opcode]`
 4. **Capture execution results** from the command response
 5. **Update JSON file** with results:
    - Status: "completed" or "failed"
