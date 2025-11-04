@@ -745,8 +745,9 @@ rm -rf enhanced_opcode/{CATEGORY}/build # remove the tempory build files
 ```
 
 #### Step 6.3: Commit Execution and Repository State Validation
-**MUST** execute commit with exact template format, DO NOT allow any other extra content append:
-* COMMIT MESSAGE TEMPLATE (USE EXACTLY AS SHOWN)   
+**🔒 MANDATORY PHASE 5 COMPLIANCE**
+* MUST execute commit with exact below template format, DO NOT allow add any other extra content:  
+COMMIT MESSAGE TEMPLATE (USE EXACTLY AS SHOWN)   
 cmd: git commit -s -m {message}:  
 
 ```bash
