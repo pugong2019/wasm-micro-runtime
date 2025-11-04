@@ -90,7 +90,7 @@ TEST_F(FeatureTest, Function_Scenario_ExpectedOutcome) {
 ```bash
 # Build unit tests with coverage
 cd tests/unit/
-cmake -S . -B build -DCOLLECT_CODE_COVERAGE=1
+cmake --log-level=ERROR -S . -B build -DCOLLECT_CODE_COVERAGE=1
 cmake --build build
 ctest --test-dir build
 ```
@@ -99,7 +99,7 @@ ctest --test-dir build
 ```bash
 # Generate comprehensive coverage report
 cd wasm-micro-runtime/tests/unit
-cmake -S . -B build -DCOLLECT_CODE_COVERAGE=1
+cmake --log-level=ERROR -S . -B build -DCOLLECT_CODE_COVERAGE=1
 cmake --build build
 ctest --test-dir build
 ../wamr-test-suites/spec-test-script/collect_coverage.sh unit.lcov ./build/

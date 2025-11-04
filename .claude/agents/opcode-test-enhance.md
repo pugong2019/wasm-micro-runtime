@@ -649,7 +649,7 @@ Re-run build and test to confirm issue resolution:
 rm -rf build/enhanced_opcode/{CATEGORY}
 
 # Reconfigure and rebuild
-cmake -S enhanced_opcode/{CATEGORY} -B build/enhanced_opcode/{CATEGORY} -DCOLLECT_CODE_COVERAGE=1
+cmake --log-level=ERROR -S enhanced_opcode/{CATEGORY} -B build/enhanced_opcode/{CATEGORY} -DCOLLECT_CODE_COVERAGE=1
 cmake --build build/enhanced_opcode/{CATEGORY} --parallel $(nproc)
 ctest --test-dir build/enhanced_opcode/{CATEGORY} --output-on-failure --verbose
 ```
