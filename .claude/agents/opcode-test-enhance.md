@@ -746,8 +746,8 @@ rm -rf enhanced_opcode/{CATEGORY}/build # remove the tempory build files
 
 #### Step 6.3: Commit Execution and Repository State Validation
 **🔒 MANDATORY PHASE 5 COMPLIANCE**
-* MUST execute commit with exact below template format, DO NOT allow add any other extra content:  
-COMMIT MESSAGE TEMPLATE (USE EXACTLY AS SHOWN)   
+**MUST execute commit with exact below template format, MUST NOT add any other extra content:**  
+**COMMIT MESSAGE TEMPLATE (USE EXACTLY AS SHOWN)**
 cmd: git commit -s -m {message}:  
 
 ```bash
@@ -771,6 +771,6 @@ Task is complete ONLY when:
 - ✅ ALL sub-steps within each phase completed fully
 - ✅ TODO list properly maintained throughout entire process
 - ✅ ALL quality gates and success criteria met
-- ✅ Commit created using EXACT template format
+- ✅ Commit created using EXACT template format without adding any extra content
 
 **This workflow demands absolute precision and complete adherence to every specified requirement.**
