@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.14)
 
 project(test-enhanced-table-reference-opcodes)
 
-# Enable required WAMR build flags for table reference opcodes (table.copy, table.grow)
+# Enable required WAMR build flags for table reference opcodes (table.copy, table.grow, table.fill)
 set(WAMR_BUILD_INTERP 1)
 set(WAMR_BUILD_AOT 1)
 set(WAMR_BUILD_JIT 1)
