@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.14)
 
 project(test-enhanced-memory-opcodes)
 
-# Enable required WAMR build flags for memory opcode testing (memory.init)
+# Enable required WAMR build flags for memory opcode testing (memory.init, i32.load)
 set(WAMR_BUILD_INTERP 1)
 set(WAMR_BUILD_AOT 1)
 set(WAMR_BUILD_JIT 1)
@@ -16,6 +16,9 @@ set(WAMR_BUILD_MEMORY_PROFILING 0)
 
 # Enable bulk memory operations feature for memory.init opcode
 set(WAMR_BUILD_BULK_MEMORY 1)
+
+# Enable standard memory operations for i32.load opcode (enabled by default)
+# Memory load/store operations are part of the core WebAssembly specification
 
 # Enable multi-memory support if needed
 set(WAMR_BUILD_MULTI_MEMORY 0)
