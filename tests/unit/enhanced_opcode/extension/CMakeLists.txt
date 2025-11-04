@@ -1,12 +1,12 @@
 # CMakeLists.txt for SIMD extension opcode unit tests
-# Builds comprehensive test suite for SIMD opcodes including v128.load, i8x16.splat, i16x8.splat, f64x2.splat
+# Builds comprehensive test suite for SIMD opcodes including v128.load, i8x16.splat, i16x8.splat, i32x4.splat, f64x2.splat
 # with SIMD extension support and cross-execution mode validation
 
 cmake_minimum_required(VERSION 3.14)
 
 project(test-enhanced-extension-opcodes)
 
-# Enable required WAMR build features for SIMD opcode testing (v128.load, i8x16.splat, i16x8.splat, f64x2.splat)
+# Enable required WAMR build features for SIMD opcode testing (v128.load, i8x16.splat, i16x8.splat, i32x4.splat, f64x2.splat)
 set(WAMR_BUILD_INTERP 1)
 set(WAMR_BUILD_AOT 1)
 set(WAMR_BUILD_JIT 1)
@@ -60,12 +60,14 @@ set(unit_test_sources
 add_executable(enhanced_v128_load_test enhanced_v128_load_test.cc ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE})
 add_executable(enhanced_i8x16_splat_test enhanced_i8x16_splat_test.cc ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE})
 add_executable(enhanced_i16x8_splat_test enhanced_i16x8_splat_test.cc ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE})
+add_executable(enhanced_i32x4_splat_test enhanced_i32x4_splat_test.cc ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE})
 add_executable(enhanced_f64x2_splat_test enhanced_f64x2_splat_test.cc ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE})
 
 # Link required libraries
 target_link_libraries(enhanced_v128_load_test ${LLVM_AVAILABLE_LIBS} gtest_main)
 target_link_libraries(enhanced_i8x16_splat_test ${LLVM_AVAILABLE_LIBS} gtest_main)
 target_link_libraries(enhanced_i16x8_splat_test ${LLVM_AVAILABLE_LIBS} gtest_main)
+target_link_libraries(enhanced_i32x4_splat_test ${LLVM_AVAILABLE_LIBS} gtest_main)
 target_link_libraries(enhanced_f64x2_splat_test ${LLVM_AVAILABLE_LIBS} gtest_main)
 
 # Enable test discovery
@@ -73,6 +75,7 @@ include(GoogleTest)
 gtest_discover_tests(enhanced_v128_load_test)
 gtest_discover_tests(enhanced_i8x16_splat_test)
 gtest_discover_tests(enhanced_i16x8_splat_test)
+gtest_discover_tests(enhanced_i32x4_splat_test)
 gtest_discover_tests(enhanced_f64x2_splat_test)
 
 # Copy WASM test files to build directory for test execution
@@ -91,6 +94,13 @@ add_custom_command(TARGET enhanced_i8x16_splat_test POST_BUILD
 )
 
 add_custom_command(TARGET enhanced_i16x8_splat_test POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
+    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
+    COMMENT "Copying SIMD WASM test files to build directory"
+)
+
+add_custom_command(TARGET enhanced_i32x4_splat_test POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
     ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
