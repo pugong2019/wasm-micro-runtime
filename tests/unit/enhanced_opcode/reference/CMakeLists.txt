@@ -3,9 +3,9 @@
 
 cmake_minimum_required(VERSION 3.14)
 
-project(test-enhanced-table-copy-opcodes)
+project(test-enhanced-table-reference-opcodes)
 
-# Enable required WAMR build flags for table.copy opcode testing
+# Enable required WAMR build flags for table reference opcodes (table.copy, table.grow)
 set(WAMR_BUILD_INTERP 1)
 set(WAMR_BUILD_AOT 1)
 set(WAMR_BUILD_JIT 1)
@@ -14,7 +14,7 @@ set(WAMR_BUILD_LIBC_WASI 1)
 set(WAMR_BUILD_APP_FRAMEWORK 0)
 set(WAMR_BUILD_MEMORY_PROFILING 0)
 
-# Enable bulk memory operations and reference types for table.copy opcode
+# Enable bulk memory operations and reference types for table opcodes
 set(WAMR_BUILD_BULK_MEMORY 1)
 set(WAMR_BUILD_REF_TYPES 1)
 
@@ -59,17 +59,17 @@ set(unit_test_sources
         )
 
 # Create test executable
-add_executable(enhanced_table_copy_test ${unit_test_sources})
+add_executable(enhanced_table_reference_test ${unit_test_sources})
 
 # Link required libraries
-target_link_libraries(enhanced_table_copy_test ${LLVM_AVAILABLE_LIBS} gtest_main)
+target_link_libraries(enhanced_table_reference_test ${LLVM_AVAILABLE_LIBS} gtest_main)
 
 # Enable test discovery
 include(GoogleTest)
-gtest_discover_tests(enhanced_table_copy_test)
+gtest_discover_tests(enhanced_table_reference_test)
 
 # Copy WASM test files to build directory for test execution
-add_custom_command(TARGET enhanced_table_copy_test POST_BUILD
+add_custom_command(TARGET enhanced_table_reference_test POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
     ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
