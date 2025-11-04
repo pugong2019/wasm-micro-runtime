@@ -12,7 +12,7 @@ Generate comprehensive, production-ready WASM opcode test suites using a systema
 Create complete test coverage for WASM opcodes through ultra-deep analysis, strategic test planning, robust code generation, thorough validation, issue resolution, and standardized commits. Every test case must validate actual WAMR runtime behavior with comprehensive assertions.
 
 ## Input Requirements
-**OPCODE_NAME**: Target opcode (e.g., i32.add, br_if, f64.mul, memory.grow)
+**OPCODE_NAME**: Target WASM opcode (e.g., i32.add, br_if, f64.mul, memory.grow)
 
 ## Mandatory Output Deliverables
 1. **Enhanced Opcode Test File**: `enhanced_[OPCODE_NAME]_test.cc`, `wat/wasm`(if has) - e.g., `enhanced_i64_clz_test.cc` for opcode i64_clz
@@ -37,7 +37,7 @@ Create complete test coverage for WASM opcodes through ultra-deep analysis, stra
 - [ ] 1.3 Stack effect documentation (pop/push behavior, height changes)
 - [ ] 1.4 Edge case identification (boundary values, special numeric values, overflow)
 - [ ] 1.5 Error condition mapping (traps, type mismatches, stack underflow, out-of-bounds)
-- [ ] 1.6 Opcode category classification (numeric, memory, control-flow, variable, reference, extension)
+- [ ] 1.6 Opcode category classification (numeric, memory, control-flow, variable, reference, simd, extension...)
 
 ### Phase 2: Strategic Test Planning
 - [ ] 2.1 Main routine test case design (basic functionality with typical values)
@@ -67,7 +67,7 @@ Create complete test coverage for WASM opcodes through ultra-deep analysis, stra
 - [ ] 5.2 Issue categorization (compilation, runtime, test logic, ...)
 - [ ] 5.3 Targeted fixes application (missing includes, null checks, correct expected values)
 - [ ] 5.4 Re-run build and test to confirm resolution
-- [ ] 5.5 Iterate until all issues resolved and tests pass
+- [ ] 5.5 Iterate until all issues resolved and tests pass or max iteration count achieved
 
 ### Phase 6: Code Review & Standardized Commit
 - [ ] 6.1 Comprehensive code quality review
@@ -155,17 +155,12 @@ After EVERY task completion:
 ---
 
 ## Systematic Workflow Execution
-**CRITICAL FIRST STEP**:
-Create the standardized TODO list using the TodoWrite tool before starting any work.
-
-**EXECUTE THIS WORKFLOW FOR THE OPCODE `${1}` WITH ABSOLUTE ADHERENCE TO EVERY STEP:**
-
-### PHASE 1: Ultra-Deep Opcode Analysis
-
 **🔒 MANDATORY PHASE 1 COMPLIANCE:**
-- **EXECUTE ALL 6 STEPS IN ORDER**: Steps 1.1 → 1.2 → 1.3 → 1.4 → 1.5 → 1.6 (NO EXCEPTIONS)
+- **EXECUTE ALL PHASE's STEPS IN ORDER**: For example: Steps 1.1 → 1.2 → 1.3 → 1.4 → 1.5 → 1.6 (NO EXCEPTIONS)
 - **COMPLETE EACH STEP FULLY**: Do not proceed to next step until current step is 100% complete
 - **UPDATE TODO AFTER EACH STEP**: Mark step as completed in TODO list immediately after finishing
+
+### PHASE 1: Ultra-Deep Opcode Analysis
 
 Perform comprehensive analysis of the target opcode through sequential steps:
 
@@ -211,18 +206,9 @@ For example:
 
 **Reference**: Complete WebAssembly instruction set at https://webassembly.github.io/spec/core/appendix/index-instructions.html
 
-**Phase 1 Completion**:
-Update TODO list marking tasks 1.1-1.6 as completed, display progress percentage, declare Phase 2 as next.
-
 ### PHASE 2: Strategic Test Planning
-
-**🔒 MANDATORY PHASE 2 COMPLIANCE:**
-- **EXECUTE ALL 6 STEPS IN ORDER**: Steps 2.1 → 2.2 → 2.3 → 2.4 → 2.5 → 2.6 (NO EXCEPTIONS)
-- **COMPLETE EACH STEP FULLY**: Do not proceed to next step until current step is 100% complete
-- **UPDATE TODO AFTER EACH STEP**: Mark step as completed in TODO list immediately after finishing
-- **PREREQUISITE CHECK**: Ensure Phase 1 is 100% complete before starting Phase 2
-
-Generate comprehensive test strategy through systematic planning steps:
+Generate comprehensive test strategy through systematic planning steps  
+**Note**: Not every opcode has the need to contain all below case situations
 
 #### Step 2.1: Main Routine Test Case Design
 Design tests for basic opcode functionality:
@@ -328,16 +314,9 @@ TEST_P(I32AddTest, BasicAddition_Case3) { ASSERT_EQ(call_i32_add(1, 3), 4); }
 - **Type patterns**: Test one example per data type combination
 - **Mathematical properties**: Validate the property once, not with multiple examples
 
-**Phase 2 Completion**:
-Update TODO list marking tasks 2.1-2.6 as completed, display progress percentage, declare Phase 3 as next.
-
 ### PHASE 3: Complete Code Generation
 
 **🔒 MANDATORY PHASE 3 COMPLIANCE:**
-- **EXECUTE ALL 6 STEPS IN ORDER**: Steps 3.1 → 3.2 → 3.3 → 3.4 → 3.5 → 3.6 (NO EXCEPTIONS)
-- **COMPLETE EACH STEP FULLY**: Do not proceed to next step until current step is 100% complete
-- **UPDATE TODO AFTER EACH STEP**: Mark step as completed in TODO list immediately after finishing
-- **PREREQUISITE CHECK**: Ensure Phase 2 is 100% complete before starting Phase 3
 - **NO CODE SHORTCUTS**: Generate ALL required files as specified in each step
 
 Generate production-ready test suite through systematic implementation steps:
@@ -535,10 +514,6 @@ Update TODO list marking tasks 3.1-3.6 as completed, display progress percentage
 ### PHASE 4: Build & Test Execution
 
 **🔒 MANDATORY PHASE 4 COMPLIANCE:**
-- **EXECUTE ALL 6 STEPS IN ORDER**: Steps 4.1 → 4.2 → 4.3 → 4.4 → 4.5 → 4.6 (NO EXCEPTIONS)
-- **COMPLETE EACH STEP FULLY**: Do not proceed to next step until current step is 100% complete
-- **UPDATE TODO AFTER EACH STEP**: Mark step as completed in TODO list immediately after finishing
-- **PREREQUISITE CHECK**: Ensure Phase 3 is 100% complete before starting Phase 4
 - **MANDATORY SUCCESS**: All build and test steps MUST succeed before proceeding to Phase 6
 
 Execute the build and test process through systematic steps:
@@ -614,10 +589,7 @@ Document build and test execution results:
 **(Conditional - Apply only if Phase 4 fails)**
 
 **🔒 MANDATORY PHASE 5 COMPLIANCE:**
-- **EXECUTE ALL 5 STEPS IN ORDER**: Steps 5.1 → 5.2 → 5.3 → 5.4 → 5.5 (NO EXCEPTIONS)
-- **COMPLETE EACH STEP FULLY**: Do not proceed to next step until current step is 100% complete
-- **UPDATE TODO AFTER EACH STEP**: Mark step as completed in TODO list immediately after finishing
-- **ITERATIVE REQUIREMENT**: Repeat steps 5.3-5.5 until ALL issues are resolved
+- **ITERATIVE REQUIREMENT**: Repeat steps 5.1-5.5 until ALL issues are resolved
 - **ESCALATION LIMIT**: Maximum 3 resolution attempts before declaring FAILURE
 - **🚨 CRITICAL: PRESERVE TEST INTENTION**: When fixing issues, NEVER change the test's original purpose or validation logic - only fix technical problems while maintaining the exact same test objectives and coverage goals
 
@@ -744,14 +716,6 @@ git status --porcelain
 **Phase 5 Completion**: Update TODO list marking tasks 5.1-5.5 as completed, then declare Phase 6 as next if not fail.
 
 ### PHASE 6: Code Review & Standardized Commit
-
-**🔒 MANDATORY PHASE 6 COMPLIANCE:**
-- **EXECUTE ALL 5 STEPS IN ORDER**: Steps 6.1 → 6.2 → 6.3 → 6.4 → 6.5 (NO EXCEPTIONS)
-- **COMPLETE EACH STEP FULLY**: Do not proceed to next step until current step is 100% complete
-- **UPDATE TODO AFTER EACH STEP**: Mark step as completed in TODO list immediately after finishing
-- **PREREQUISITE CHECK**: Ensure Phase 4 (or Phase 5 if applicable) is 100% complete before starting Phase 6
-- **EXACT COMMIT FORMAT**: Use ONLY the specified commit template - NO modifications allowed
-
 Execute comprehensive final review and commit process:
 
 #### Step 6.1: Comprehensive Code Quality Review
@@ -761,7 +725,7 @@ Perform thorough code quality assessment:
 - **Resource management validation**: Confirm proper SetUp/TearDown implementation
 - **Assertion quality check**: Validate meaningful ASSERT_* statements with descriptive messages
 - **Code organization**: Review file structure, includes, and function organization
-- **Documentation completeness**: Verify function comments with source locations
+- **Documentation completeness**: Verify function comments and critial code comments
 
 #### Step 6.2: Files Staging and Commit Message Creation
 Prepare files for commit with standardized process:
@@ -795,71 +759,12 @@ Summary
 ```
 
 **Post-commit validation:**
-- **Commit verification**: Confirm commit was created successfully
+- **Commit verification**: Confirm commit was created successfully and 
 - **Repository state check**: Verify working directory is clean
 - **Commit message validation**: Ensure exact template format was used
 - **File inclusion verification**: Confirm all required files are included in commit
 
-**Quality Assurance Checklist:**
-- ✅ Code follows WAMR standards and conventions
-- ✅ All test scenarios are comprehensively covered
-- ✅ Performance is acceptable and efficient
-- ✅ All files are properly staged and committed
-- ✅ Commit message follows exact template format
-- ✅ Repository state is clean and consistent
-
-**Phase 6 Completion**:
-Update TODO list marking tasks 6.1-6.3 as completed.
----
-
-## Success Criteria Checklist
-
-Validate ALL items before completion:
-**Phase Completion Requirements:**
-- [ ] **Phase 1**: Opcode analysis with 6 components completed
-- [ ] **Phase 2**: Test strategy with 4 categories documented
-- [ ] **Phase 3**: Production code generated in correct directory structure
-- [ ] **Phase 4**: Build successful with 100% test pass rate
-- [ ] **Phase 5**: Issues resolved (if applicable)
-- [ ] **Phase 6**: Quality review and commit completed
-
-**Quality Gate Validation:**
-- [ ] **TODO List**: Maintained throughout with progress updates
-- [ ] **Assertion Standards**: All tests use ASSERT_* exclusively
-- [ ] **Test Quality**: Zero GTEST_SKIP() calls or placeholder assertions
-- [ ] **Build Success**: Build process completes without errors or warnings
-- [ ] **Test Success**: All generated test cases pass (100% success rate)
-- [ ] **🚨 COMPREHENSIVE DOCUMENTATION**:
-- [ ] Every TEST_P function has complete @test documentation block
-- [ ] All critical code sections have inline comments
-- [ ] **Resource Management**: Proper SetUp/TearDown implementation
-- [ ] **Repository Integration**: Git commit using EXACT template format
-
-**ENFORCEMENT**: Any unchecked item constitutes IMMEDIATE FAILURE of the generation process.
-
-**EXECUTION ORDER**: Execute all phases sequentially. Only proceed to next phase after current phase completes successfully. Phase 5 is conditional - only execute if Phase 4 reports failures.
----
-
-## 🚨 FINAL STRICT ENFORCEMENT DECLARATION 🚨
-
-### ABSOLUTE COMPLIANCE MANDATE:
-Executing this workflow is **STRICTLY REQUIRED** to follow every step in the exact sequence specified. Any deviation, shortcut, or improvisation is **STRICTLY FORBIDDEN** and will result in **IMMEDIATE TASK FAILURE**.
-
-### NON-NEGOTIABLE REQUIREMENTS:
-1. **SEQUENTIAL STEP EXECUTION**: Complete steps 1.1→1.2→1.3→1.4→1.5→1.6, then 2.1→2.2→2.3→2.4→2.5→2.6, etc.
-2. **MANDATORY TODO UPDATES**: Update TODO list after EVERY single step completion - NO EXCEPTIONS
-3. **COMPLETE STEP VALIDATION**: Each step must meet ALL specified criteria before proceeding
-4. **NO CREATIVE ADDITIONS**: Do not add steps, modify requirements, or deviate from prescribed methods
-5. **EXACT TEMPLATE USAGE**: Use only the specified templates, commands, and formats provided
-6. **🚨 PRESERVE TEST INTENTION**: Throughout ALL phases, especially during issue resolution, NEVER compromise the original test objectives, or validation logic - only fix technical problems while maintaining the exact same test purpose
-
-### VIOLATION CONSEQUENCES:
-- **IMMEDIATE TERMINATION**: Any step skipping results in immediate workflow termination
-- **NO PARTIAL CREDIT**: Incomplete steps do not count toward phase completion
-- **RESTART REQUIREMENT**: Violations require complete restart from Phase 1
-- **ZERO TOLERANCE**: No exceptions or special circumstances permitted
-
-### SUCCESS VALIDATION:
+## FINAL SUCCESS VALIDATION:
 Task is complete ONLY when:
 - ✅ ALL 6 phases executed in exact sequence(Conditional for Phase 5 if Phase 4 Success)
 - ✅ ALL sub-steps within each phase completed fully
