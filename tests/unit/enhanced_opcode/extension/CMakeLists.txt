@@ -87,59 +87,20 @@ gtest_discover_tests(enhanced_f64x2_splat_test)
 gtest_discover_tests(enhanced_i8x16_lt_s_test)
 gtest_discover_tests(enhanced_i8x16_lt_u_test)
 
-# Copy WASM test files to build directory for test execution
-add_custom_command(TARGET enhanced_v128_load_test POST_BUILD
+# Create a custom target to copy WASM test files once for all tests
+add_custom_target(copy_extension_wasm_apps ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
     ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
     COMMENT "Copying SIMD WASM test files to build directory"
 )
 
-add_custom_command(TARGET enhanced_i8x16_splat_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying SIMD WASM test files to build directory"
-)
-
-add_custom_command(TARGET enhanced_i16x8_splat_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying SIMD WASM test files to build directory"
-)
-
-add_custom_command(TARGET enhanced_i32x4_splat_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying SIMD WASM test files to build directory"
-)
-
-add_custom_command(TARGET enhanced_i64x2_splat_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying SIMD WASM test files to build directory"
-)
-
-add_custom_command(TARGET enhanced_f64x2_splat_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying SIMD WASM test files to build directory"
-)
-
-add_custom_command(TARGET enhanced_i8x16_lt_s_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying SIMD WASM test files to build directory"
-)
-
-add_custom_command(TARGET enhanced_i8x16_lt_u_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying SIMD WASM test files to build directory"
-)
+# Make all test executables depend on the copy operation
+add_dependencies(enhanced_v128_load_test copy_extension_wasm_apps)
+add_dependencies(enhanced_i8x16_splat_test copy_extension_wasm_apps)
+add_dependencies(enhanced_i16x8_splat_test copy_extension_wasm_apps)
+add_dependencies(enhanced_i32x4_splat_test copy_extension_wasm_apps)
+add_dependencies(enhanced_i64x2_splat_test copy_extension_wasm_apps)
+add_dependencies(enhanced_f64x2_splat_test copy_extension_wasm_apps)
+add_dependencies(enhanced_i8x16_lt_s_test copy_extension_wasm_apps)
+add_dependencies(enhanced_i8x16_lt_u_test copy_extension_wasm_apps)
