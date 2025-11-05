@@ -18,6 +18,9 @@ set(WAMR_BUILD_MEMORY_PROFILING 0)
 set(WAMR_BUILD_BULK_MEMORY 1)
 set(WAMR_BUILD_REF_TYPES 1)
 
+# Enable function references for call_ref opcode support
+set(WAMR_BUILD_FUNCTION_REFERENCES 1)
+
 # Enable GC features for any.convert_extern opcode support
 set(WAMR_BUILD_GC 1)
 
