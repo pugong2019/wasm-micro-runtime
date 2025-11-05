@@ -114,6 +114,9 @@ class GlobalSetTest : public testing::TestWithParam<RunningMode>
         EXPECT_NE(wasm_module_inst, nullptr) << "Failed to instantiate module: " << error_buf;
         if (!wasm_module_inst) return false;
 
+        // Set running mode before creating execution environment
+        wasm_runtime_set_running_mode(wasm_module_inst, GetParam());
+
         exec_env = wasm_runtime_create_exec_env(wasm_module_inst, stack_size);
         EXPECT_NE(exec_env, nullptr) << "Failed to create execution environment";
         if (!exec_env) return false;
