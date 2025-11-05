@@ -119,6 +119,12 @@ add_executable(enhanced_i8x16_swizzle_test
     ${unit_test_sources}
 )
 
+# Enhanced i8x16.bitmask opcode test executable
+add_executable(enhanced_i8x16_bitmask_test
+    enhanced_i8x16_bitmask_test.cc
+    ${unit_test_sources}
+)
+
 # Link libraries and dependencies for v128.not test
 target_link_libraries(enhanced_v128_not_test
     ${LLVM_AVAILABLE_LIBS}
@@ -175,6 +181,12 @@ target_link_libraries(enhanced_v128_any_true_test
 
 # Link libraries and dependencies for i8x16.swizzle test
 target_link_libraries(enhanced_i8x16_swizzle_test
+    ${LLVM_AVAILABLE_LIBS}
+    gtest_main
+)
+
+# Link libraries and dependencies for i8x16.bitmask test
+target_link_libraries(enhanced_i8x16_bitmask_test
     ${LLVM_AVAILABLE_LIBS}
     gtest_main
 )
@@ -250,6 +262,13 @@ add_custom_command(TARGET enhanced_i8x16_swizzle_test POST_BUILD
     COMMENT "Copying WASM test files to build directory for i8x16.swizzle tests"
 )
 
+add_custom_command(TARGET enhanced_i8x16_bitmask_test POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
+    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
+    COMMENT "Copying WASM test files to build directory for i8x16.bitmask tests"
+)
+
 # Configure test discovery for CTest
 include(GoogleTest)
 gtest_discover_tests(enhanced_v128_not_test)
@@ -262,3 +281,4 @@ gtest_discover_tests(enhanced_i8x16_eq_test)
 gtest_discover_tests(enhanced_i8x16_ne_test)
 gtest_discover_tests(enhanced_v128_any_true_test)
 gtest_discover_tests(enhanced_i8x16_swizzle_test)
+gtest_discover_tests(enhanced_i8x16_bitmask_test)
