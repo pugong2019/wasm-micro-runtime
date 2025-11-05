@@ -24,6 +24,7 @@ set(UNIT_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_return_call_indirect_test.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_return_call_ref_test.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_end_test.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_select_test.cc
 )
 
 # Combine all sources including WAMR runtime sources
@@ -40,6 +41,7 @@ add_executable(enhanced_return_call_test ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_re
 add_executable(enhanced_return_call_indirect_test ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_return_call_indirect_test.cc ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE})
 add_executable(enhanced_return_call_ref_test ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_return_call_ref_test.cc ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE})
 add_executable(enhanced_end_test ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_end_test.cc ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE})
+add_executable(enhanced_select_test ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_select_test.cc ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE})
 
 # Link against GTest only (WAMR sources are compiled directly)
 target_link_libraries(enhanced_block_bt_test gtest_main)
@@ -49,6 +51,7 @@ target_link_libraries(enhanced_return_call_test gtest_main)
 target_link_libraries(enhanced_return_call_indirect_test gtest_main)
 target_link_libraries(enhanced_return_call_ref_test gtest_main)
 target_link_libraries(enhanced_end_test gtest_main)
+target_link_libraries(enhanced_select_test gtest_main)
 
 # Copy WASM test files to build directory for block bt test
 add_custom_command(TARGET enhanced_block_bt_test POST_BUILD
@@ -106,6 +109,14 @@ add_custom_command(TARGET enhanced_end_test POST_BUILD
     COMMENT "Copying WASM test files to build directory"
 )
 
+# Copy WASM test files to build directory for select test
+add_custom_command(TARGET enhanced_select_test POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
+    $<TARGET_FILE_DIR:enhanced_select_test>/wasm-apps
+    COMMENT "Copying WASM test files to build directory"
+)
+
 # GoogleTest discovery
 include(GoogleTest)
 gtest_discover_tests(enhanced_block_bt_test)
@@ -115,3 +126,4 @@ gtest_discover_tests(enhanced_return_call_test)
 gtest_discover_tests(enhanced_return_call_indirect_test)
 gtest_discover_tests(enhanced_return_call_ref_test)
 gtest_discover_tests(enhanced_end_test)
+gtest_discover_tests(enhanced_select_test)
