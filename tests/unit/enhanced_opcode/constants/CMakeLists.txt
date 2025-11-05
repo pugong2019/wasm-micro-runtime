@@ -3,9 +3,9 @@
 
 cmake_minimum_required(VERSION 3.14)
 
-project(enhanced_i32_const_test)
+project(enhanced_constants_test)
 
-# WAMR build flags for enhanced i32.const opcode testing
+# WAMR build flags for enhanced constant opcode testing (i32.const, i64.const)
 set(WAMR_BUILD_INTERP 1)
 set(WAMR_BUILD_AOT 1)
 set(WAMR_BUILD_JIT 1)
@@ -40,26 +40,43 @@ include(${IWASM_DIR}/compilation/iwasm_compl.cmake)
 # Set up include directories
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-# Prepare unit test sources
-set(unit_test_sources
+# Prepare unit test sources for i32.const test
+set(i32_const_test_sources
         enhanced_i32_const_test.cc
         ${WAMR_RUNTIME_LIB_SOURCE}
         ${UNCOMMON_SHARED_SOURCE}
         )
 
-# Create test executable
-add_executable(enhanced_i32_const_test ${unit_test_sources})
+# Prepare unit test sources for i64.const test
+set(i64_const_test_sources
+        enhanced_i64_const_test.cc
+        ${WAMR_RUNTIME_LIB_SOURCE}
+        ${UNCOMMON_SHARED_SOURCE}
+        )
+
+# Create test executables
+add_executable(enhanced_i32_const_test ${i32_const_test_sources})
+add_executable(enhanced_i64_const_test ${i64_const_test_sources})
 
 # Link required libraries
 target_link_libraries(enhanced_i32_const_test ${LLVM_AVAILABLE_LIBS} gtest_main)
+target_link_libraries(enhanced_i64_const_test ${LLVM_AVAILABLE_LIBS} gtest_main)
 
-# Post-build: Copy WASM test files to build directory
+# Post-build: Copy WASM test files to build directory for both tests
 add_custom_command(TARGET enhanced_i32_const_test POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
         $<TARGET_FILE_DIR:enhanced_i32_const_test>/wasm-apps
-    COMMENT "Copying WASM test files to build directory"
+    COMMENT "Copying WASM test files to i32_const test build directory"
 )
 
-# Register test with CTest
+add_custom_command(TARGET enhanced_i64_const_test POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
+        $<TARGET_FILE_DIR:enhanced_i64_const_test>/wasm-apps
+    COMMENT "Copying WASM test files to i64_const test build directory"
+)
+
+# Register tests with CTest
 add_test(NAME enhanced_i32_const_test COMMAND enhanced_i32_const_test)
+add_test(NAME enhanced_i64_const_test COMMAND enhanced_i64_const_test)
