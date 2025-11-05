@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.14)
 
 project(test-enhanced-reference-opcodes)
 
-# Enable required WAMR build flags for reference type opcodes (any.convert_extern, table operations)
+# Enable required WAMR build flags for reference type opcodes (any.convert_extern, extern.convert_any, table operations)
 set(WAMR_BUILD_INTERP 1)
 set(WAMR_BUILD_AOT 1)
 set(WAMR_BUILD_JIT 1)
