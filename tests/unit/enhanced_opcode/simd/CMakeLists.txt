@@ -107,12 +107,6 @@ add_executable(enhanced_i8x16_ne_test
     ${unit_test_sources}
 )
 
-# Enhanced i8x16.extract_lane_s opcode test executable
-add_executable(enhanced_i8x16_extract_lane_s_test
-    enhanced_i8x16_extract_lane_s_test.cc
-    ${unit_test_sources}
-)
-
 # Enhanced v128.any_true opcode test executable
 add_executable(enhanced_v128_any_true_test
     enhanced_v128_any_true_test.cc
@@ -169,12 +163,6 @@ target_link_libraries(enhanced_i8x16_eq_test
 
 # Link libraries and dependencies for i8x16.ne test
 target_link_libraries(enhanced_i8x16_ne_test
-    ${LLVM_AVAILABLE_LIBS}
-    gtest_main
-)
-
-# Link libraries and dependencies for i8x16.extract_lane_s test
-target_link_libraries(enhanced_i8x16_extract_lane_s_test
     ${LLVM_AVAILABLE_LIBS}
     gtest_main
 )
@@ -248,13 +236,6 @@ add_custom_command(TARGET enhanced_i8x16_ne_test POST_BUILD
     COMMENT "Copying WASM test files to build directory for i8x16.ne tests"
 )
 
-add_custom_command(TARGET enhanced_i8x16_extract_lane_s_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying WASM test files to build directory for i8x16.extract_lane_s tests"
-)
-
 add_custom_command(TARGET enhanced_v128_any_true_test POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
@@ -279,6 +260,5 @@ gtest_discover_tests(enhanced_v128_xor_test)
 gtest_discover_tests(enhanced_v128_bitselect_test)
 gtest_discover_tests(enhanced_i8x16_eq_test)
 gtest_discover_tests(enhanced_i8x16_ne_test)
-gtest_discover_tests(enhanced_i8x16_extract_lane_s_test)
 gtest_discover_tests(enhanced_v128_any_true_test)
 gtest_discover_tests(enhanced_i8x16_swizzle_test)
