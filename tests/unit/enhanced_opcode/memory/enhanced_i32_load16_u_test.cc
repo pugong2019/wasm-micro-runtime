@@ -26,7 +26,7 @@ protected:
      *
      * Initializes WAMR runtime with system allocator, loads the test WASM module,
      * and prepares the execution environment for i32.load16_u instruction testing.
-     * Creates module instance and execution environment for both interpreter and AOT modes.
+     * Creates module instance for both interpreter and AOT modes.
      */
     void SetUp() override
     {
@@ -36,32 +36,34 @@ protected:
         ASSERT_TRUE(wasm_runtime_full_init(&init_args))
             << "Failed to initialize WAMR runtime";
 
+        is_aot_mode = (GetParam() == Mode_LLVM_JIT);
+
         load_sample_wasm();
         ASSERT_NE(nullptr, wasm_module) << "Failed to load i32.load16_u test module";
 
         wasm_module_inst = wasm_runtime_instantiate(wasm_module, stack_size, heap_size, error_buf, sizeof(error_buf));
         ASSERT_NE(nullptr, wasm_module_inst) << "Failed to instantiate WASM module: " << error_buf;
-
-        exec_env = wasm_runtime_create_exec_env(wasm_module_inst, stack_size);
-        ASSERT_NE(nullptr, exec_env) << "Failed to create execution environment";
     }
 
     /**
      * @brief Clean up test environment and release WAMR resources
      *
-     * Destroys execution environment, deinstantiates module instance, unloads module,
+     * Deinstantiates module instance, unloads module,
      * and performs complete WAMR runtime cleanup to prevent memory leaks.
      */
     void TearDown() override
     {
-        if (exec_env) {
-            wasm_runtime_destroy_exec_env(exec_env);
-        }
         if (wasm_module_inst) {
             wasm_runtime_deinstantiate(wasm_module_inst);
+            wasm_module_inst = nullptr;
         }
         if (wasm_module) {
             wasm_runtime_unload(wasm_module);
+            wasm_module = nullptr;
+        }
+        if (wasm_buf) {
+            BH_FREE(wasm_buf);
+            wasm_buf = nullptr;
         }
         wasm_runtime_destroy();
     }
@@ -75,8 +77,6 @@ protected:
     void load_sample_wasm()
     {
         const char *wasm_path = "wasm-apps/i32_load16_u_test.wasm";
-        char *wasm_buf;
-        uint32_t wasm_buf_size;
 
         wasm_buf = bh_read_file_to_buffer(wasm_path, &wasm_buf_size);
         ASSERT_NE(nullptr, wasm_buf) << "Failed to read WASM file: " << wasm_path;
@@ -84,8 +84,6 @@ protected:
         wasm_module = wasm_runtime_load((uint8_t*)wasm_buf, wasm_buf_size,
                                       error_buf, sizeof(error_buf));
         ASSERT_NE(nullptr, wasm_module) << "Failed to load WASM module: " << error_buf;
-
-        BH_FREE(wasm_buf);
     }
 
     /**
@@ -101,10 +99,17 @@ protected:
         wasm_function_inst_t func = wasm_runtime_lookup_function(wasm_module_inst, "load16_u");
         EXPECT_NE(nullptr, func) << "Failed to lookup load16_u function";
 
+        wasm_exec_env_t exec_env = wasm_runtime_create_exec_env(wasm_module_inst, stack_size);
+        EXPECT_NE(nullptr, exec_env) << "Failed to create execution environment";
+
         uint32_t argv[1] = { address };
         bool ret = wasm_runtime_call_wasm(exec_env, func, 1, argv);
         EXPECT_TRUE(ret) << "Failed to call load16_u function: "
                          << wasm_runtime_get_exception(wasm_module_inst);
+
+        if (exec_env) {
+            wasm_runtime_destroy_exec_env(exec_env);
+        }
 
         return argv[0];
     }
@@ -122,10 +127,17 @@ protected:
         wasm_function_inst_t func = wasm_runtime_lookup_function(wasm_module_inst, "load16_s");
         EXPECT_NE(nullptr, func) << "Failed to lookup load16_s function";
 
+        wasm_exec_env_t exec_env = wasm_runtime_create_exec_env(wasm_module_inst, stack_size);
+        EXPECT_NE(nullptr, exec_env) << "Failed to create execution environment";
+
         uint32_t argv[1] = { address };
         bool ret = wasm_runtime_call_wasm(exec_env, func, 1, argv);
         EXPECT_TRUE(ret) << "Failed to call load16_s function: "
                          << wasm_runtime_get_exception(wasm_module_inst);
+
+        if (exec_env) {
+            wasm_runtime_destroy_exec_env(exec_env);
+        }
 
         return argv[0];
     }
@@ -143,10 +155,17 @@ protected:
         wasm_function_inst_t func = wasm_runtime_lookup_function(wasm_module_inst, "store16");
         ASSERT_NE(nullptr, func) << "Failed to lookup store16 function";
 
+        wasm_exec_env_t exec_env = wasm_runtime_create_exec_env(wasm_module_inst, stack_size);
+        ASSERT_NE(nullptr, exec_env) << "Failed to create execution environment";
+
         uint32_t argv[2] = { address, value };
         bool ret = wasm_runtime_call_wasm(exec_env, func, 2, argv);
         ASSERT_TRUE(ret) << "Failed to call store16 function: "
                          << wasm_runtime_get_exception(wasm_module_inst);
+
+        if (exec_env) {
+            wasm_runtime_destroy_exec_env(exec_env);
+        }
     }
 
     /**
@@ -178,8 +197,10 @@ protected:
     RuntimeInitArgs init_args;
     wasm_module_t wasm_module = nullptr;
     wasm_module_inst_t wasm_module_inst = nullptr;
-    wasm_exec_env_t exec_env = nullptr;
-    char error_buf[128];
+    char *wasm_buf = nullptr;
+    uint32_t wasm_buf_size = 0;
+    char error_buf[128] = {0};
+    bool is_aot_mode = false;
     const uint32_t stack_size = 8092;
     const uint32_t heap_size = 8192;
 };
