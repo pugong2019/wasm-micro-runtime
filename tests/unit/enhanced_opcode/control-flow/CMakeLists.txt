@@ -1,9 +1,9 @@
-# Enhanced Block BT Opcode Unit Tests
-# Comprehensive testing for WASM 'block bt' opcode functionality
+# Enhanced Control Flow Opcode Unit Tests
+# Comprehensive testing for WASM control flow opcodes functionality
 
 cmake_minimum_required(VERSION 3.10)
 
-project(enhanced_block_bt_test)
+project(enhanced_control_flow_test)
 
 # Platform-specific definitions
 add_definitions(-DRUN_ON_LINUX)
@@ -15,9 +15,10 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/../../unit_common.cmake)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${WAMR_ROOT_DIR}/tests/unit/common)
 
-# Enhanced Block BT Test Sources
+# Enhanced Control Flow Test Sources
 set(UNIT_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_block_bt_test.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_call_test.cc
 )
 
 # Combine all sources including WAMR runtime sources
@@ -27,12 +28,14 @@ set(unit_test_sources
     ${UNCOMMON_SHARED_SOURCE}
 )
 
-add_executable(enhanced_block_bt_test ${unit_test_sources})
+add_executable(enhanced_block_bt_test ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_block_bt_test.cc ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE})
+add_executable(enhanced_call_test ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_call_test.cc ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE})
 
 # Link against GTest only (WAMR sources are compiled directly)
 target_link_libraries(enhanced_block_bt_test gtest_main)
+target_link_libraries(enhanced_call_test gtest_main)
 
-# Copy WASM test files to build directory
+# Copy WASM test files to build directory for block bt test
 add_custom_command(TARGET enhanced_block_bt_test POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
@@ -40,6 +43,15 @@ add_custom_command(TARGET enhanced_block_bt_test POST_BUILD
     COMMENT "Copying WASM test files to build directory"
 )
 
+# Copy WASM test files to build directory for call test
+add_custom_command(TARGET enhanced_call_test POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
+    $<TARGET_FILE_DIR:enhanced_call_test>/wasm-apps
+    COMMENT "Copying WASM test files to build directory"
+)
+
 # GoogleTest discovery
 include(GoogleTest)
 gtest_discover_tests(enhanced_block_bt_test)
+gtest_discover_tests(enhanced_call_test)
