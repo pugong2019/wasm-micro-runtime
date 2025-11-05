@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.14)
 
 project(enhanced_constants_test)
 
-# WAMR build flags for enhanced constant opcode testing (i32.const, i64.const, f32.const)
+# WAMR build flags for enhanced constant opcode testing (i32.const, i64.const, f32.const, f64.const)
 set(WAMR_BUILD_INTERP 1)
 set(WAMR_BUILD_AOT 1)
 set(WAMR_BUILD_JIT 1)
@@ -61,15 +61,24 @@ set(f32_const_test_sources
         ${UNCOMMON_SHARED_SOURCE}
         )
 
+# Prepare unit test sources for f64.const test
+set(f64_const_test_sources
+        enhanced_f64_const_test.cc
+        ${WAMR_RUNTIME_LIB_SOURCE}
+        ${UNCOMMON_SHARED_SOURCE}
+        )
+
 # Create test executables
 add_executable(enhanced_i32_const_test ${i32_const_test_sources})
 add_executable(enhanced_i64_const_test ${i64_const_test_sources})
 add_executable(enhanced_f32_const_test ${f32_const_test_sources})
+add_executable(enhanced_f64_const_test ${f64_const_test_sources})
 
 # Link required libraries
 target_link_libraries(enhanced_i32_const_test ${LLVM_AVAILABLE_LIBS} gtest_main)
 target_link_libraries(enhanced_i64_const_test ${LLVM_AVAILABLE_LIBS} gtest_main)
 target_link_libraries(enhanced_f32_const_test ${LLVM_AVAILABLE_LIBS} gtest_main)
+target_link_libraries(enhanced_f64_const_test ${LLVM_AVAILABLE_LIBS} gtest_main)
 
 # Post-build: Copy WASM test files to build directory for all tests
 add_custom_command(TARGET enhanced_i32_const_test POST_BUILD
@@ -93,7 +102,15 @@ add_custom_command(TARGET enhanced_f32_const_test POST_BUILD
     COMMENT "Copying WASM test files to f32_const test build directory"
 )
 
+add_custom_command(TARGET enhanced_f64_const_test POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
+        $<TARGET_FILE_DIR:enhanced_f64_const_test>/wasm-apps
+    COMMENT "Copying WASM test files to f64_const test build directory"
+)
+
 # Register tests with CTest
 add_test(NAME enhanced_i32_const_test COMMAND enhanced_i32_const_test)
 add_test(NAME enhanced_i64_const_test COMMAND enhanced_i64_const_test)
 add_test(NAME enhanced_f32_const_test COMMAND enhanced_f32_const_test)
+add_test(NAME enhanced_f64_const_test COMMAND enhanced_f64_const_test)
