@@ -22,7 +22,7 @@ set(WAMR_BUILD_REF_TYPES 1)
 set(WAMR_BUILD_FUNCTION_REFERENCES 1)
 
 # Enable GC features for any.convert_extern opcode support
-set(WAMR_BUILD_GC 1)
+# set(WAMR_BUILD_GC 1)
 
 # Platform-specific definitions
 add_definitions(-DRUN_ON_LINUX)
