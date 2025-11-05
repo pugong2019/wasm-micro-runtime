@@ -149,6 +149,12 @@ add_executable(enhanced_f32x4_floor_test
     ${unit_test_sources}
 )
 
+# Enhanced f32x4.trunc opcode test executable
+add_executable(enhanced_f32x4_trunc_test
+    enhanced_f32x4_trunc_test.cc
+    ${unit_test_sources}
+)
+
 # Link libraries and dependencies for v128.not test
 target_link_libraries(enhanced_v128_not_test
     ${LLVM_AVAILABLE_LIBS}
@@ -235,6 +241,12 @@ target_link_libraries(enhanced_f32x4_ceil_test
 
 # Link libraries and dependencies for f32x4.floor test
 target_link_libraries(enhanced_f32x4_floor_test
+    ${LLVM_AVAILABLE_LIBS}
+    gtest_main
+)
+
+# Link libraries and dependencies for f32x4.trunc test
+target_link_libraries(enhanced_f32x4_trunc_test
     ${LLVM_AVAILABLE_LIBS}
     gtest_main
 )
@@ -345,6 +357,13 @@ add_custom_command(TARGET enhanced_f32x4_floor_test POST_BUILD
     COMMENT "Copying WASM test files to build directory for f32x4.floor tests"
 )
 
+add_custom_command(TARGET enhanced_f32x4_trunc_test POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
+    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
+    COMMENT "Copying WASM test files to build directory for f32x4.trunc tests"
+)
+
 # Configure test discovery for CTest
 include(GoogleTest)
 gtest_discover_tests(enhanced_v128_not_test)
@@ -362,3 +381,4 @@ gtest_discover_tests(enhanced_i8x16_popcnt_test)
 gtest_discover_tests(enhanced_i8x16_all_true_test)
 gtest_discover_tests(enhanced_f32x4_ceil_test)
 gtest_discover_tests(enhanced_f32x4_floor_test)
+gtest_discover_tests(enhanced_f32x4_trunc_test)
