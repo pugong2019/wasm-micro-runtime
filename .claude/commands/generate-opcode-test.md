@@ -31,7 +31,7 @@ Create complete test coverage for WASM opcodes through ultra-deep analysis, stra
 - [ ] 1.3 Stack effect documentation (pop/push behavior, height changes)
 - [ ] 1.4 Edge case identification (boundary values, special numeric values, overflow)
 - [ ] 1.5 Error condition mapping (traps, type mismatches, stack underflow, out-of-bounds)
-- [ ] 1.6 Opcode category classification (numeric, memory, control-flow, variable, reference, simd, extension...)
+- [ ] 1.6 Opcode category classification (numeric, memory, control-flow, variable, reference, simd, reference, table...)
 
 ### Phase 2: Strategic Test Planning
 - [ ] 2.1 Main routine test case design (basic functionality with typical values)
@@ -54,14 +54,16 @@ Create complete test coverage for WASM opcodes through ultra-deep analysis, stra
 - [ ] 4.2 Build test suite with parallel compilation
 - [ ] 4.3 Execute test suite and capture detailed output
 - [ ] 4.4 Validate all tests pass (0 failures) and no runtime crashes(crash like segment fault/core dump, etc)
-- [ ] 4.5 Document any build/test failures for Phase 5 resolution
+- [ ] 4.5 Execution validation
+- [ ] 4.6 Document any build/test failures for Phase 5 resolution
 
 ### Phase 5: Issue Detection & Resolution (Conditional - Only if Phase 4 fails)
-- [ ] 5.1 Compilation errors, runtime crashes, or assertion failures analysis
-- [ ] 5.2 Issue categorization (compilation, runtime, test logic, ...)
-- [ ] 5.3 Targeted fixes application (missing includes, null checks, correct expected values)
-- [ ] 5.4 Re-run build and test to confirm resolution
-- [ ] 5.5 Iterate until all issues resolved and tests pass or max iteration count achieved
+- [ ] 5.1 Comprehensive issue detection and analysis
+- [ ] 5.2 Root cause categorization (compilation, runtime, test logic, crashes)
+- [ ] 5.3 Targeted resolution application (preserving test intention)
+- [ ] 5.4 Verification & iteration control (max 3 cycles through 5.1-5.4)
+- [ ] 5.5 Final resolution decision (evaluate after max iterations)
+- [ ] 5.6 Task failure cleanup (only if task must be terminated)
 
 ### Phase 6: Code Review & Standardized Commit
 - [ ] 6.1 Comprehensive code quality review
@@ -508,7 +510,10 @@ Update TODO list marking tasks 3.1-3.6 as completed, display progress percentage
 ### PHASE 4: Build & Test Execution
 
 **🔒 MANDATORY PHASE 4 COMPLIANCE:**
-- **MANDATORY SUCCESS**: All build and test steps MUST succeed before proceeding to Phase 6
+- All build and test steps MUST succeed before proceeding to Phase 6
+- All source files compile without errors
+- All unit tests pass (100% success rate, no failed cases)
+- No runtime crashes or memory leaks detected
 
 Execute the build and test process through systematic steps:
 
@@ -557,25 +562,20 @@ ctest --test-dir build/enhanced_opcode/{CATEGORY} \
       --verbose \
       --parallel $(nproc)
 ```
-**Execution validation:**
-- Verify all tests pass (0 failures)
+#### Step 4.5: Execution validation
+**🔒 MANDATORY Execution COMPLIANCE:**
+- Verify all tests pass (0 failed cases)
 - Confirm no runtime crashes occur (segmentation fault, core dump, etc.)
-- **🚨 MANDATORY CRASH RESOLUTION**: If any crash issues (segmentation fault, core dump, or any other runtime failures) occur during test execution, they MUST be fixed before proceeding
+- If any crash issues (segmentation fault, core dump, or any other runtime failures) occur during test execution, they MUST be fixed before proceeding
 - Check no memory leaks are detected
 - Validate test output shows expected assertions
 
-#### Step 4.5: Results Documentation
+#### Step 4.6: Results Documentation
 Document build and test execution results:
 - **Compilation status**: Record successful compilation
 - **Test results**: Document pass/fail counts and specific test outcomes
 - **Performance metrics**: Note execution times and resource usage
 - **Issue identification**: Log any failures for Phase 4 resolution (if needed)
-
-**Success Criteria Verification:**
-- ✅ All source files compile without warnings
-- ✅ All unit tests pass (100% success rate)
-- ✅ No runtime crashes or memory leaks detected
-- ✅ Build completes in reasonable time
 
 **Phase 4 Completion**: Update TODO list marking tasks 4.1-4.5 as completed. If all criteria met, proceed to Phase 5. If any failures occurred, declare Phase 4 as next.
 
@@ -583,11 +583,21 @@ Document build and test execution results:
 **(Conditional - Apply only if Phase 4 fails)**
 
 **🔒 MANDATORY PHASE 5 COMPLIANCE:**
-- **ITERATIVE REQUIREMENT**: Repeat steps 5.1-5.5 until ALL issues are resolved
-- **ESCALATION LIMIT**: Maximum 3 resolution attempts before declaring FAILURE
-- **🚨 CRITICAL: PRESERVE TEST INTENTION**: When fixing issues, NEVER change the test's original purpose or validation logic - only fix technical problems while maintaining the exact same test objectives and coverage goals
+- **ITERATIVE REQUIREMENT**: Maximum 3 resolution cycles through steps 5.1-5.4
+- **CRITICAL: PRESERVE TEST INTENTION**: When fixing issues, NEVER change the test's original purpose or validation logic - only fix technical problems while maintaining the exact same test objectives and coverage goals
 
-Execute systematic issue resolution through iterative steps:
+**SUCCESS CRITERIA (Required for Phase 6 progression):**
+- ✅ All compilation errors resolved
+- ✅ All runtime crashes eliminated (segmentation fault, core dump, access violations, etc.)
+- ✅ All test assertions pass OR at least some tests pass (partial success acceptable)
+- ✅ Build system operates correctly
+
+**FAILURE CRITERIA (Triggers task termination):**
+- ❌ Persistent build/compilation issues after 3 iterations
+- ❌ All tests fail with no successful test cases
+- ❌ Unresolvable runtime crashes after 3 iterations
+
+Execute systematic issue resolution through iterative cycles:
 
 #### Step 5.1: Comprehensive Issue Detection
 Analyze all failures from Phase 4:
@@ -601,9 +611,8 @@ Analyze all failures from Phase 4:
 Classify each identified issue into specific categories:
 - **Compilation issues**: Missing headers, syntax errors, linking problems
 - **Runtime issues**: Null pointer dereferences, memory leaks, stack overflows
-- **🚨 CRASH ISSUES**: Segmentation faults, core dumps, access violations, and any other runtime crashes that cause test binary termination
+- **Crash issues**: Segmentation faults, core dumps, access violations, and any other runtime crashes that cause test binary termination
 - **Test logic issues**: Incorrect expected values, wrong test setup, assertion problems
-- **Coverage issues**: Missing coverage flags, tool configuration problems
 - **Build configuration issues**: Incorrect CMake settings, missing dependencies
 
 #### Step 5.3: Targeted Resolution Application
@@ -634,11 +643,12 @@ Apply specific fixes based on issue categorization:
 - ❌ Modifying expected values to match incorrect implementation behavior
 - ❌ Removing "difficult" test cases that expose real issues
 - ❌ Weakening validation criteria to avoid failures
-- ❌ Adding GTEST_SKIP() to bypass failing tests
+- ❌ Adding GTEST_SKIP() ro SUCCESS(), FAIL(), ASSERR(true) to bypass failing tests
 
-#### Step 5.4: Iterative Verification
+#### Step 5.4: Verification & Iteration Control
 Re-run build and test to confirm issue resolution:
 ```bash
+cd tests/unit
 # Clean previous build artifacts
 rm -rf build/enhanced_opcode/{CATEGORY}
 
@@ -647,43 +657,64 @@ cmake --log-level=ERROR -S enhanced_opcode/{CATEGORY} -B build/enhanced_opcode/{
 cmake --build build/enhanced_opcode/{CATEGORY} --parallel $(nproc)
 ctest --test-dir build/enhanced_opcode/{CATEGORY} --output-on-failure --verbose
 ```
-**Verification criteria:**
-- Confirm specific fixes resolve identified issues
-- **🚨 VERIFY CRASH RESOLUTION**: Ensure all segmentation faults, core dumps, and runtime crashes are completely eliminated
-- Ensure no new issues are introduced
-- Validate that all previously passing tests still pass
-- **🚨 VERIFY TEST INTENTION PRESERVED**: Confirm that all test objectives, and validation logic remain exactly as originally designed
 
-#### Step 5.5: Resolution Iteration
-**Continue resolution cycles until complete success or max 3 iteration arrived:**
-- **Issue tracking**: Maintain list of resolved vs. remaining issues
-- **Progress monitoring**: Document resolution progress after each iteration
-- **Escalation criteria**: If 3 resolution attempts fail, escalate to FAILURE status
-- **Success validation**: Achieve same success criteria as Phase 4
-- **Documentation**: Record all applied fixes for future reference
+**Verification & Decision Logic:**
+1. **Verify fixes applied**: Confirm specific fixes resolve identified issues
+2. **Check crash resolution**: Ensure all segmentation faults, core dumps, and runtime crashes are eliminated
+3. **Validate test preservation**: Confirm test objectives and validation logic remain unchanged
+4. **Assess iteration progress**: Document resolved vs. remaining issues
 
-**Resolution Success Criteria:**
-- ✅ All compilation errors resolved
-- ✅ All runtime crashes eliminated (segmentation fault, core dump, access violations, etc.)
-- ✅ **🚨 MANDATORY**: Zero crash issues remain - all test binaries execute without any runtime termination failures
-- ✅ All test assertions pass
-- ✅ Build system operates correctly
+**Iteration Decision Tree:**
+```
+After verification → Evaluate results:
 
-**FAILURE ESCALATION**: If issue not fixed after max attempts, mark task as FAILED and document blocking issues.
+├─ ALL ISSUES RESOLVED?
+│  └─ YES → Proceed to Phase 6 ✅
+│
+├─ ITERATION COUNT < 3?
+│  ├─ YES → Return to Step 5.1 (next iteration) 🔄
+│  └─ NO → Go to Step 5.5 (Final Resolution) ⚠️
+│
+└─ CRITICAL CRASHES PERSIST?
+   └─ YES → Go to Step 5.6 (Task Failure) ❌
+```
 
-### Critical Failure Recovery Protocol
+#### Step 5.5: Final Resolution Decision (After 3 iterations)
+**When maximum iterations reached, evaluate remaining issues:**
 
-**🚨 MAXIMUM FIX ITERATION RULE**: If maximum fix iterations are achieved but task still fails:
+**DECISION MATRIX:**
 
-1. **Revert All Modifications**: Drop all changes made during the test generation:
-   - **If committed files modified** (code, CMakeLists.txt, WASM/WAT files): Execute `git checkout` to revert modifications to original state
-   - **If new files generated**: Delete all newly created files completely
-   - **🚨 CRITICAL**: NEVER delete committed files - only revert modifications or remove newly generated files
+| Issue Status | Build Status | Test Results | Action |
+|-------------|-------------|-------------|--------|
+| ✅ All resolved | ✅ Success | ✅ All pass | **Proceed to Phase 6** |
+| ⚠️ Test failures only | ✅ Success | ⚠️ Some pass | **Partial Success**: Comment out failing tests, proceed to Phase 6 |
+| ⚠️ Test failures only | ✅ Success | ❌ All fail | **Task FAILED**: Insufficient coverage |
+| ❌ Build issues | ❌ Failed | N/A | **Task FAILED**: Unresolvable build problems |
+| ❌ Runtime crashes | ✅ Success | ❌ Crashes | **Task FAILED**: Unresolvable crashes |
 
-2. **Clean Repository State**: Ensure working directory returns to pre-task state:
+**For Partial Success (some tests pass):**
+- Identify successful vs. failing test cases
+- Comment out failing test methods using `//` prefix
+- Proceed to Phase 6 with working test suite
+
+**For Task Failure:**
+- Proceed to Step 5.6 for cleanup and termination
+
+#### Step 5.6: Task Failure Cleanup (Only if task fails)
+**Execute when task must be terminated due to unresolvable issues:**
+
+**1. Document Failure Analysis:**
+- Short summarize about root cause analysis of persistent failures
+
+**2. Repository Cleanup:**
+**🚨 CRITICAL**: NEVER delete committed files - only revert modifications or remove newly generated files
+
 ```bash
+# Check current git status to identify file changes
+git status --porcelain
+
 # Revert modifications to committed files (DO NOT DELETE committed files)
-git checkout -- {modified_files}
+git checkout -- {modified_files_if_any}
 
 # Remove ONLY newly generated files (not committed files)
 rm -f tests/unit/enhanced_opcode/{CATEGORY}/enhanced_{opcode}_test.cc
@@ -692,22 +723,18 @@ rm -f tests/unit/enhanced_opcode/{CATEGORY}/wasm-apps/{opcode}_test.wasm
 # Remove newly created CMakeLists.txt only if it was newly created (not modified)
 # If CMakeLists.txt existed and was modified, use git checkout instead
 
-# Check git status to distinguish between new and modified files
-git status --porcelain
+# Clean build artifacts
+rm -rf build/enhanced_opcode/{CATEGORY}
 ```
 
-3. **Generate Failure Summary**: Document comprehensive failure report including:
-   - Root cause analysis of persistent failures
-   - Attempted resolution strategies and their outcomes
-   - Technical barriers that prevented successful completion
-   - Recommendations for alternative approaches or manual intervention
+**3. Task Termination:**
+- Mark TODO list items as "FAILED - unresolvable issues"
+- SKIP all remaining Phases (do not proceed to Phase 6)
+- TERMINATE task immediately - no further work
 
-4. **Skip Remaining Tasks**: After failure recovery:
-   - **SKIP all remaining Phases/steps** in the current workflow
-   - **TERMINATE the task immediately** - do not attempt further work
-   - Mark TODO list items as "SKIPPED due to irrecoverable failure"
-
-**Phase 5 Completion**: Update TODO list marking tasks 5.1-5.5 as completed, then declare Phase 6 as next if not fail.
+**Phase 5 Completion**:
+- **If successful**: Update TODO list marking tasks 5.1-5.5 as completed, declare Phase 6 as next
+- **If failed**: Execute Step 5.6 cleanup, mark task as FAILED, terminate workflow
 
 ### PHASE 6: Code Review & Standardized Commit
 Execute comprehensive final review and commit process:
@@ -740,8 +767,8 @@ rm -rf enhanced_opcode/{CATEGORY}/build # remove the tempory build files
 
 #### Step 6.3: Commit Execution and Repository State Validation
 **🔒 MANDATORY PHASE 5 COMPLIANCE**
-* MUST execute commit with exact below template format, DO NOT allow add any other extra content:  
-COMMIT MESSAGE TEMPLATE (USE EXACTLY AS SHOWN)   
+**MUST execute commit with exact below template format, MUST NOT add any other extra content:**  
+**COMMIT MESSAGE TEMPLATE (USE EXACTLY AS SHOWN)**
 cmd: git commit -s -m {message}:  
 
 ```bash
@@ -765,6 +792,6 @@ Task is complete ONLY when:
 - ✅ ALL sub-steps within each phase completed fully
 - ✅ TODO list properly maintained throughout entire process
 - ✅ ALL quality gates and success criteria met
-- ✅ Commit created using EXACT template format
+- ✅ Commit created using EXACT template format without adding any extra content
 
 **This workflow demands absolute precision and complete adherence to every specified requirement.**
