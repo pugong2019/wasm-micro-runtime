@@ -30,355 +30,44 @@ endif ()
 
 set(CMAKE_PREFIX_PATH "${LLVM_SRC_ROOT}/build;${CMAKE_PREFIX_PATH}")
 find_package(LLVM REQUIRED CONFIG)
-
-# Add LLVM definitions and include directories
-add_definitions(${LLVM_DEFINITIONS})
 include_directories(${LLVM_INCLUDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS})
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
-# Link against LLVM libraries for AOT support
-llvm_map_components_to_libnames(llvm_libs
-    core
-    mcjit
-    native
-    nativecodegen
-    object
-    orcjit
-    support
-    target
-    x86asmparser
-    x86codegen
-    x86desc
-    x86disassembler
-    x86info
-)
+# Include AOT compilation support
+include(${IWASM_DIR}/compilation/iwasm_compl.cmake)
+
+# Set up include directories
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+# Collect all test source files
+file(GLOB_RECURSE source_all ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
+# Remove files from build directory to avoid conflicts
+list(FILTER source_all EXCLUDE REGEX "${CMAKE_CURRENT_BINARY_DIR}/.*")
+
+set(UNIT_SOURCE ${source_all})
 
 # Prepare unit test sources
 set(unit_test_sources
-    ${UNIT_SOURCE}
-    ${WAMR_RUNTIME_LIB_SOURCE}
-    ${UNCOMMON_SHARED_SOURCE}
-)
+        ${UNIT_SOURCE}
+        ${WAMR_RUNTIME_LIB_SOURCE}
+        ${UNCOMMON_SHARED_SOURCE}
+        )
 
-# Enhanced v128.not opcode test executable
-add_executable(enhanced_v128_not_test
-    enhanced_v128_not_test.cc
-    ${unit_test_sources}
-)
+# Create test executable
+add_executable(enhanced_simd_test ${unit_test_sources})
 
-# Enhanced v128.and opcode test executable
-add_executable(enhanced_v128_and_test
-    enhanced_v128_and_test.cc
-    ${unit_test_sources}
-)
-
-# Enhanced v128.andnot opcode test executable
-add_executable(enhanced_v128_andnot_test
-    enhanced_v128_andnot_test.cc
-    ${unit_test_sources}
-)
-
-# Enhanced v128.or opcode test executable
-add_executable(enhanced_v128_or_test
-    enhanced_v128_or_test.cc
-    ${unit_test_sources}
-)
-
-# Enhanced v128.xor opcode test executable
-add_executable(enhanced_v128_xor_test
-    enhanced_v128_xor_test.cc
-    ${unit_test_sources}
-)
-
-# Enhanced v128.bitselect opcode test executable
-add_executable(enhanced_v128_bitselect_test
-    enhanced_v128_bitselect_test.cc
-    ${unit_test_sources}
-)
-
-# Enhanced i8x16.eq opcode test executable
-add_executable(enhanced_i8x16_eq_test
-    enhanced_i8x16_eq_test.cc
-    ${unit_test_sources}
-)
-
-# Enhanced i8x16.ne opcode test executable
-add_executable(enhanced_i8x16_ne_test
-    enhanced_i8x16_ne_test.cc
-    ${unit_test_sources}
-)
-
-# Enhanced v128.any_true opcode test executable
-add_executable(enhanced_v128_any_true_test
-    enhanced_v128_any_true_test.cc
-    ${unit_test_sources}
-)
-
-# Enhanced i8x16.swizzle opcode test executable
-add_executable(enhanced_i8x16_swizzle_test
-    enhanced_i8x16_swizzle_test.cc
-    ${unit_test_sources}
-)
-
-# Enhanced i8x16.bitmask opcode test executable
-add_executable(enhanced_i8x16_bitmask_test
-    enhanced_i8x16_bitmask_test.cc
-    ${unit_test_sources}
-)
-
-# Enhanced i8x16.popcnt opcode test executable
-add_executable(enhanced_i8x16_popcnt_test
-    enhanced_i8x16_popcnt_test.cc
-    ${unit_test_sources}
-)
-
-# Enhanced i8x16.all_true opcode test executable
-add_executable(enhanced_i8x16_all_true_test
-    enhanced_i8x16_all_true_test.cc
-    ${unit_test_sources}
-)
-
-# Enhanced f32x4.ceil opcode test executable
-add_executable(enhanced_f32x4_ceil_test
-    enhanced_f32x4_ceil_test.cc
-    ${unit_test_sources}
-)
-
-# Enhanced f32x4.floor opcode test executable
-add_executable(enhanced_f32x4_floor_test
-    enhanced_f32x4_floor_test.cc
-    ${unit_test_sources}
-)
-
-# Enhanced f32x4.trunc opcode test executable
-add_executable(enhanced_f32x4_trunc_test
-    enhanced_f32x4_trunc_test.cc
-    ${unit_test_sources}
-)
-
-# Link libraries and dependencies for v128.not test
-target_link_libraries(enhanced_v128_not_test
-    ${LLVM_AVAILABLE_LIBS}
-    gtest_main
-)
-
-# Link libraries and dependencies for v128.and test
-target_link_libraries(enhanced_v128_and_test
-    ${LLVM_AVAILABLE_LIBS}
-    gtest_main
-)
-
-# Link libraries and dependencies for v128.andnot test
-target_link_libraries(enhanced_v128_andnot_test
-    ${LLVM_AVAILABLE_LIBS}
-    gtest_main
-)
-
-# Link libraries and dependencies for v128.or test
-target_link_libraries(enhanced_v128_or_test
-    ${LLVM_AVAILABLE_LIBS}
-    gtest_main
-)
-
-# Link libraries and dependencies for v128.xor test
-target_link_libraries(enhanced_v128_xor_test
-    ${LLVM_AVAILABLE_LIBS}
-    gtest_main
-)
-
-# Link libraries and dependencies for v128.bitselect test
-target_link_libraries(enhanced_v128_bitselect_test
-    ${LLVM_AVAILABLE_LIBS}
-    gtest_main
-)
-
-# Link libraries and dependencies for i8x16.eq test
-target_link_libraries(enhanced_i8x16_eq_test
-    ${LLVM_AVAILABLE_LIBS}
-    gtest_main
-)
-
-# Link libraries and dependencies for i8x16.ne test
-target_link_libraries(enhanced_i8x16_ne_test
-    ${LLVM_AVAILABLE_LIBS}
-    gtest_main
-)
-
-# Link libraries and dependencies for v128.any_true test
-target_link_libraries(enhanced_v128_any_true_test
-    ${LLVM_AVAILABLE_LIBS}
-    gtest_main
-)
-
-# Link libraries and dependencies for i8x16.swizzle test
-target_link_libraries(enhanced_i8x16_swizzle_test
-    ${LLVM_AVAILABLE_LIBS}
-    gtest_main
-)
-
-# Link libraries and dependencies for i8x16.bitmask test
-target_link_libraries(enhanced_i8x16_bitmask_test
-    ${LLVM_AVAILABLE_LIBS}
-    gtest_main
-)
-
-# Link libraries and dependencies for i8x16.popcnt test
-target_link_libraries(enhanced_i8x16_popcnt_test
-    ${LLVM_AVAILABLE_LIBS}
-    gtest_main
-)
-
-# Link libraries and dependencies for i8x16.all_true test
-target_link_libraries(enhanced_i8x16_all_true_test
-    ${LLVM_AVAILABLE_LIBS}
-    gtest_main
-)
-
-# Link libraries and dependencies for f32x4.ceil test
-target_link_libraries(enhanced_f32x4_ceil_test
-    ${LLVM_AVAILABLE_LIBS}
-    gtest_main
-)
-
-# Link libraries and dependencies for f32x4.floor test
-target_link_libraries(enhanced_f32x4_floor_test
-    ${LLVM_AVAILABLE_LIBS}
-    gtest_main
-)
-
-# Link libraries and dependencies for f32x4.trunc test
-target_link_libraries(enhanced_f32x4_trunc_test
-    ${LLVM_AVAILABLE_LIBS}
-    gtest_main
-)
+# Link required libraries
+target_link_libraries(enhanced_simd_test ${LLVM_AVAILABLE_LIBS} gtest_main)
+# Enable test discovery
+include(GoogleTest)
+gtest_discover_tests(enhanced_simd_test)
 
 # Copy WASM test files to build directory for test execution
-add_custom_command(TARGET enhanced_v128_not_test POST_BUILD
+add_custom_command(TARGET enhanced_simd_test POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
     ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
     COMMENT "Copying WASM test files to build directory"
 )
-
-add_custom_command(TARGET enhanced_v128_and_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying WASM test files to build directory for v128.and tests"
-)
-
-add_custom_command(TARGET enhanced_v128_andnot_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying WASM test files to build directory for v128.andnot tests"
-)
-
-add_custom_command(TARGET enhanced_v128_or_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying WASM test files to build directory for v128.or tests"
-)
-
-add_custom_command(TARGET enhanced_v128_xor_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying WASM test files to build directory for v128.xor tests"
-)
-
-add_custom_command(TARGET enhanced_v128_bitselect_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying WASM test files to build directory for v128.bitselect tests"
-)
-
-add_custom_command(TARGET enhanced_i8x16_eq_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying WASM test files to build directory for i8x16.eq tests"
-)
-
-add_custom_command(TARGET enhanced_i8x16_ne_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying WASM test files to build directory for i8x16.ne tests"
-)
-
-add_custom_command(TARGET enhanced_v128_any_true_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying WASM test files to build directory for v128.any_true tests"
-)
-
-add_custom_command(TARGET enhanced_i8x16_swizzle_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying WASM test files to build directory for i8x16.swizzle tests"
-)
-
-add_custom_command(TARGET enhanced_i8x16_bitmask_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying WASM test files to build directory for i8x16.bitmask tests"
-)
-
-add_custom_command(TARGET enhanced_i8x16_popcnt_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying WASM test files to build directory for i8x16.popcnt tests"
-)
-
-add_custom_command(TARGET enhanced_i8x16_all_true_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying WASM test files to build directory for i8x16.all_true tests"
-)
-
-add_custom_command(TARGET enhanced_f32x4_ceil_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying WASM test files to build directory for f32x4.ceil tests"
-)
-
-add_custom_command(TARGET enhanced_f32x4_floor_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying WASM test files to build directory for f32x4.floor tests"
-)
-
-add_custom_command(TARGET enhanced_f32x4_trunc_test POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
-    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
-    COMMENT "Copying WASM test files to build directory for f32x4.trunc tests"
-)
-
-# Configure test discovery for CTest
-include(GoogleTest)
-gtest_discover_tests(enhanced_v128_not_test)
-gtest_discover_tests(enhanced_v128_and_test)
-gtest_discover_tests(enhanced_v128_andnot_test)
-gtest_discover_tests(enhanced_v128_or_test)
-gtest_discover_tests(enhanced_v128_xor_test)
-gtest_discover_tests(enhanced_v128_bitselect_test)
-gtest_discover_tests(enhanced_i8x16_eq_test)
-gtest_discover_tests(enhanced_i8x16_ne_test)
-gtest_discover_tests(enhanced_v128_any_true_test)
-gtest_discover_tests(enhanced_i8x16_swizzle_test)
-gtest_discover_tests(enhanced_i8x16_bitmask_test)
-gtest_discover_tests(enhanced_i8x16_popcnt_test)
-gtest_discover_tests(enhanced_i8x16_all_true_test)
-gtest_discover_tests(enhanced_f32x4_ceil_test)
-gtest_discover_tests(enhanced_f32x4_floor_test)
-gtest_discover_tests(enhanced_f32x4_trunc_test)
