@@ -67,7 +67,7 @@ Create complete test coverage for WASM opcodes through ultra-deep analysis, stra
 - [ ] 5.1 Comprehensive issue detection and analysis
 - [ ] 5.2 Root cause categorization (compilation, runtime, test logic, crashes)
 - [ ] 5.3 Targeted resolution application (preserving test intention)
-- [ ] 5.4 Verification & iteration control (max 3 cycles through 5.1-5.4)
+- [ ] 5.4 Verification & iteration control (max 5 cycles through 5.1-5.4)
 - [ ] 5.5 Final resolution decision (evaluate after max iterations)
 - [ ] 5.6 Task failure cleanup (only if task must be terminated)
 
@@ -589,7 +589,7 @@ Document build and test execution results:
 **(Conditional - Apply only if Phase 4 fails)**
 
 **🔒 MANDATORY PHASE 5 COMPLIANCE:**
-- **ITERATIVE REQUIREMENT**: Maximum 3 resolution cycles through steps 5.1-5.4
+- **ITERATIVE REQUIREMENT**: Maximum 5 resolution cycles through steps 5.1-5.4
 - **CRITICAL: PRESERVE TEST INTENTION**: When fixing issues, NEVER change the test's original purpose or validation logic - only fix technical problems while maintaining the exact same test objectives and coverage goals
 
 **SUCCESS CRITERIA (Required for Phase 6 progression):**
@@ -599,9 +599,9 @@ Document build and test execution results:
 - ✅ Build system operates correctly
 
 **FAILURE CRITERIA (Triggers task termination):**
-- ❌ Persistent build/compilation issues after 3 iterations
+- ❌ Persistent build/compilation issues after 5 iterations
 - ❌ All tests fail with no successful test cases
-- ❌ Unresolvable runtime crashes after 3 iterations
+- ❌ Unresolvable runtime crashes after 5 iterations
 
 Execute systematic issue resolution through iterative cycles:
 
@@ -677,7 +677,7 @@ After verification → Evaluate results:
 ├─ ALL ISSUES RESOLVED?
 │  └─ YES → Proceed to Phase 6 ✅
 │
-├─ ITERATION COUNT < 3?
+├─ ITERATION COUNT < 5?
 │  ├─ YES → Return to Step 5.1 (next iteration) 🔄
 │  └─ NO → Go to Step 5.5 (Final Resolution) ⚠️
 │
@@ -685,7 +685,7 @@ After verification → Evaluate results:
    └─ YES → Go to Step 5.6 (Task Failure) ❌
 ```
 
-#### Step 5.5: Final Resolution Decision (After 3 iterations)
+#### Step 5.5: Final Resolution Decision (After 5 iterations)
 **When maximum iterations reached, evaluate remaining issues:**
 
 **DECISION MATRIX:**
