@@ -95,6 +95,22 @@ class RefAsNonNullTest : public testing::TestWithParam<RefAsNonNullRunningMode>
      */
     bool LoadWasmModule(const std::string& wasm_file_path)
     {
+        // Clean up any existing module first
+        if (exec_env) {
+            wasm_runtime_destroy_exec_env(exec_env);
+            exec_env = nullptr;
+        }
+
+        if (module_inst) {
+            wasm_runtime_deinstantiate(module_inst);
+            module_inst = nullptr;
+        }
+
+        if (module) {
+            wasm_runtime_unload(module);
+            module = nullptr;
+        }
+
         uint32 buf_size = 0;
         uint8 *buf = nullptr;
         char error_buf[128] = {0};
@@ -102,14 +118,18 @@ class RefAsNonNullTest : public testing::TestWithParam<RefAsNonNullRunningMode>
         // Read WASM module file
         buf = (uint8*)bh_read_file_to_buffer(wasm_file_path.c_str(), &buf_size);
         EXPECT_NE(nullptr, buf) << "Failed to read WASM file: " << wasm_file_path;
-        if (!buf) return false;
+        if (!buf) {
+            return false;
+        }
 
         // Load WASM module with reference types support
         module = wasm_runtime_load(buf, buf_size, error_buf, sizeof(error_buf));
         BH_FREE(buf);
 
         EXPECT_NE(nullptr, module) << "Failed to load WASM module: " << error_buf;
-        if (!module) return false;
+        if (!module) {
+            return false;
+        }
 
         // Instantiate WASM module
         module_inst = wasm_runtime_instantiate(module, 0, 0, error_buf, sizeof(error_buf));
@@ -119,6 +139,7 @@ class RefAsNonNullTest : public testing::TestWithParam<RefAsNonNullRunningMode>
         // Create execution environment
         exec_env = wasm_runtime_create_exec_env(module_inst, 32768);
         EXPECT_NE(nullptr, exec_env) << "Failed to create execution environment";
+
 
         return exec_env != nullptr;
     }
@@ -141,7 +162,41 @@ class RefAsNonNullTest : public testing::TestWithParam<RefAsNonNullRunningMode>
         EXPECT_NE(nullptr, func) << "Failed to lookup function: " << func_name;
         if (!func) return false;
 
-        return wasm_runtime_call_wasm(exec_env, func, arg_count, args);
+        // Prepare wasm_val_t arrays for arguments and results
+        wasm_val_t* wasm_args = nullptr;
+        wasm_val_t* wasm_results = nullptr;
+
+        if (arg_count > 0 && args) {
+            wasm_args = new wasm_val_t[arg_count];
+            for (uint32 i = 0; i < arg_count; i++) {
+                wasm_args[i].kind = WASM_I32;
+                wasm_args[i].of.i32 = args[i];
+            }
+        }
+
+        if (result_count > 0 && results) {
+            wasm_results = new wasm_val_t[result_count];
+            for (uint32 i = 0; i < result_count; i++) {
+                wasm_results[i].kind = WASM_I32;
+                wasm_results[i].of.i32 = 0;
+            }
+        }
+
+        // Call the WASM function using the proper API
+        bool call_result = wasm_runtime_call_wasm_a(exec_env, func, result_count, wasm_results, arg_count, wasm_args);
+
+        // Copy results back to the provided array
+        if (call_result && result_count > 0 && results && wasm_results) {
+            for (uint32 i = 0; i < result_count; i++) {
+                results[i] = wasm_results[i].of.i32;
+            }
+        }
+
+        // Clean up allocated memory
+        if (wasm_args) delete[] wasm_args;
+        if (wasm_results) delete[] wasm_results;
+
+        return call_result;
     }
 
   protected:
