@@ -516,12 +516,12 @@ std::string get_current_directory() {
     return "";
 }
 
-int main(int argc, char **argv)
-{
-    CWD = get_current_directory();
-    WASM_FILE_1 = CWD + "/wasm-apps/return_call_test.wasm";
-    WASM_FILE_2 = CWD + "/wasm-apps/return_call_error_test.wasm";
+// int main(int argc, char **argv)
+// {
+//     CWD = get_current_directory();
+//     WASM_FILE_1 = CWD + "/wasm-apps/return_call_test.wasm";
+//     WASM_FILE_2 = CWD + "/wasm-apps/return_call_error_test.wasm";
 
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+//     ::testing::InitGoogleTest(&argc, argv);
+//     return RUN_ALL_TESTS();
+// }

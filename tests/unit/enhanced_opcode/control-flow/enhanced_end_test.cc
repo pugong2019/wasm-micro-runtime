@@ -369,17 +369,17 @@ TEST_F(EndTest, StackTypeValidation_EnforceSignatures)
 // Standard GTest implementation without parameterization
 // Tests run in interpreter mode by default
 
-int main(int argc, char **argv)
-{
-    char cwd_buffer[PATH_MAX];
-    if (getcwd(cwd_buffer, sizeof(cwd_buffer)) != nullptr) {
-        CWD = std::string(cwd_buffer) + "/";
-    } else {
-        CWD = "./";
-    }
-    WASM_FILE = CWD + "wasm-apps/end_test.wasm";
-    WASM_FILE_INVALID = CWD + "wasm-apps/end_invalid_test.wasm";
+// int main(int argc, char **argv)
+// {
+//     char cwd_buffer[PATH_MAX];
+//     if (getcwd(cwd_buffer, sizeof(cwd_buffer)) != nullptr) {
+//         CWD = std::string(cwd_buffer) + "/";
+//     } else {
+//         CWD = "./";
+//     }
+//     WASM_FILE = CWD + "wasm-apps/end_test.wasm";
+//     WASM_FILE_INVALID = CWD + "wasm-apps/end_invalid_test.wasm";
 
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+//     ::testing::InitGoogleTest(&argc, argv);
+//     return RUN_ALL_TESTS();
+// }
