@@ -11,8 +11,8 @@
 #include "wasm_runtime.h"
 
 static std::string CWD;
-static std::string WASM_FILE_1;
-static std::string WASM_FILE_2;
+static std::string WASM_FILE_1 = "wasm-apps/return_call_test.wasm";
+static std::string WASM_FILE_2 = "wasm-apps/return_call_error_test.wasm";
 
 static constexpr const char *MODULE_NAME = "return_call_test";
 
