@@ -64,6 +64,9 @@ list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_i32x4_lt_s_test.cc)
 # Ensure i16x8.narrow_i32x4_u test is included
 list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_i16x8_narrow_i32x4_u_test.cc)
 
+# Ensure i16x8.extend_low_i8x16_s test is included
+list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_i16x8_extend_low_i8x16_s_test.cc)
+
 set(UNIT_SOURCE ${source_all})
 
 # Prepare unit test sources
