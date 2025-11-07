@@ -55,6 +55,9 @@ list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_f64x2_extract_lane_t
 # Ensure i64x2.shl test is included
 list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_i64x2_shl_test.cc)
 
+# Ensure i8x16.avgr_u test is included
+list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_i8x16_avgr_u_test.cc)
+
 set(UNIT_SOURCE ${source_all})
 
 # Prepare unit test sources
