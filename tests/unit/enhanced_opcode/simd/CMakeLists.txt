@@ -84,6 +84,9 @@ list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_f64x2_promote_low_f3
 # Ensure i64x2.gt_u test is included
 list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_i64x2_gt_u_test.cc)
 
+# Ensure i8x16.narrow_i16x8_s test is included
+list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_i8x16_narrow_i16x8_s_test.cc)
+
 set(UNIT_SOURCE ${source_all})
 
 # Prepare unit test sources
