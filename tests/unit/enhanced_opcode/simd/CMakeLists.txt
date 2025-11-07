@@ -49,6 +49,9 @@ list(FILTER source_all EXCLUDE REGEX "${CMAKE_CURRENT_BINARY_DIR}/.*")
 # Ensure f32x4.extract_lane test is included
 list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_f32x4_extract_lane_test.cc)
 
+# Ensure f64x2.extract_lane test is included
+list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_f64x2_extract_lane_test.cc)
+
 set(UNIT_SOURCE ${source_all})
 
 # Prepare unit test sources
