@@ -34,18 +34,12 @@ Create complete test coverage for WASM opcodes through ultra-deep analysis, stra
 ### Phase 1: Ultra-Deep Opcode Analysis
 - [ ] 1.1 Semantic analysis of opcode functionality and purpose
 - [ ] 1.2 Type system analysis (input/output types, conversions, polymorphism)
-- [ ] 1.3 Stack effect documentation (pop/push behavior, height changes)
-- [ ] 1.4 Edge case identification (boundary values, special numeric values, overflow)
-- [ ] 1.5 Error condition mapping (traps, type mismatches, stack underflow, out-of-bounds)
-- [ ] 1.6 Opcode category classification (numeric, memory, control-flow, variable, reference, simd, reference, table...)
+- [ ] 1.3 Opcode category classification (numeric, memory, control-flow, variable, reference, simd, reference, table...)
 
 ### Phase 2: Strategic Test Planning
 - [ ] 2.1 Main routine test case design (basic functionality with typical values)
-- [ ] 2.2 Corner case test design (boundary conditions, overflow/underflow scenarios)
-- [ ] 2.3 Edge case test design (zero operands, identity operations, extreme values)
-- [ ] 2.4 Error exception test design (invalid operands, stack underflow, type mismatches)
-- [ ] 2.5 Cross-execution mode validation strategy planning
-- [ ] 2.6 Detailed test case descriptions and expected outcomes specification
+- [ ] 2.2 Cross-execution mode validation strategy planning
+- [ ] 2.3 Detailed test case descriptions and expected outcomes specification
 
 ### Phase 3: Complete Code Generation
 - [ ] 3.1 Directory structure creation in tests/unit/enhanced_opcode/{CATEGORY}/
@@ -155,19 +149,14 @@ After EVERY task completion:
 - **STRICT VALIDATION**: Each step must meet ALL specified criteria before proceeding
 
 ---
-
 ## Systematic Workflow Execution
-**🔒 MANDATORY PHASE 1 COMPLIANCE:**
-- **EXECUTE ALL PHASE's STEPS IN ORDER**: For example: Steps 1.1 → 1.2 → 1.3 → 1.4 → 1.5 → 1.6 (NO EXCEPTIONS)
-- **COMPLETE EACH STEP FULLY**: Do not proceed to next step until current step is 100% complete
-- **UPDATE TODO AFTER EACH STEP**: Mark step as completed in TODO list immediately after finishing
 
 ### PHASE 1: Ultra-Deep Opcode Analysis
 
 Perform comprehensive analysis of the target opcode through sequential steps:
 
 #### Step 1.1: Semantic Analysis
-- **Research opcode specification** from WebAssembly documentation
+- **Research opcode specification**
 - **Identify primary function**: What does this opcode do?
 - **Document operation purpose**: Why does this opcode exist?
 - **Map to runtime behavior**: How does WAMR implement this operation?
@@ -178,25 +167,7 @@ Perform comprehensive analysis of the target opcode through sequential steps:
 - **Type conversion rules**: Any implicit conversions or validations?
 - **Polymorphism handling**: Does the opcode work with multiple types?
 
-#### Step 1.3: Stack Effect Analysis
-- **Stack pop behavior**: How many values removed and from which positions?
-- **Stack push behavior**: How many values added and to which positions?
-- **Net stack height change**: Calculate overall stack impact
-- **Stack state validation**: Document pre/post conditions
-
-#### Step 1.4: Edge Case Discovery
-- **Boundary value identification**: MIN/MAX values for numeric types
-- **Special numeric values**: NaN, Infinity, -0.0 for floating-point
-- **Overflow/underflow conditions**: When does arithmetic wrap or trap?
-- **Zero operand scenarios**: Behavior with zero inputs
-
-#### Step 1.5: Error Condition Mapping
-- **Type mismatch scenarios**: Wrong types on stack
-- **Stack underflow cases**: Insufficient stack values
-- **Out-of-bounds access**: Memory/table/element access violations
-- **Trap conditions**: When does the opcode cause execution traps?
-
-#### Step 1.6: Category Classification
+#### Step 1.3: Category Classification
 Classify into one of these categories based on analysis:  
 For example:
 - **Numeric**: `i32.add`, `f64.mul`, `i64.eqz` - Arithmetic, comparison, bitwise operations
@@ -205,8 +176,6 @@ For example:
 - **Variable**: `local.get`, `global.set` - Local and global variable access
 - **Reference**: `ref.null`, `ref.func` - Reference type operations
 - **Extension**: `v128.add`, `i32.atomic.load` - SIMD, atomic operations
-
-**Reference**: Complete WebAssembly instruction set at https://webassembly.github.io/spec/core/appendix/index-instructions.html
 
 ### PHASE 2: Strategic Test Planning
 Generate comprehensive test strategy through systematic planning steps  
@@ -220,39 +189,13 @@ Design tests for basic opcode functionality:
 - **Cross-execution mode validation**: Ensure consistency between interpreter and AOT modes
 - **Expected success outcomes**: Document anticipated results for valid inputs
 
-#### Step 2.2: Corner Case Test Design
-Design tests for boundary conditions:
-- **Numeric boundaries**: MIN_VALUE, MAX_VALUE for integer types
-- **Signed/unsigned boundaries**: Test edge cases around zero and limits
-- **Overflow/underflow scenarios**: Values that cause arithmetic wrapping
-- **Type boundary conditions**: Largest/smallest values for each supported type
-- **Memory boundary cases**: Edge of valid memory ranges (for memory opcodes)
-
-#### Step 2.3: Edge Case Test Design
-Design tests for extreme and special scenarios:
-- **Zero operand scenarios**: Behavior with zero inputs
-- **Identity operations**: Operations that should return input unchanged
-- **Extreme values**: MIN/MAX, NaN, Infinity, -0.0 for floating-point
-- **Mathematical properties**: Commutative, associative, distributive validation
-- **Special numeric behaviors**: Denormal numbers, rounding modes
-
-#### Step 2.4: Error Exception Test Design
-Design tests for invalid scenarios and error conditions:
-- **Invalid operand types**: Wrong types on stack (type mismatch)
-- **Stack underflow scenarios**: Insufficient values on execution stack
-- **Out-of-bounds access**: Invalid memory/table/element indices
-- **Trap condition triggers**: Scenarios that should cause execution traps
-- **Runtime error validation**: Proper error handling and reporting
-
-#### Step 2.5: Cross-Execution Mode Validation Strategy Planning
+#### Step 2.2: Cross-Execution Mode Validation Strategy Planning
 Plan validation across WAMR execution modes:
 - **Interpreter mode testing**: Direct bytecode interpretation validation
 - **AOT mode testing**: Ahead-of-time compiled module validation
 - **Consistency verification**: Ensure identical results across modes
-- **Performance comparison**: Document any behavioral differences
-- **Mode-specific optimizations**: Test optimized code paths
 
-#### Step 2.6: Detailed Test Case Specifications
+#### Step 2.3: Detailed Test Case Specifications
 For each test category, document comprehensive specifications:
 - **Test case descriptions**: Clear, specific test scenario explanations
 - **Input conditions**: Exact parameter values and setup requirements
@@ -268,13 +211,6 @@ For each test category, document comprehensive specifications:
 
 **Consolidated Test Case Design Strategy**  
 Group related scenarios to reduce method proliferation:
-
-| Category | Implementation Strategy | Consolidation Pattern |
-|----------|------------------------|----------------------|
-| **Main** | Combine related scenarios | Group by operation type |
-| **Corner** | Group boundary conditions | Combine overflow/underflow cases |
-| **Edge** | Consolidate mathematical properties | Group identity/inverse operations |
-| **Exception** | Group error scenarios | Combine similar trap conditions |
 
 **Implementation Example:**
 ```cpp
@@ -778,7 +714,7 @@ rm -rf enhanced_opcode/{CATEGORY}/build # remove the tempory build files
 cmd: git commit -s -m {message}:  
 
 ```bash
-"Enhanced unit tests for {OPCODE_NAME} opcode - Comprehensive test coverage
+"[{OPCODE_NAME}] Comprehensive test coverage
 
 Summary
 - Opcode: {OPCODE_NAME} (Category: {CATEGORY})
