@@ -58,6 +58,9 @@ list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_i64x2_shl_test.cc)
 # Ensure i32x4.extadd_pairwise_i16x8_u test is included
 list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_i32x4_extadd_pairwise_i16x8_u_test.cc)
 
+# Ensure i16x8.q15mulr_sat_s test is included
+list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_i16x8_q15mulr_sat_s_test.cc)
+
 set(UNIT_SOURCE ${source_all})
 
 # Prepare unit test sources
