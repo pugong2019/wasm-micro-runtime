@@ -108,6 +108,9 @@ list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_f64x2_neg_test.cc)
 # Ensure f32x4.div test is included
 list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_f32x4_div_test.cc)
 
+# Ensure f64x2.sub test is included
+list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_f64x2_sub_test.cc)
+
 set(UNIT_SOURCE ${source_all})
 
 # Prepare unit test sources
