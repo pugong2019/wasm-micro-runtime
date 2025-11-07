@@ -102,6 +102,9 @@ list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_i64x2_extmul_low_i32
 # Ensure f32x4.abs test is included
 list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_f32x4_abs_test.cc)
 
+# Ensure f64x2.neg test is included
+list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_f64x2_neg_test.cc)
+
 set(UNIT_SOURCE ${source_all})
 
 # Prepare unit test sources
