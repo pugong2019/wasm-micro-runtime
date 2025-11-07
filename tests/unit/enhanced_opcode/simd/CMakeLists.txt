@@ -69,6 +69,9 @@ list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_f32x4_neg_test.cc)
 # Ensure i8x16.avgr_u test is included
 list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_i8x16_avgr_u_test.cc)
 
+# Ensure i32x4.lt_s test is included
+list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_i32x4_lt_s_test.cc)
+
 set(UNIT_SOURCE ${source_all})
 
 # Prepare unit test sources
