@@ -52,6 +52,9 @@ list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_f32x4_extract_lane_t
 # Ensure f64x2.extract_lane test is included
 list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_f64x2_extract_lane_test.cc)
 
+# Ensure i64x2.shl test is included
+list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_i64x2_shl_test.cc)
+
 set(UNIT_SOURCE ${source_all})
 
 # Prepare unit test sources
