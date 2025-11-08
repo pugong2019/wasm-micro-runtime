@@ -57,3 +57,11 @@ target_link_libraries(wasm_running_modes_test ${LLVM_AVAILABLE_LIBS} gtest_main)
 
 # include(GoogleTest)
 gtest_discover_tests(wasm_running_modes_test)
+
+# Copy WASM test files to build directory for test execution
+add_custom_command(TARGET wasm_running_modes_test POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/wasm-apps
+    ${CMAKE_CURRENT_BINARY_DIR}/wasm-apps
+    COMMENT "Copying WASM test files to build directory"
+)
