@@ -43,8 +43,8 @@ include_directories (${CMAKE_CURRENT_SOURCE_DIR} ${WAMR_ROOT_DIR})
 file (GLOB_RECURSE source_all ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
 
 # Filter out all GoogleTest source files since they're already included via gtest-all.cc
-#list(FILTER source_all EXCLUDE REGEX ".*googletest/.*\\.cc$")
-#list(FILTER source_all EXCLUDE REGEX ".*googlemock/.*\\.cc$")
+list(FILTER source_all EXCLUDE REGEX ".*googletest/.*\\.cc$")
+list(FILTER source_all EXCLUDE REGEX ".*googlemock/.*\\.cc$")
 
 set (UNIT_SOURCE ${source_all})
 
@@ -69,7 +69,7 @@ set (unit_test_sources
 # Now simply link against gtest or gtest_main as needed. Eg
 add_executable (compilation_test ${unit_test_sources})
 
-target_link_libraries (compilation_test ${LLVM_AVAILABLE_LIBS} gtest_main)
+target_link_libraries (compilation_test ${LLVM_AVAILABLE_LIBS} gtest_main gtest)
 
 add_custom_command(TARGET compilation_test POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy

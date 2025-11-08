@@ -1,0 +1,104 @@
+[  1%] Built target gtest
+Consolidate compiler generated dependencies of target gmock
+[  1%] Built target gmock
+Consolidate compiler generated dependencies of target gmock_main
+[  1%] Built target gmock_main
+[  1%] Built target gtest_main
+Consolidate compiler generated dependencies of target wasm_vm_test
+[  6%] Built target wasm_vm_test
+Consolidate compiler generated dependencies of target interpreter_test
+[  9%] Built target interpreter_test
+Consolidate compiler generated dependencies of target vmlib
+[ 12%] Built target vmlib
+Consolidate compiler generated dependencies of target wasm_c_api_test
+[ 12%] Built target wasm_c_api_test
+Consolidate compiler generated dependencies of target libc_builtin_test
+[ 15%] Built target libc_builtin_test
+Consolidate compiler generated dependencies of target shared_utils_test
+[ 20%] Built target shared_utils_test
+Consolidate compiler generated dependencies of target linear_memory_test_wasm
+[ 23%] Built target linear_memory_test_wasm
+Consolidate compiler generated dependencies of target linear_memory_test_wasm_no_hw_bound
+[ 26%] Built target linear_memory_test_wasm_no_hw_bound
+[ 26%] Built target RunBuildAot
+Consolidate compiler generated dependencies of target linear_memory_test_aot
+[ 30%] Built target linear_memory_test_aot
+Consolidate compiler generated dependencies of target linear_memory_test_aot_no_hw_bound
+[ 33%] Built target linear_memory_test_aot_no_hw_bound
+-- Build as target X86_64
+-- CMAKE_BUILD_TYPE = Release
+-- Found LLVM 18.1.8
+-- Using LLVMConfig.cmake in: /home/chengnie/works/wasm-micro-runtime/core/deps/llvm/build/lib/cmake/llvm
+-- Libc WASI enabled
+-- Libc builtin enabled
+-- Lib pthread enabled
+-- Lib wasi-threads enabled
+-- WAMR version: 2.4.1
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/chengnie/works/wasm-micro-runtime/tests/unit/build/aot-stack-frame/wasm-apps/build-wamrc
+Scanning dependencies of target vmlib
+Consolidate compiler generated dependencies of target vmlib
+[ 61%] Built target vmlib
+Consolidate compiler generated dependencies of target aotclib
+[ 97%] Built target aotclib
+Consolidate compiler generated dependencies of target wamrc
+[100%] Built target wamrc
+Create AoT compiler with:
+  target:        x86_64
+  target cpu:    icelake-server
+  target triple: x86_64-unknown-linux-gnu
+  cpu features:  
+  opt level:     3
+  size level:    3
+  output format: AoT file
+Compile success, file /home/chengnie/works/wasm-micro-runtime/tests/unit/build/aot-stack-frame/wasm-apps/test.aot was generated.
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/chengnie/works/wasm-micro-runtime/tests/unit/build/aot-stack-frame/wasm-apps/build-binarydump
+Consolidate compiler generated dependencies of target binarydump
+[100%] Built target binarydump
+[ 33%] Built target aot-stack-frame-test-wasm
+Consolidate compiler generated dependencies of target aot_stack_frame_test
+[ 33%] Building CXX object aot-stack-frame/CMakeFiles/aot_stack_frame_test.dir/aot_stack_frame_test.cc.o
+[ 33%] Linking CXX executable aot_stack_frame_test
+[ 36%] Built target aot_stack_frame_test
+Consolidate compiler generated dependencies of target linux_perf_test
+[ 36%] Built target linux_perf_test
+Consolidate compiler generated dependencies of target gc_test
+[ 41%] Built target gc_test
+Consolidate compiler generated dependencies of target tid_allocator_vmlib
+[ 45%] Built target tid_allocator_vmlib
+Consolidate compiler generated dependencies of target wamr_gtest_main
+[ 45%] Built target wamr_gtest_main
+Consolidate compiler generated dependencies of target wasi_threads
+[ 45%] Built target wasi_threads
+Consolidate compiler generated dependencies of target enhanced_compilation_test
+[ 51%] Built target enhanced_compilation_test
+Consolidate compiler generated dependencies of target aot_test
+[ 57%] Built target aot_test
+Consolidate compiler generated dependencies of target custom_section_test
+[ 64%] Built target custom_section_test
+[ 64%] Built target app.wasm
+Consolidate compiler generated dependencies of target compilation_test
+[ 72%] Built target compilation_test
+Consolidate compiler generated dependencies of target wasm_running_modes_test
+[ 85%] Built target wasm_running_modes_test
+Consolidate compiler generated dependencies of target mytest.wasm
+[ 85%] Built target mytest.wasm
+Consolidate compiler generated dependencies of target hello.wasm
+[ 85%] Built target hello.wasm
+Consolidate compiler generated dependencies of target memory64_test
+[ 89%] Built target memory64_test
+Consolidate compiler generated dependencies of target shared_heap_test
+[ 93%] Built target shared_heap_test
+Consolidate compiler generated dependencies of target test.wasm
+[ 93%] Built target test.wasm
+Consolidate compiler generated dependencies of target test_addr_conv.wasm
+[ 94%] Built target test_addr_conv.wasm
+[ 95%] Built target compile_bulk_memory_aot
+Consolidate compiler generated dependencies of target test64.wasm
+[ 95%] Built target test64.wasm
+[ 95%] Built target BuildAot
+Consolidate compiler generated dependencies of target runtime_common_test
+[100%] Built target runtime_common_test
