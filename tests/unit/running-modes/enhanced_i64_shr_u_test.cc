@@ -13,7 +13,7 @@
 #include "bh_read_file.h"
 
 static std::string CWD;
-static std::string WASM_FILE;
+static std::string WASM_FILE="wasm-apps/i64_shr_u_test.wasm";
 
 static int app_argc;
 static char **app_argv;
@@ -298,19 +298,19 @@ INSTANTIATE_TEST_SUITE_P(RunningModeTest, I64ShrUTest,
     });
 
 // Global initialization for WASM file paths
-// This function is called before the tests run to set up file paths
-int setup_test_environment() {
-    char *cwd = getcwd(NULL, 0);
-    if (cwd) {
-        CWD = std::string(cwd);
-        free(cwd);
-    } else {
-        CWD = ".";
-    }
+// // This function is called before the tests run to set up file paths
+// int setup_test_environment() {
+//     char *cwd = getcwd(NULL, 0);
+//     if (cwd) {
+//         CWD = std::string(cwd);
+//         free(cwd);
+//     } else {
+//         CWD = ".";
+//     }
 
-    WASM_FILE = CWD + "/wasm-apps/i64_shr_u_test.wasm";
-    return 0;
-}
+//     WASM_FILE = CWD + "/wasm-apps/i64_shr_u_test.wasm";
+//     return 0;
+// }
 
-// Static initializer to run setup before tests
-static int global_setup = setup_test_environment();
+// // Static initializer to run setup before tests
+// static int global_setup = setup_test_environment();

@@ -29,8 +29,8 @@
 #include "bh_read_file.h"
 
 static std::string CWD;
-static std::string WASM_FILE;
-static std::string WASM_FILE_UNDERFLOW;
+static std::string WASM_FILE= "wasm-apps/i32_add_test.wasm";
+static std::string WASM_FILE_UNDERFLOW = "wasm-apps/i32_add_underflow_test.wasm";
 
 static int
 app_argc;
@@ -259,23 +259,23 @@ INSTANTIATE_TEST_SUITE_P(RunningModeTest, I32AddTest,
                              return info.param == Mode_Interp ? "INTERP" : "AOT";
                          });
 
-int
-main(int argc, char **argv)
-{
-    char *cwd = getcwd(NULL, 0);
-    if (cwd) {
-        CWD = std::string(cwd);
-        free(cwd);
-    } else {
-        CWD = ".";
-    }
+// int
+// main(int argc, char **argv)
+// {
+//     char *cwd = getcwd(NULL, 0);
+//     if (cwd) {
+//         CWD = std::string(cwd);
+//         free(cwd);
+//     } else {
+//         CWD = ".";
+//     }
 
-    WASM_FILE = CWD + "/wasm-apps/i32_add_test.wasm";
-    WASM_FILE_UNDERFLOW = CWD + "/wasm-apps/i32_add_underflow_test.wasm";
+//     WASM_FILE = CWD + "/wasm-apps/i32_add_test.wasm";
+//     WASM_FILE_UNDERFLOW = CWD + "/wasm-apps/i32_add_underflow_test.wasm";
 
-    app_argc = argc;
-    app_argv = argv;
+//     app_argc = argc;
+//     app_argv = argv;
 
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+//     ::testing::InitGoogleTest(&argc, argv);
+//     return RUN_ALL_TESTS();
+// }
