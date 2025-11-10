@@ -150,7 +150,7 @@ TEST_F(I32x4DotI16x8sTest, BasicDotProduct_ReturnsCorrectSum)
  * @expected_behavior Correctly handles large products without overflow in i32 result space
  * @validation_method Mathematical verification of boundary value arithmetic
  */
-TEST_F(I32x4DotI16x8sTest, DISABLED_BoundaryValues_HandlesExtremeI16Values)
+TEST_F(I32x4DotI16x8sTest, BoundaryValues_HandlesExtremeI16Values)
 {
 
     // Test with i16 MIN and MAX values
@@ -165,7 +165,7 @@ TEST_F(I32x4DotI16x8sTest, DISABLED_BoundaryValues_HandlesExtremeI16Values)
     ASSERT_TRUE(call_wasm_function("test_i32x4_dot_i16x8_s", vec1, vec2, result))
         << "Boundary values dot product function call failed";
 
-    int32_t expected = -2147450496;  // (-32768) * 32767 * 2
+    int32_t expected = -2147418112;  // (-32768) * 32767 + 32767 * (-32768) = -1073709056 + (-1073709056)
     ASSERT_EQ(result[0], expected) << "First boundary dot product incorrect";
     ASSERT_EQ(result[1], expected) << "Second boundary dot product incorrect";
     ASSERT_EQ(result[2], expected) << "Third boundary dot product incorrect";
@@ -181,7 +181,7 @@ TEST_F(I32x4DotI16x8sTest, DISABLED_BoundaryValues_HandlesExtremeI16Values)
     ASSERT_TRUE(call_wasm_function("test_i32x4_dot_i16x8_s", vec3, vec4, result))
         << "Maximum positive dot product function call failed";
 
-    int32_t max_expected = 2147450878;  // 32767 * 32767 * 2
+    int32_t max_expected = 2147352578;  // 32767 * 32767 + 32767 * 32767 = 1073676289 + 1073676289
     ASSERT_EQ(result[0], max_expected) << "First maximum positive dot product incorrect";
     ASSERT_EQ(result[1], max_expected) << "Second maximum positive dot product incorrect";
     ASSERT_EQ(result[2], max_expected) << "Third maximum positive dot product incorrect";
@@ -199,7 +199,7 @@ TEST_F(I32x4DotI16x8sTest, DISABLED_BoundaryValues_HandlesExtremeI16Values)
  * @expected_behavior Zero dot products return zero; mixed patterns return expected partial sums
  * @validation_method Mathematical identity verification and partial sum validation
  */
-TEST_F(I32x4DotI16x8sTest, DISABLED_ZeroVectors_ReturnsZeroResult)
+TEST_F(I32x4DotI16x8sTest, ZeroVectors_ReturnsZeroResult)
 {
 
     // Test with all-zero vectors
@@ -242,7 +242,7 @@ TEST_F(I32x4DotI16x8sTest, DISABLED_ZeroVectors_ReturnsZeroResult)
  * @expected_behavior Correct signed arithmetic results preserving sign semantics
  * @validation_method Sign-preserving arithmetic verification across different patterns
  */
-TEST_F(I32x4DotI16x8sTest, DISABLED_MixedSigns_ComputesCorrectResult)
+TEST_F(I32x4DotI16x8sTest, MixedSigns_ComputesCorrectResult)
 {
 
     // Test alternating signs pattern
@@ -290,7 +290,7 @@ TEST_F(I32x4DotI16x8sTest, DISABLED_MixedSigns_ComputesCorrectResult)
  * @expected_behavior Correct identification and pairing of adjacent vector elements
  * @validation_method Algorithmic correctness verification through asymmetric pattern testing
  */
-TEST_F(I32x4DotI16x8sTest, DISABLED_AsymmetricPatterns_ValidatesAlgorithm)
+TEST_F(I32x4DotI16x8sTest, AsymmetricPatterns_ValidatesAlgorithm)
 {
 
     // Test with identity-like pattern to validate algorithm
