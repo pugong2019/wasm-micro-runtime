@@ -40,3 +40,8 @@ samples/workload/include/**
 !samples/workload/include/.gitkeep
 
 # core/iwasm/libraries/wasi-threads
+
+# niecheng specified generated files
+tests/unit/step_coverage.info
+tests/unit/step_coverage_report/
+tests/unit/wamr-lcov.zip
