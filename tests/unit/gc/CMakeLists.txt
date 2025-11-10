@@ -41,40 +41,7 @@ set (unit_test_sources
 add_executable (gc_test ${unit_test_sources})
 target_link_libraries (gc_test gtest_main)
 
-add_executable (gc_common_test gc_common_test.cc ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE} ${SRC_LIST} ${PLATFORM_SHARED_SOURCE} ${UTILS_SHARED_SOURCE} ${MEM_ALLOC_SHARED_SOURCE} ${LIB_HOST_AGENT_SOURCE} ${NATIVE_INTERFACE_SOURCE} ${LIBC_BUILTIN_SOURCE} ${IWASM_COMMON_SOURCE} ${IWASM_INTERP_SOURCE} ${IWASM_AOT_SOURCE} ${IWASM_COMPL_SOURCE} ${WASM_APP_LIB_SOURCE_ALL})
-target_link_libraries (gc_common_test gtest_main)
-
-add_executable (gc_object_test gc_object_test.cc ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE} ${SRC_LIST} ${PLATFORM_SHARED_SOURCE} ${UTILS_SHARED_SOURCE} ${MEM_ALLOC_SHARED_SOURCE} ${LIB_HOST_AGENT_SOURCE} ${NATIVE_INTERFACE_SOURCE} ${LIBC_BUILTIN_SOURCE} ${IWASM_COMMON_SOURCE} ${IWASM_INTERP_SOURCE} ${IWASM_AOT_SOURCE} ${IWASM_COMPL_SOURCE} ${WASM_APP_LIB_SOURCE_ALL})
-target_link_libraries (gc_object_test gtest_main)
-
-add_executable (gc_type_test gc_type_test.cc ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE} ${SRC_LIST} ${PLATFORM_SHARED_SOURCE} ${UTILS_SHARED_SOURCE} ${MEM_ALLOC_SHARED_SOURCE} ${LIB_HOST_AGENT_SOURCE} ${NATIVE_INTERFACE_SOURCE} ${LIBC_BUILTIN_SOURCE} ${IWASM_COMMON_SOURCE} ${IWASM_INTERP_SOURCE} ${IWASM_AOT_SOURCE} ${IWASM_COMPL_SOURCE} ${WASM_APP_LIB_SOURCE_ALL})
-target_link_libraries (gc_type_test gtest_main)
-
-add_executable (gc_simple_test gc_simple_test.cc ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE} ${SRC_LIST} ${PLATFORM_SHARED_SOURCE} ${UTILS_SHARED_SOURCE} ${MEM_ALLOC_SHARED_SOURCE} ${LIB_HOST_AGENT_SOURCE} ${NATIVE_INTERFACE_SOURCE} ${LIBC_BUILTIN_SOURCE} ${IWASM_COMMON_SOURCE} ${IWASM_INTERP_SOURCE} ${IWASM_AOT_SOURCE} ${IWASM_COMPL_SOURCE} ${WASM_APP_LIB_SOURCE_ALL})
-target_link_libraries (gc_simple_test gtest_main)
-
 add_custom_command(TARGET gc_test POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy
-  ${CMAKE_CURRENT_LIST_DIR}/wasm-apps/*.was*
-  ${CMAKE_CURRENT_BINARY_DIR}
-  COMMENT "Copy wasm files to directory ${CMAKE_CURRENT_BINARY_DIR}"
-)
-
-add_custom_command(TARGET gc_common_test POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy
-  ${CMAKE_CURRENT_LIST_DIR}/wasm-apps/*.was*
-  ${CMAKE_CURRENT_BINARY_DIR}
-  COMMENT "Copy wasm files to directory ${CMAKE_CURRENT_BINARY_DIR}"
-)
-
-add_custom_command(TARGET gc_object_test POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy
-  ${CMAKE_CURRENT_LIST_DIR}/wasm-apps/*.was*
-  ${CMAKE_CURRENT_BINARY_DIR}
-  COMMENT "Copy wasm files to directory ${CMAKE_CURRENT_BINARY_DIR}"
-)
-
-add_custom_command(TARGET gc_type_test POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy
   ${CMAKE_CURRENT_LIST_DIR}/wasm-apps/*.was*
   ${CMAKE_CURRENT_BINARY_DIR}
