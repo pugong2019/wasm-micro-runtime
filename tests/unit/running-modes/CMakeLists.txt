@@ -34,9 +34,9 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 include(${IWASM_DIR}/compilation/iwasm_compl.cmake)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-list(FILTER source_all EXCLUDE REGEX "${CMAKE_CURRENT_BINARY_DIR}/.*")
+# list(FILTER source_all EXCLUDE REGEX "${CMAKE_CURRENT_BINARY_DIR}/.*")
 
-set(UNIT_SOURCE ${source_all})
+# set(UNIT_SOURCE ${source_all})
 
 # Define source file categories
 set(NUMERIC_SOURCES
@@ -206,7 +206,7 @@ aux_source_directory(. SRC_LIST)
 set(common_test_sources
     ${WAMR_RUNTIME_LIB_SOURCE}
     ${UNCOMMON_SHARED_SOURCE}
-    ${SRC_LIST}
+    # ${SRC_LIST}
 )
 
 # FastJIT Numeric Tests
