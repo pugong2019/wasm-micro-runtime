@@ -141,6 +141,9 @@ list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_i32x4_gt_s_test.cc)
 # Ensure i16x8.ge_s test is included
 list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_i16x8_ge_s_test.cc)
 
+# Ensure i8x16.le_u test is included
+list(APPEND source_all ${CMAKE_CURRENT_SOURCE_DIR}/enhanced_i8x16_le_u_test.cc)
+
 set(UNIT_SOURCE ${source_all})
 
 # Prepare unit test sources
