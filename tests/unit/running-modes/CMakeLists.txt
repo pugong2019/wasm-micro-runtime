@@ -151,6 +151,7 @@ set(CTRL_FLOW_SOURCES
     enhanced_return_call_ref_test.cc
     enhanced_end_test.cc
     enhanced_select_test.cc
+    enhanced_call_fastjit_test.cc
 )
 
 set(VARIABLE_SOURCES

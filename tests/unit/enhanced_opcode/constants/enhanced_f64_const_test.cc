@@ -15,10 +15,7 @@
 #include "bh_read_file.h"
 
 static std::string CWD;
-static std::string WASM_FILE;
-
-static int app_argc;
-static char **app_argv;
+static std::string WASM_FILE = "wasm-apps/f64_const_test.wasm";
 
 /**
  * Test fixture for f64.const opcode validation
@@ -372,20 +369,20 @@ INSTANTIATE_TEST_SUITE_P(RunningModeTest, F64ConstTest,
                              return info.param == Mode_Interp ? "INTERP" : "AOT";
                          });
 
-int main(int argc, char **argv)
-{
-    char *cwd = getcwd(NULL, 0);
-    if (cwd) {
-        CWD = std::string(cwd);
-        free(cwd);
-    } else {
-        CWD = ".";
-    }
-    WASM_FILE = CWD + "/wasm-apps/f64_const_test.wasm";
+// int main(int argc, char **argv)
+// {
+//     char *cwd = getcwd(NULL, 0);
+//     if (cwd) {
+//         CWD = std::string(cwd);
+//         free(cwd);
+//     } else {
+//         CWD = ".";
+//     }
+//     WASM_FILE = CWD + "/wasm-apps/f64_const_test.wasm";
 
-    app_argc = argc;
-    app_argv = argv;
+//     app_argc = argc;
+//     app_argv = argv;
 
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+//     testing::InitGoogleTest(&argc, argv);
+//     return RUN_ALL_TESTS();
+// }

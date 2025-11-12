@@ -32,8 +32,8 @@
 #include "bh_read_file.h"
 
 static std::string CWD;
-static std::string WASM_FILE = "/wasm-apps/memory_init_test.wasm";
-static std::string WASM_FILE_ERROR_TEST = "/wasm-apps/memory_init_error_test.wasm";
+static std::string WASM_FILE = "wasm-apps/memory_init_test.wasm";
+static std::string WASM_FILE_ERROR_TEST = "wasm-apps/memory_init_error_test.wasm";
 static int app_argc;
 static char **app_argv;
 
@@ -359,21 +359,21 @@ INSTANTIATE_TEST_SUITE_P(RunningMode, MemoryInitTest,
                          testing::PrintToStringParamName());
 
 // Test environment initialization
-class MemoryInitTestEnvironment : public testing::Environment
-{
-  public:
-    void SetUp() override
-    {
-        char *cwd_ptr = getcwd(nullptr, 0);
-        ASSERT_NE(cwd_ptr, nullptr) << "Failed to get current working directory";
+// class MemoryInitTestEnvironment : public testing::Environment
+// {
+//   public:
+//     void SetUp() override
+//     {
+//         char *cwd_ptr = getcwd(nullptr, 0);
+//         ASSERT_NE(cwd_ptr, nullptr) << "Failed to get current working directory";
 
-        CWD = std::string(cwd_ptr);
-        free(cwd_ptr);
+//         CWD = std::string(cwd_ptr);
+//         free(cwd_ptr);
 
-        WASM_FILE = CWD + "/wasm-apps/memory_init_test.wasm";
-        WASM_FILE_ERROR_TEST = CWD + "/wasm-apps/memory_init_error_test.wasm";
-    }
-};
+//         WASM_FILE = CWD + "/wasm-apps/memory_init_test.wasm";
+//         WASM_FILE_ERROR_TEST = CWD + "/wasm-apps/memory_init_error_test.wasm";
+//     }
+// };
 
 // int main(int argc, char *argv[])
 // {

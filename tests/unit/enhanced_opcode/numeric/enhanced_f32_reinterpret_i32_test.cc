@@ -17,8 +17,8 @@
 #include "bh_read_file.h"
 
 static std::string CWD;
-static std::string WASM_FILE;
-static std::string WASM_FILE_STACK_UNDERFLOW;
+static std::string WASM_FILE = "wasm-apps/f32_reinterpret_i32_test.wasm";
+static std::string WASM_FILE_STACK_UNDERFLOW = "wasm-apps/f32_reinterpret_i32_stack_underflow.wat";
 
 static int app_argc;
 static char **app_argv;

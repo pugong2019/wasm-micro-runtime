@@ -14,9 +14,7 @@
 #include "wasm_runtime_common.h"
 #include "bh_read_file.h"
 
-static std::string CWD;
-static std::string WASM_FILE;
-
+static std::string WASM_FILE = "wasm-apps/f32_const_test.wasm";
 static int app_argc;
 static char **app_argv;
 
@@ -380,21 +378,21 @@ INSTANTIATE_TEST_SUITE_P(RunningModeTest, F32ConstTest,
                              return info.param == Mode_Interp ? "INTERP" : "AOT";
                          });
 
-int main(int argc, char **argv)
-{
-    char *cwd = getcwd(NULL, 0);
-    if (cwd) {
-        CWD = std::string(cwd);
-        free(cwd);
-    } else {
-        CWD = ".";
-    }
+// int main(int argc, char **argv)
+// {
+//     char *cwd = getcwd(NULL, 0);
+//     if (cwd) {
+//         CWD = std::string(cwd);
+//         free(cwd);
+//     } else {
+//         CWD = ".";
+//     }
 
-    WASM_FILE = CWD + "/wasm-apps/f32_const_test.wasm";
+//     WASM_FILE = CWD + "/wasm-apps/f32_const_test.wasm";
 
-    app_argc = argc;
-    app_argv = argv;
+//     app_argc = argc;
+//     app_argv = argv;
 
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+//     ::testing::InitGoogleTest(&argc, argv);
+//     return RUN_ALL_TESTS();
+// }
