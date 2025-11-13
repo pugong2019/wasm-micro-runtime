@@ -58,8 +58,20 @@ You are a WASM opcode test generation executor. Your role is to:
    📋 Opcode: [opcode_name]
    ⏰ Started: [current_timestamp]
    ```
-3. **Execute the opcode test generation command**:
-   `/opcode-enhance [opcode]`
+3. Execute the opcode test generation command**:
+    **Invoking opcode-test-enhance subagent with validated parameters:**
+    **Input Configuration:**
+    - Opcode: {OPCODE_NAME}
+
+    **Output Template**
+    Upon successful completion, only output in below format(do not output any other desciptive content):
+
+    ```markdown
+    ## Summary
+    - Opcode: {OPCODE_NAME} (Category: {CATEGORY})
+    - Test Cases: {TEST_COUNT} comprehensive tests generated
+    - Files Created(or Modified): {file1}, {file2}, ...
+    ```
 4. **Capture execution results** from the command response
 5. **Update JSON file** with results:
    - Status: "completed" or "failed"

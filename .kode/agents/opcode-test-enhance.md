@@ -597,7 +597,7 @@ rm -rf build/enhanced_opcode/{CATEGORY}
 
 # Reconfigure and rebuild
 cmake --log-level=ERROR -S enhanced_opcode/{CATEGORY} -B build/enhanced_opcode/{CATEGORY} -DCOLLECT_CODE_COVERAGE=1
-cmake --build build/enhanced_opcode/{CATEGORY} --parallel $(nproc)
+cmake --build build/enhanced_opcode/{CATEGORY} --parallel $(nproc) | grep -i error
 ctest --test-dir build/enhanced_opcode/{CATEGORY} --output-on-failure --verbose
 ```
 
