@@ -1,0 +1,174 @@
+# WAMR AOT Compiler Current Coverage Analysis Report
+
+## Executive Summary
+
+**Analysis Date**: 2025-01-11  
+**Source File**: `core/iwasm/compilation/aot_compiler.c`  
+**Test Module**: `tests/unit/compilation/`  
+**Total Test Files**: 18  
+**Current Coverage Status**: **Moderate** (Estimated 45-55%)
+
+## Source Code Analysis
+
+### Key Functions in `aot_compiler.c`
+
+1. **Main Compilation Functions**
+   - `aot_compile_wasm()` - Main compilation entry point
+   - `aot_compile_func()` - Function-level compilation
+   - `aot_validate_wasm()` - WASM module validation
+
+2. **Code Generation Functions**
+   - `aot_emit_object_file()` - Object file emission
+   - `aot_emit_llvm_file()` - LLVM IR emission
+   - `aot_generate_tempfile_name()` - Temporary file generation
+
+3. **Frame Management Functions**
+   - `init_comp_frame()` - Frame initialization
+   - `aot_gen_commit_values()` - Value commitment
+   - `aot_gen_commit_sp_ip()` - Stack pointer/IP commitment
+
+4. **Utility Functions**
+   - `read_leb()` - LEB128 decoding
+   - `store_value()` - Value storage
+   - `store_ref()` - Reference storage
+
+## Existing Test Coverage Analysis
+
+### ✅ Well-Covered Areas
+
+1. **Main Compilation Flow** (`aot_compiler_test.cc`)
+   - Object file emission with various options
+   - LLVM IR file emission
+   - Compilation option combinations
+
+2. **Error Handling** (`aot_test.cc`)
+   - Error message setting/getting
+   - Error state management
+   - Format string error handling
+
+3. **Compilation Data Management** (`aot_test.cc`)
+   - AOTCompData creation/destruction
+   - Memory/table initialization
+   - Function/type initialization
+
+### ❌ Major Coverage Gaps
+
+#### P0 Priority Gaps (Critical)
+
+1. **Function Compilation Core Logic**
+   - `aot_compile_func()` - **0% coverage**
+   - Opcode dispatch logic (lines 1062-3928)
+   - Branch table compilation
+   - Exception handling paths
+
+2. **Frame Management**
+   - `init_comp_frame()` - **0% coverage**
+   - `aot_gen_commit_values()` - **0% coverage**
+   - `aot_gen_commit_sp_ip()` - **0% coverage**
+
+3. **WASM Validation**
+   - `aot_validate_wasm()` - **0% coverage**
+   - Memory64 validation
+   - Reference type validation
+
+#### P1 Priority Gaps (High)
+
+1. **Memory Management**
+   - `store_value()` - **0% coverage**
+   - `store_ref()` - **0% coverage**
+   - Memory allocation failure paths
+
+2. **Utility Functions**
+   - `read_leb()` - **0% coverage**
+   - LEB128 decoding edge cases
+   - Buffer boundary checks
+
+3. **External Compiler Integration**
+   - External LLC compiler paths
+   - External ASM compiler paths
+   - Stack usage file generation
+
+#### P2 Priority Gaps (Medium)
+
+1. **SIMD Compilation**
+   - SIMD opcode handling (lines 2780-3923)
+   - Vector operations
+   - Lane operations
+
+2. **Atomic Operations**
+   - Shared memory operations
+   - Atomic RMW operations
+   - Memory ordering
+
+3. **GC Operations**
+   - Garbage collection operations
+   - Reference type operations
+   - String reference operations
+
+## Test Quality Assessment
+
+### ✅ Strengths
+
+- **Good Error Handling Coverage**: Comprehensive error state testing
+- **Option Combination Testing**: Multiple compilation option permutations
+- **Resource Management**: Proper cleanup and destruction testing
+- **Platform Independence**: Architecture-agnostic testing approach
+
+### ❌ Weaknesses
+
+- **Core Logic Untested**: Main compilation logic has minimal coverage
+- **No Negative Testing**: Missing failure path testing
+- **Limited Edge Cases**: Boundary conditions not covered
+- **No Performance Testing**: Missing stress/performance tests
+
+## Critical Missing Test Scenarios
+
+### 1. Function Compilation Failure Paths
+- Invalid opcode handling
+- Memory allocation failures
+- LLVM API failures
+- Buffer overflow scenarios
+
+### 2. Frame Management Edge Cases
+- Maximum stack size limits
+- Invalid frame initialization
+- Reference flag corruption
+
+### 3. WASM Validation Edge Cases
+- Invalid memory configurations
+- Unsupported feature combinations
+- Platform-specific limitations
+
+### 4. External Tool Integration
+- Compiler tool failures
+- File system errors
+- Permission issues
+
+## Recommendations
+
+### Immediate Actions (P0)
+1. Add tests for `aot_compile_func()` with representative WASM modules
+2. Test frame management functions with various data types
+3. Validate WASM module validation logic
+4. Test LEB128 decoding edge cases
+
+### Short-term Actions (P1)
+1. Add memory management failure tests
+2. Test external compiler integration paths
+3. Add SIMD compilation tests
+4. Test atomic operation compilation
+
+### Long-term Actions (P2)
+1. Add performance/stress testing
+2. Test platform-specific compilation
+3. Add fuzz testing for opcode dispatch
+4. Test complex WASM feature combinations
+
+## Estimated Coverage Improvement Potential
+
+- **Current Coverage**: ~50%
+- **Target Coverage**: 80%+
+- **Lines to Cover**: ~2,500 additional lines
+- **Test Cases Needed**: ~100-150 new test cases
+
+This analysis provides a roadmap for systematically improving test coverage of the WAMR AOT compiler module.

@@ -1,9 +1,9 @@
 #!/bin/bash
-# only need for first time clone repo
+# only need for first time of init repo
+#python3 ./build-scripts/build_llvm.py
+
 echo "***** check for current work dir*****"
-cd tests/unit/
 pwd
-python3 ./build-scripts/build_llvm.py
 
 #echo make all unit test case
 echo "*****  cmake -S . -B build -DCOLLECT_CODE_COVERAGE=1... ***** "
@@ -21,5 +21,13 @@ ctest --test-dir build
 echo "***** calculate coverage *****"
 ../wamr-test-suites/spec-test-script/collect_coverage.sh unit.lcov ./build/
 
-lcov --summary ./build/unit.lcov
-lcov --list build/unit.lcov
+# print coverage in stdout
+#lcov --summary ./build/unit.lcov 
+#lcov --list build/unit.lcov
+
+# print SIMD module coverage
+lcov --list build/unit.lcov | grep iwasm/compilation/simd/
+
+#lcov --list build/unit.lcov | grep iwasm/compilation/simd/ > ./compilation/docs/ut_coverage/SIMD_coverage.log 2>&1
+
+# lcov --capture --directory . --output-file step_coverage.info && genhtml step_coverage.info --output-directory step_coverage_report

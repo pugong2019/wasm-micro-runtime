@@ -11,7 +11,7 @@
 #include "bh_read_file.h"
 
 static std::string CWD;
-static std::string MAIN_WASM = "/main.wasm";
+static std::string FLOATING_POINT_WASM = "/simd_floating_point_test.wasm";
 static char *WASM_FILE;
 
 static std::string
@@ -39,7 +39,7 @@ class simd_floating_point_test_suit : public testing::Test
     static void SetUpTestCase()
     {
         CWD = get_binary_path();
-        WASM_FILE = strdup((CWD + MAIN_WASM).c_str());
+        WASM_FILE = strdup((CWD + FLOATING_POINT_WASM).c_str());
     }
 
     virtual void TearDown() {}

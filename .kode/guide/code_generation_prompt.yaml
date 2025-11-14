@@ -1,0 +1,84 @@
+name: "Test Case Generation Layer"
+description: "Prompts for creating comprehensive test scenarios"
+version: "1.0"
+
+
+TESTCASE_001:
+  name: "Comprehensive Test Scenario Generation"
+  category: "test_planning"
+  prompt: |
+    Based on the code analysis, generate complete test cases for function [function_name].
+    
+    Code Analysis Summary: [analysis_summary_file]
+    
+    Requirements:
+    - Normal operation tests with valid inputs
+    - Boundary condition tests (min/max values)
+    - Error condition tests (invalid inputs, edge cases)
+    - Performance and stress tests where applicable
+    - Each test case must include: description, preconditions, input data, expected output, postconditions
+    - Use this test framework template: [framework_example]
+  
+    usage: "Generating test scenarios from code analysis"
+    expected_output: "Structured test cases with inputs and expected outputs"
+    output_format: "test_case_table"
+
+TESTCASE_002:
+  name: "Boundary Value Analysis"
+  category: "boundary_testing"
+  prompt: |
+    Generate boundary value test cases for function [function_name]. 
+    
+    Focus on:
+    - Minimum and maximum input values for each parameter
+    - Edge cases for array indices and pointer arithmetic
+    - Null pointer and invalid pointer cases
+    - Overflow/underflow conditions for numeric types
+    - Boundary conditions for loop iterations
+    - File size and memory allocation limits
+    
+    For each boundary, provide both valid and invalid test cases.
+
+    usage: "Specific boundary testing"
+    expected_output: "Boundary-focused test cases"
+    output_format: "boundary_test_matrix"
+    output_file: [file_name]
+
+TESTCASE_003:
+  name: "Error Path Coverage"
+  category: "error_testing"
+  prompt: |
+    Generate test cases specifically for error paths in function [function_name].
+    
+    Known Error Conditions: [error_conditions]
+    
+    Cover:
+    - All error return paths identified in the code
+    - System call failures (malloc, fopen, etc.)
+    - Network and I/O error simulations
+    - Invalid state transitions
+    - Resource exhaustion scenarios
+    - Concurrency-related errors
+
+    usage: "Error path testing"
+    expected_output: "Error condition test suite"
+    output_format: "error_test_scenarios"
+
+TESTCASE_004:
+  name: "State-Based Testing"
+  category: "state_testing"
+  prompt: |
+    Generate state-based test cases for function [function_name].
+    
+    Function State Machine: [state_machine_description]
+    
+    Create tests that cover:
+    - All possible state transitions
+    - Invalid state transitions (should be rejected)
+    - State persistence across multiple calls
+    - Concurrent state modifications
+    - State cleanup and initialization sequences
+    
+    usage: "Stateful function testing"
+    expected_output: "State transition test cases"
+    output_format: "state_transition_table"

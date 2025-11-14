@@ -1,0 +1,85 @@
+name: "Code Analysis"
+description: "Prompts for analyzing C code structure and functionality"
+version: "1.0"
+
+ANALYSIS_1:
+  name: "Basic Function Analysis"
+  category: "static_analysis"
+  prompt: |
+    You are a senior C testing expert. Analyze the following C code:
+    
+    [code_segment]
+    
+    Please provide:
+    1. The main functionality of this function
+    2. Input parameter boundary conditions
+    3. Possible execution paths
+    4. Code branches that might be hard to cover
+    5. Any error handling mechanisms
+    6. Memory management patterns
+
+    usage: "Initial code analysis phase"
+    expected_output: "Structured analysis of function behavior and testing requirements"
+    output_format: "markdown_report"
+    output_file: [file_name]
+    
+ANALYSIS_2:
+  name: "Dependency and Context Analysis"
+  category: "dependency_mapping"
+  prompt: |
+    Analyze the dependencies and context for this C function:
+    
+    [code_segment]
+    
+    Identify:
+    1. External function dependencies and their signatures
+    2. Global variables or state dependencies
+    3. Preconditions and postconditions
+    4. Memory allocation and deallocation patterns
+    5. Header file inclusions required
+    6. Compilation flags or macros that affect behavior
+
+    usage: "Understanding test environment setup"
+    expected_output: "Dependency mapping and test setup requirements"
+    output_format: "structured_json"
+    output_file: [file_name]
+
+ANALYSIS_3:
+  name: "Control Flow Analysis"
+  category: "path_analysis"
+  prompt: |
+    Perform detailed control flow analysis for this C function:
+    
+    [code_segment]
+    
+    Map out:
+    1. All possible execution paths
+    2. Conditional branches and their conditions
+    3. Loop structures and iteration patterns
+    4. Function exit points
+    5. Error propagation paths
+
+    usage: "Path coverage planning"
+    expected_output: "Control flow graph description"
+    output_format: "graph_description"
+    output_file: [file_name]
+
+ANALYSIS_4:
+  name: "Data Flow Analysis"
+  category: "data_analysis"
+  prompt: |
+    Analyze data flow patterns in this C function:
+    
+    [code_segment]
+    
+    Examine:
+    1. Variable definitions and uses
+    2. Data dependencies between statements
+    3. Input-to-output data transformations
+    4. Potential data races or aliasing issues
+    5. Lifetime of dynamically allocated memory
+    
+    usage: "Data-focused testing strategy"
+    expected_output: "Data flow analysis report"
+    output_format: "structured_report"
+    output_file: [file_name]

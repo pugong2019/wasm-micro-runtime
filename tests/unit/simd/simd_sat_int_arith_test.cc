@@ -11,7 +11,7 @@
 #include "bh_read_file.h"
 
 static std::string CWD;
-static std::string MAIN_WASM = "/main.wasm";
+static std::string SAT_INT_ARITH_WASM = "/simd_sat_int_arith_test.wasm";
 static char *WASM_FILE;
 
 static std::string
@@ -31,7 +31,7 @@ get_binary_path()
     return std::string(cwd);
 }
 
-class simd_construct_values_test_suit : public testing::Test
+class simd_sat_int_arith_test_suit : public testing::Test
 {
   protected:
     virtual void SetUp() {}
@@ -39,7 +39,7 @@ class simd_construct_values_test_suit : public testing::Test
     static void SetUpTestCase()
     {
         CWD = get_binary_path();
-        WASM_FILE = strdup((CWD + MAIN_WASM).c_str());
+        WASM_FILE = strdup((CWD + SAT_INT_ARITH_WASM).c_str());
     }
 
     virtual void TearDown() {}
@@ -49,8 +49,8 @@ class simd_construct_values_test_suit : public testing::Test
     WAMRRuntimeRAII<512 * 1024> runtime;
 };
 
-// Test SIMD vector constant construction
-TEST_F(simd_construct_values_test_suit, simd_vector_constant_construction)
+// Test SIMD i8x16 saturated arithmetic operations
+TEST_F(simd_sat_int_arith_test_suit, simd_i8x16_saturate_operations)
 {
     const char *wasm_file = WASM_FILE;
     unsigned int wasm_file_size = 0;
@@ -79,7 +79,7 @@ TEST_F(simd_construct_values_test_suit, simd_vector_constant_construction)
     comp_ctx = aot_create_comp_context(comp_data, &option);
     EXPECT_NE(comp_ctx, nullptr);
 
-    // Test that SIMD vector constant compilation context is properly configured
+    // Test that SIMD i8x16 saturated arithmetic compilation context is properly configured
     EXPECT_STREQ(aot_get_last_error(), "");
     EXPECT_TRUE(aot_compile_wasm(comp_ctx));
 
@@ -90,8 +90,8 @@ TEST_F(simd_construct_values_test_suit, simd_vector_constant_construction)
     if (wasm_file_buf) BH_FREE(wasm_file_buf);
 }
 
-// Test SIMD splat operations
-TEST_F(simd_construct_values_test_suit, simd_splat_operations)
+// Test SIMD i16x8 saturated arithmetic operations
+TEST_F(simd_sat_int_arith_test_suit, simd_i16x8_saturate_operations)
 {
     const char *wasm_file = WASM_FILE;
     unsigned int wasm_file_size = 0;
@@ -120,7 +120,7 @@ TEST_F(simd_construct_values_test_suit, simd_splat_operations)
     comp_ctx = aot_create_comp_context(comp_data, &option);
     EXPECT_NE(comp_ctx, nullptr);
 
-    // Test that SIMD splat compilation context is properly configured
+    // Test that SIMD i16x8 saturated arithmetic compilation context is properly configured
     EXPECT_STREQ(aot_get_last_error(), "");
     EXPECT_TRUE(aot_compile_wasm(comp_ctx));
 

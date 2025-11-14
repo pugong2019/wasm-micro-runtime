@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.14)
 
-project (test-compilation)
+project (test-simd)
 
 add_definitions (-DRUN_ON_LINUX)
 
@@ -17,11 +17,7 @@ set (WAMR_BUILD_LIBC_WASI 0)
 set (WAMR_BUILD_APP_FRAMEWORK 0)
 set (WAMR_BUILD_THREAD_MGR 1)
 set (WAMR_BUILD_AOT 1)
-
-# Set GOOGLETEST_INCLUDED to prevent duplicate fetching when building as part of whole unit test suite
-if(NOT DEFINED GOOGLETEST_INCLUDED)
-    set(GOOGLETEST_INCLUDED 0)
-endif()
+set (WAMR_BUILD_SIMD 1)
 
 include (../unit_common.cmake)
 
@@ -38,13 +34,9 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 include (${IWASM_DIR}/compilation/iwasm_compl.cmake)
 
-include_directories (${CMAKE_CURRENT_SOURCE_DIR} ${WAMR_ROOT_DIR})
+include_directories (${CMAKE_CURRENT_SOURCE_DIR})
 
-file (GLOB_RECURSE source_all ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
-
-# Filter out all GoogleTest source files since they're already included via gtest-all.cc
-list(FILTER source_all EXCLUDE REGEX ".*googletest/.*\\.cc$")
-list(FILTER source_all EXCLUDE REGEX ".*googlemock/.*\\.cc$")
+file (GLOB source_all ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
 
 set (UNIT_SOURCE ${source_all})
 
@@ -67,20 +59,16 @@ set (unit_test_sources
     )
 
 # Now simply link against gtest or gtest_main as needed. Eg
-add_executable (compilation_test ${unit_test_sources})
+add_executable (simd_test ${unit_test_sources})
 
-target_link_libraries (compilation_test ${LLVM_AVAILABLE_LIBS} gtest_main gtest)
+target_link_libraries (simd_test ${LLVM_AVAILABLE_LIBS} gtest_main)
 
-add_custom_command(TARGET compilation_test POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy
-  ${CMAKE_CURRENT_LIST_DIR}/wasm-apps/main.wasm
-  ${CMAKE_CURRENT_BINARY_DIR}
-  COMMENT "Copy main.wasm to the directory: build/compilation."
-)
-
-add_custom_command(TARGET compilation_test POST_BUILD
+add_custom_command(TARGET simd_test POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy
   ${CMAKE_CURRENT_LIST_DIR}/wasm-apps/*.wasm
   ${CMAKE_CURRENT_BINARY_DIR}
-  COMMENT "Copy all test wasm files to build directory"
+  COMMENT "Copy WASM test files to the directory: build/simd."
 )
+
+include(GoogleTest)
+gtest_discover_tests(simd_test)

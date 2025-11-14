@@ -1,0 +1,14 @@
+iwasm/compilation/simd/simd_access_lanes.c     |13.7%   153|22.2%  18|    -    0
+iwasm/compilation/simd/simd_bit_shifts.c       |64.1%    64|60.0%   5|    -    0
+iwasm/compilation/simd/simd_bitmask_extracts.c |62.0%    50|60.0%   5|    -    0
+iwasm/compilation/simd/simd_bitwise_ops.c      |34.6%    78|75.0%   4|    -    0
+iwasm/compilation/simd/simd_bool_reductions.c  |55.8%    52|50.0%   6|    -    0
+iwasm/compilation/simd/simd_common.c           |54.8%    73|83.3%   6|    -    0
+iwasm/compilation/simd/simd_common.h           | 0.0%     3| 0.0%   1|    -    0
+iwasm/compilation/simd/simd_comparisons.c      |35.2%   122|70.0%  10|    -    0
+iwasm/compilation/simd/simd_construct_values.c |47.6%    63| 100%   2|    -    0
+iwasm/compilation/simd/simd_conversions.c      | 6.0%   285|16.7%  24|    -    0
+iwasm/compilation/simd/simd_floating_point.c   |12.0%   216|17.9%  28|    -    0
+iwasm/compilation/simd/simd_int_arith.c        |15.4%   162|20.8%  24|    -    0
+iwasm/compilation/simd/simd_load_store.c       |28.7%   178|55.6%   9|    -    0
+iwasm/compilation/simd/simd_sat_int_arith.c    |83.3%    18| 100%   3|    -    0

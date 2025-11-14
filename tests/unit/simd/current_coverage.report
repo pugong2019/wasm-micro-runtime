@@ -1,0 +1,126 @@
+# SIMD Access Lanes Current Coverage Analysis Report
+
+## Executive Summary
+- **Line Coverage**: 44.4% (68/153 lines)
+- **Function Coverage**: 94.4% (17/18 functions)
+- **Branch Coverage**: 53.5% (76/142 branches)
+- **Calls Coverage**: 43.3% (45/104 calls)
+
+## Critical Coverage Gaps Identified
+
+### 1. Uncovered Functions (1/18)
+- `aot_compile_simd_swizzle_common` (lines 120-213) - **0% coverage**
+
+### 2. Major Uncovered Code Paths
+
+#### Shuffle Operations (lines 12-51)
+- **Error paths completely uncovered**: All `goto fail` paths (lines 27, 32, 38, 44, 50)
+- **LLVM API failure handling**: HANDLE_FAILURE calls never executed
+- **Memory allocation failures**: simd_pop_v128_and_bitcast error paths
+
+#### Swizzle Operations (lines 56-224)
+- **x86-specific path**: `aot_compile_simd_swizzle_x86` partially covered (38 executions)
+- **Common path**: `aot_compile_simd_swizzle_common` completely uncovered (0 executions)
+- **Platform detection**: `is_target_x86` branch taken but common path never tested
+
+#### Extract Operations (lines 227-328)
+- **Error paths**: simd_lane_id_to_llvm_value failures (line 236)
+- **Extension operations**: Signed/unsigned extension paths partially covered
+- **Type-specific functions**: Mixed coverage across different SIMD types
+
+#### Replace Operations (lines 331-418)
+- **Error paths**: Memory allocation and LLVM API failures
+- **Type reduction**: Truncation operations for smaller types
+- **Stack operations**: PUSH_V128 error handling
+
+### 3. Critical Error Paths Never Executed
+
+#### LLVM API Failure Handling
+- `HANDLE_FAILURE("LLVMBuildShuffleVector")` - line 43
+- `HANDLE_FAILURE("LLVMBuildICmp")` - line 88
+- `HANDLE_FAILURE("LLVMBuildSelect")` - line 94
+- `HANDLE_FAILURE("LLVMBuildCall")` - line 103
+- `HANDLE_FAILURE("LLVMBuildBitCast")` - line 109
+
+#### Memory Allocation Failures
+- `simd_pop_v128_and_bitcast` failure paths
+- `simd_build_const_integer_vector` failures
+- `simd_build_splat_const_integer_vector` failures
+
+### 4. Platform-Specific Code Coverage
+
+#### x86 Optimization Path
+- **Covered**: x86 swizzle implementation (lines 56-118)
+- **Uncovered**: Common swizzle implementation (lines 120-213)
+- **Issue**: Platform detection works but only tests one path
+
+### 5. Test Quality Violations
+
+#### GTEST_SKIP() Usage (9 violations)
+- Function lookup failures result in test skipping
+- Missing validation of actual SIMD functionality
+- Incomplete error path testing
+
+## Detailed Function Coverage Analysis
+
+### Well-Covered Functions (>80%)
+- `aot_compile_simd_shuffle` - 57 executions
+- `aot_compile_simd_extract_i8x16` - 76 executions
+- `aot_compile_simd_extract_i16x8` - 38 executions
+- `aot_compile_simd_replace_i8x16` - 38 executions
+- `aot_compile_simd_replace_i16x8` - 38 executions
+
+### Partially Covered Functions (20-80%)
+- `aot_compile_simd_extract` - 190 executions (error paths missing)
+- `aot_compile_simd_replace` - 152 executions (error paths missing)
+- `aot_compile_simd_swizzle_x86` - 38 executions (error paths missing)
+
+### Uncovered Functions (0%)
+- `aot_compile_simd_swizzle_common` - 0 executions
+
+## Test Infrastructure Issues
+
+### 1. WASM Module Coverage
+- Current WASM module provides comprehensive test functions
+- But C++ tests don't exercise all available functions
+- Function lookup failures result in GTEST_SKIP() instead of proper error handling
+
+### 2. Error Path Testing
+- No tests simulate LLVM API failures
+- No tests simulate memory allocation failures
+- No tests validate error recovery behavior
+
+### 3. Platform Coverage
+- Only x86 optimization path tested
+- Common implementation path completely untested
+- No cross-platform validation
+
+## Priority Areas for Improvement
+
+### P0 - Critical (Immediate Action Required)
+1. Eliminate all GTEST_SKIP() violations
+2. Test error paths in shuffle/swizzle operations
+3. Cover common swizzle implementation
+
+### P1 - High Priority
+1. Test LLVM API failure scenarios
+2. Test memory allocation failure paths
+3. Validate error handling mechanisms
+
+### P2 - Medium Priority
+1. Improve branch coverage for extract/replace operations
+2. Test platform-specific code variations
+3. Enhance function call coverage
+
+### P3 - Low Priority
+1. Performance testing for SIMD operations
+2. Stress testing with large vectors
+3. Cross-platform compatibility validation
+
+## Coverage Enhancement Targets
+- **Target Line Coverage**: 85% (130/153 lines)
+- **Target Function Coverage**: 100% (18/18 functions)
+- **Target Branch Coverage**: 80% (114/142 branches)
+- **Target Calls Coverage**: 85% (88/104 calls)
+
+This analysis reveals significant opportunities for test enhancement, particularly in error path coverage and platform-specific code validation.

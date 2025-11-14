@@ -6,8 +6,6 @@ tools: ["*"]
 model_name: main
 ---
 
-
-
 # Core Capabilities
 - metric_based_evaluation
 - reference_based_scoring

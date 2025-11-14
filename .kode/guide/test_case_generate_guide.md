@@ -26,6 +26,7 @@ TEST_F(MyTest, SomeFunctionReturnsASSERTedValue) {
 ASSERT_TRUE(result == 0 || result != 0); // Always true - covers all integers!
 ASSERT_TRUE(result >= 0 || result < 0);  // Always true - covers all integers!
 ASSERT_TRUE(result == SUCCESS || result == FAILURE || result == OTHER); // Too permissive!
+ASSERT_TRUE(success)  // it has do nothing at all!
 ```
 
 ✅ **Good Examples:**

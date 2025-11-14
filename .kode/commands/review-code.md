@@ -9,7 +9,7 @@ progressMessage: reviewing the {file_name} code...
 ---
 
 ## Step 1: Check if test files 
-- review for {file_name}. refer info by ut file: "aot_compiler_test.cc"
+- review for {file_name}. refer info by ut file: ".kode/guide/test_case_generate_guide.md"
 - summary the "Required Fixes" or similar conclusion to a "TODO List"
 ## Step 2: Do the necessary fix
 - execute "TODO List" step-by-step

@@ -1,0 +1,257 @@
+# WAMR AOT Compiler Coverage Enhancement Plan
+
+## Executive Summary
+
+**Target Module**: `core/iwasm/compilation/aot_compiler.c`  
+**Current Coverage**: ~50% (Estimated)  
+**Target Coverage**: 80%+  
+**Implementation Timeline**: 4-6 weeks  
+**Priority Level**: High
+
+## Phase 1: Core Function Coverage (Week 1-2)
+
+### P0 Priority - Critical Functions
+
+#### 1.1 Function Compilation Core (`aot_compile_func`)
+- **Test Strategy**: Unit tests with representative WASM modules
+- **Coverage Target**: 80% of opcode dispatch logic
+- **Test Cases**: 25-30
+- **Key Focus Areas**:
+  - Basic opcode handling (arithmetic, memory, control flow)
+  - Branch table compilation
+  - Exception handling paths
+  - Function call/return operations
+
+#### 1.2 Frame Management (`init_comp_frame`, `aot_gen_commit_values`)
+- **Test Strategy**: Integration tests with various data types
+- **Coverage Target**: 90% of frame operations
+- **Test Cases**: 15-20
+- **Key Focus Areas**:
+  - Frame initialization with different parameter counts
+  - Value commitment for all data types
+  - Reference flag management
+  - Stack pointer/IP commitment
+
+#### 1.3 WASM Validation (`aot_validate_wasm`)
+- **Test Strategy**: Negative testing with invalid modules
+- **Coverage Target**: 100% of validation logic
+- **Test Cases**: 10-15
+- **Key Focus Areas**:
+  - Memory64 validation
+  - Reference type validation
+  - Multiple table validation
+  - Platform-specific limitations
+
+## Phase 2: Memory & Utility Functions (Week 3-4)
+
+### P1 Priority - High Importance
+
+#### 2.1 Memory Management (`store_value`, `store_ref`)
+- **Test Strategy**: Unit tests with various data types and alignments
+- **Coverage Target**: 95% of memory operations
+- **Test Cases**: 20-25
+- **Key Focus Areas**:
+  - All value types (i32, i64, f32, f64, v128, ref types)
+  - Different pointer sizes (32-bit vs 64-bit)
+  - Alignment requirements
+  - Memory allocation failure paths
+
+#### 2.2 LEB128 Decoding (`read_leb`)
+- **Test Strategy**: Boundary value testing
+- **Coverage Target**: 100% of decoding logic
+- **Test Cases**: 15-20
+- **Key Focus Areas**:
+  - Valid LEB128 sequences
+  - Invalid sequences (buffer overflow, malformed)
+  - Sign extension
+  - Maximum bit length checks
+
+#### 2.3 External Compiler Integration
+- **Test Strategy**: Mock-based testing
+- **Coverage Target**: 80% of external tool paths
+- **Test Cases**: 10-15
+- **Key Focus Areas**:
+  - External LLC compiler paths
+  - External ASM compiler paths
+  - Stack usage file generation
+  - Temporary file management
+
+## Phase 3: Advanced Features (Week 5-6)
+
+### P2 Priority - Medium Importance
+
+#### 3.1 SIMD Compilation
+- **Test Strategy**: Integration tests with SIMD WASM modules
+- **Coverage Target**: 70% of SIMD operations
+- **Test Cases**: 30-40
+- **Key Focus Areas**:
+  - Vector load/store operations
+  - Lane operations
+  - Comparison operations
+  - Arithmetic operations
+  - Conversion operations
+
+#### 3.2 Atomic Operations
+- **Test Strategy**: Unit tests with shared memory scenarios
+- **Coverage Target**: 80% of atomic operations
+- **Test Cases**: 15-20
+- **Key Focus Areas**:
+  - Atomic RMW operations
+  - Compare-and-swap operations
+  - Memory ordering
+  - Wait/notify operations
+
+#### 3.3 GC Operations
+- **Test Strategy**: Integration tests with GC-enabled modules
+- **Coverage Target**: 60% of GC operations
+- **Test Cases**: 20-25
+- **Key Focus Areas**:
+  - Reference type operations
+  - String reference operations
+  - Structure/array operations
+  - Type casting operations
+
+## Test Implementation Strategy
+
+### Test Framework Requirements
+
+#### 1. Test Infrastructure
+```cpp
+// Enhanced test fixture for AOT compilation
+class AOTCompilationTest : public testing::Test {
+protected:
+    void SetUp() override {
+        // Initialize WAMR runtime
+        // Create test WASM modules
+        // Set up compilation context
+    }
+    
+    void TearDown() override {
+        // Clean up resources
+        // Verify no memory leaks
+    }
+    
+    // Helper methods for creating test modules
+    wasm_module_t create_simple_module();
+    wasm_module_t create_module_with_opcodes(const std::vector<uint8_t>& opcodes);
+    AOTCompContext* create_test_comp_context(wasm_module_t module);
+};
+```
+
+#### 2. Test Data Generation
+- **WASM Module Templates**: Pre-compiled test modules for different scenarios
+- **Opcode Sequences**: Generated sequences for specific opcode testing
+- **Memory Layouts**: Various memory configurations for testing
+- **Type Combinations**: Different parameter/return type combinations
+
+#### 3. Mock Infrastructure
+- **LLVM API Mocks**: For testing LLVM integration failures
+- **Memory Allocation Mocks**: For testing allocation failures
+- **File System Mocks**: For testing file operations
+- **External Tool Mocks**: For testing compiler tool integration
+
+## Test Case Specifications
+
+### Core Function Test Cases (25-30)
+
+#### 1. `aot_compile_func` Tests
+- **BasicArithmeticCompilation**: Simple arithmetic operations
+- **ControlFlowCompilation**: If/else, loops, branches
+- **FunctionCallCompilation**: Direct and indirect calls
+- **MemoryOperationCompilation**: Load/store operations
+- **ExceptionHandlingCompilation**: Try/catch blocks
+
+#### 2. Frame Management Tests (15-20)
+- **FrameInitialization**: Various parameter/local combinations
+- **ValueCommitment**: All data type commitments
+- **ReferenceManagement**: GC reference operations
+- **StackPointerManagement**: SP/IP commitment scenarios
+
+#### 3. Validation Tests (10-15)
+- **MemoryValidation**: Memory64 and shared memory validation
+- **TableValidation**: Multiple table validation
+- **TypeValidation**: Reference type validation
+- **PlatformValidation**: Architecture-specific validation
+
+### Memory & Utility Tests (35-45)
+
+#### 4. Memory Operation Tests (20-25)
+- **ValueStorage**: All value type storage operations
+- **ReferenceStorage**: Reference type storage
+- **AlignmentTests**: Various alignment requirements
+- **PointerSizeTests**: 32-bit vs 64-bit pointer handling
+
+#### 5. LEB128 Tests (15-20)
+- **ValidDecoding**: Standard LEB128 sequences
+- **BoundaryDecoding**: Edge case sequences
+- **ErrorDecoding**: Malformed sequences
+- **PerformanceDecoding**: Large number decoding
+
+### Advanced Feature Tests (65-85)
+
+#### 6. SIMD Tests (30-40)
+- **VectorOperations**: Basic vector operations
+- **LaneOperations**: Lane extraction/replacement
+- **ComparisonOperations**: Vector comparisons
+- **ConversionOperations**: Type conversions
+
+#### 7. Atomic Tests (15-20)
+- **RMWOperations**: Read-modify-write operations
+- **CASOperations**: Compare-and-swap operations
+- **MemoryOrdering**: Different memory orders
+- **WaitNotify**: Wait/notify operations
+
+#### 8. GC Tests (20-25)
+- **ReferenceOperations**: Reference type operations
+- **StringOperations**: String reference operations
+- **StructureOperations**: Structure operations
+- **TypeOperations**: Type casting operations
+
+## Success Metrics
+
+### Coverage Targets
+- **Line Coverage**: 80%+
+- **Branch Coverage**: 75%+
+- **Function Coverage**: 90%+
+- **Condition Coverage**: 70%+
+
+### Quality Metrics
+- **Test Reliability**: 99%+ test pass rate
+- **Performance**: <10% test execution time increase
+- **Maintainability**: Clear, documented test cases
+- **Completeness**: All critical paths covered
+
+## Risk Mitigation
+
+### Technical Risks
+1. **Complex Dependencies**: Mock external dependencies thoroughly
+2. **Platform Differences**: Test on multiple architectures
+3. **Memory Management**: Use memory leak detection tools
+4. **Performance Impact**: Monitor test execution times
+
+### Implementation Risks
+1. **Scope Creep**: Focus on critical functions first
+2. **Resource Constraints**: Prioritize by impact
+3. **Integration Issues**: Test incrementally
+4. **Maintenance Burden**: Document test cases clearly
+
+## Timeline and Milestones
+
+### Week 1-2: Core Functions
+- Complete P0 priority tests
+- Achieve 60% line coverage
+- Validate test infrastructure
+
+### Week 3-4: Memory & Utilities
+- Complete P1 priority tests
+- Achieve 70% line coverage
+- Integrate with CI/CD
+
+### Week 5-6: Advanced Features
+- Complete P2 priority tests
+- Achieve 80%+ line coverage
+- Performance optimization
+
+## Conclusion
+
+This comprehensive coverage enhancement plan systematically addresses the major gaps in AOT compiler testing. By following this phased approach, we can significantly improve test coverage while maintaining code quality and reliability. The plan focuses on critical functions first, then expands to cover advanced features, ensuring that the most important code paths are thoroughly tested.
