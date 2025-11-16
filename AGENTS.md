@@ -90,8 +90,8 @@ TEST_F(FeatureTest, Function_Scenario_ExpectedOutcome) {
 ```bash
 # Build unit tests with coverage
 cd tests/unit/
-cmake -S . -B build -DCOLLECT_CODE_COVERAGE=1
-cmake --build build
+cmake  --log-level=ERROR -S . -B build -DCOLLECT_CODE_COVERAGE=1
+cmake --build build --parallel $(nproc) | grep -i error
 ctest --test-dir build
 ```
 
@@ -99,21 +99,11 @@ ctest --test-dir build
 ```bash
 # Generate comprehensive coverage report
 cd wasm-micro-runtime/tests/unit
-cmake -S . -B build -DCOLLECT_CODE_COVERAGE=1
-cmake --build build
+cmake  --log-level=ERROR -S . -B build -DCOLLECT_CODE_COVERAGE=1
+cmake --build build --parallel $(nproc) | grep -i error
 ctest --test-dir build
 ../wamr-test-suites/spec-test-script/collect_coverage.sh unit.lcov ./build/
 ```
-
-## Agent Delegation Workflows
-
-### Unit Test Enhancement
-When generating enhancement test case plans for target features or modules:
-**Delegate to feature-plan-designer subagent** for comprehensive plan design and strategy
-
-### Unit Test Code Generation
-When implementing enhancement test cases for target features or modules:
-**Delegate to plan-executor subagent** for code generation and execution
 
 ## Mandatory Requirements
 

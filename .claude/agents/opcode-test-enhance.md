@@ -476,7 +476,7 @@ ls -la enhanced_opcode/{CATEGORY}/
 Configure the build system with coverage support:
 ```bash
 # Configure CMake with coverage enabled
-cmake -S enhanced_opcode/{CATEGORY} -B build/enhanced_opcode/{CATEGORY} \
+cmake --log-level=ERROR -S enhanced_opcode/{CATEGORY} -B build/enhanced_opcode/{CATEGORY} \
       -DCOLLECT_CODE_COVERAGE=1
 ```
 **Configuration validation:**
@@ -488,7 +488,7 @@ cmake -S enhanced_opcode/{CATEGORY} -B build/enhanced_opcode/{CATEGORY} \
 Build the test suite using parallel compilation:
 ```bash
 # Build with parallel jobs for faster compilation
-cmake --build build/enhanced_opcode/{CATEGORY} --parallel $(nproc)
+cmake --build build/enhanced_opcode/{CATEGORY} --parallel $(nproc) | grep -i error
 ```
 **Compilation validation:**
 - Ensure zero compilation errors
@@ -596,7 +596,7 @@ rm -rf build/enhanced_opcode/{CATEGORY}
 
 # Reconfigure and rebuild
 cmake --log-level=ERROR -S enhanced_opcode/{CATEGORY} -B build/enhanced_opcode/{CATEGORY} -DCOLLECT_CODE_COVERAGE=1
-cmake --build build/enhanced_opcode/{CATEGORY} --parallel $(nproc)
+cmake --build build/enhanced_opcode/{CATEGORY} --parallel $(nproc) | grep -i error
 ctest --test-dir build/enhanced_opcode/{CATEGORY} --output-on-failure --verbose
 ```
 
