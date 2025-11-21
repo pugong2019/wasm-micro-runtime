@@ -75,6 +75,7 @@ if (NOT WAMR_BUILD_TARGET STREQUAL "X86_32")
   add_subdirectory (aot)
   add_subdirectory (custom-section)
   add_subdirectory (compilation)
+  add_subdirectory (simd)
 
   # Fast-JIT or mem64 is not supported on X86_32
   add_subdirectory (running-modes)

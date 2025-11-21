@@ -36,9 +36,10 @@ include (${IWASM_DIR}/compilation/iwasm_compl.cmake)
 
 include_directories (${CMAKE_CURRENT_SOURCE_DIR})
 
-file (GLOB source_all ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
+file (GLOB source_all_cc ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
+file (GLOB source_all_c ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
 
-set (UNIT_SOURCE ${source_all})
+set (UNIT_SOURCE ${source_all_cc} ${source_all_c})
 
 set (unit_test_sources
      ${UNIT_SOURCE}

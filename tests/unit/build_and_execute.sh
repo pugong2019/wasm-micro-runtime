@@ -11,19 +11,25 @@ cmake -S . -B build -DCOLLECT_CODE_COVERAGE=1
 
 # make 
 echo "*****  cmake --build build... ***** "
-cmake --build build 
+mkdir ./build/logs
+touch ./build/logs/cmake.log
+cmake --build build 2>&1 | tee ./build/logs/cmake.log
 
 # build
 echo "*****  ctest --test-dir build... ***** "
-ctest --test-dir build
+mkdir ./build/logs
+touch ./build/logs/ctest.log
+ctest --test-dir build 2>&1 | tee ./build/logs/ctest.log
 
 # coverage
 echo "***** calculate coverage *****"
 ../wamr-test-suites/spec-test-script/collect_coverage.sh unit.lcov ./build/
+unzip wamr-lcov.zip
 
 # print coverage in stdout
 #lcov --summary ./build/unit.lcov 
 #lcov --list build/unit.lcov
+
 
 # print SIMD module coverage
 lcov --list build/unit.lcov | grep iwasm/compilation/simd/

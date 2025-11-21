@@ -296,4 +296,150 @@
     ;; Replace last lane with 88
     (i8x16.replace_lane 15 (local.get $v) (i32.const 88))
   )
+  
+  ;; Additional swizzle tests for coverage
+  (func $test_swizzle_mixed_indices (export "test_swizzle_mixed_indices") (result v128)
+    (local $vector v128)
+    (local $mask v128)
+    ;; Create vector [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160]
+    (v128.const i8x16 10 20 30 40 50 60 70 80 90 100 110 120 130 140 150 160)
+    local.set $vector
+    ;; Create mask with mixed valid and invalid indices
+    (v128.const i8x16 7 15 31 16 0 8 24 11 5 9 19 1 3 12 28 14)
+    local.set $mask
+    ;; Apply swizzle with mixed indices
+    (i8x16.swizzle (local.get $vector) (local.get $mask))
+  )
+  
+  (func $test_swizzle_i16x8 (export "test_swizzle_i16x8") (result v128)
+    (local $vector v128)
+    (local $mask v128)
+    ;; Create vector [100, 200, 300, 400, 500, 600, 700, 800]
+    (v128.const i16x8 100 200 300 400 500 600 700 800)
+    local.set $vector
+    ;; Create mask for i16x8 swizzle
+    (v128.const i8x16 0 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7)
+    local.set $mask
+    ;; Apply swizzle
+    (i16x8.swizzle (local.get $vector) (local.get $mask))
+  )
+  
+  (func $test_swizzle_i32x4 (export "test_swizzle_i32x4") (result v128)
+    (local $vector v128)
+    (local $mask v128)
+    ;; Create vector [1000, 2000, 3000, 4000]
+    (v128.const i32x4 1000 2000 3000 4000)
+    local.set $vector
+    ;; Create mask for i32x4 swizzle
+    (v128.const i8x16 0 0 0 0 1 1 1 1 2 2 2 2 3 3 3 3)
+    local.set $mask
+    ;; Apply swizzle
+    (i32x4.swizzle (local.get $vector) (local.get $mask))
+  )
+  
+  (func $test_swizzle_f32x4 (export "test_swizzle_f32x4") (result v128)
+    (local $vector v128)
+    (local $mask v128)
+    ;; Create vector [1.1, 2.2, 3.3, 4.4]
+    (v128.const f32x4 1.1 2.2 3.3 4.4)
+    local.set $vector
+    ;; Create mask for f32x4 swizzle
+    (v128.const i8x16 0 0 0 0 1 1 1 1 2 2 2 2 3 3 3 3)
+    local.set $mask
+    ;; Apply swizzle
+    (f32x4.swizzle (local.get $vector) (local.get $mask))
+  )
+  
+  ;; Tests for signed/unsigned extension
+  (func $test_extract_signed_negative (export "test_extract_signed_negative") (result i32)
+    (local $v v128)
+    ;; Create vector with negative values
+    (v128.const i8x16 -1 -2 -3 -4 -5 -6 -7 -8 -9 -10 -11 -12 -13 -14 -15 -16)
+    local.set $v
+    ;; Extract lane 0 (should be -1, extended with sign)
+    (i8x16.extract_lane_s 0 (local.get $v))
+  )
+  
+  (func $test_extract_unsigned_negative (export "test_extract_unsigned_negative") (result i32)
+    (local $v v128)
+    ;; Create vector with negative values (which become large unsigned values)
+    (v128.const i8x16 -1 -2 -3 -4 -5 -6 -7 -8 -9 -10 -11 -12 -13 -14 -15 -16)
+    local.set $v
+    ;; Extract lane 0 as unsigned (should be 255)
+    (i8x16.extract_lane_u 0 (local.get $v))
+  )
+  
+  (func $test_i16x8_extract_signed_negative (export "test_i16x8_extract_signed_negative") (result i32)
+    (local $v v128)
+    ;; Create vector with negative values
+    (v128.const i16x8 -1000 -2000 -3000 -4000 -5000 -6000 -7000 -8000)
+    local.set $v
+    ;; Extract lane 3 (should be -4000, extended with sign)
+    (i16x8.extract_lane_s 3 (local.get $v))
+  )
+  
+  (func $test_i16x8_extract_unsigned_negative (export "test_i16x8_extract_unsigned_negative") (result i32)
+    (local $v v128)
+    ;; Create vector with negative values (which become large unsigned values)
+    (v128.const i16x8 -1000 -2000 -3000 -4000 -5000 -6000 -7000 -8000)
+    local.set $v
+    ;; Extract lane 3 as unsigned (should be 61536 for -4000)
+    (i16x8.extract_lane_u 3 (local.get $v))
+  )
+  
+  ;; Tests for truncation operations
+  (func $test_replace_truncate_i32_to_i8 (export "test_replace_truncate_i32_to_i8") (result v128)
+    (local $v v128)
+    ;; Create vector of zeros
+    (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
+    local.set $v
+    ;; Replace lane with value that will be truncated
+    (i8x16.replace_lane 0 (local.get $v) (i32.const 300)) ;; 300 truncates to 44 (0x12C -> 0x2C)
+  )
+  
+  (func $test_replace_truncate_i32_to_i16 (export "test_replace_truncate_i32_to_i16") (result v128)
+    (local $v v128)
+    ;; Create vector of zeros
+    (v128.const i16x8 0 0 0 0 0 0 0 0)
+    local.set $v
+    ;; Replace lane with value that will be truncated
+    (i16x8.replace_lane 0 (local.get $v) (i32.const 70000)) ;; 70000 truncates to 4464 (0x11170 -> 0x1170)
+  )
+  
+  (func $test_replace_truncate_negative (export "test_replace_truncate_negative") (result v128)
+    (local $v v128)
+    ;; Create vector of zeros
+    (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
+    local.set $v
+    ;; Replace lane with negative value that will be truncated
+    (i8x16.replace_lane 0 (local.get $v) (i32.const -257)) ;; -257 truncates to -1 (0xFF01 -> 0xFF)
+  )
+  
+  ;; Edge case for swizzle with all invalid indices
+  (func $test_swizzle_all_invalid (export "test_swizzle_all_invalid") (result v128)
+    (local $vector v128)
+    (local $mask v128)
+    ;; Create vector
+    (v128.const i8x16 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16)
+    local.set $vector
+    ;; Create mask with all invalid indices
+    (v128.const i8x16 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31)
+    local.set $mask
+    ;; Apply swizzle (should return all zeros)
+    (i8x16.swizzle (local.get $vector) (local.get $mask))
+  )
+  
+  ;; Edge case for swizzle with zero vector
+  (func $test_swizzle_zero_vector (export "test_swizzle_zero_vector") (result v128)
+    (local $vector v128)
+    (local $mask v128)
+    ;; Create zero vector
+    (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
+    local.set $vector
+    ;; Create mask
+    (v128.const i8x16 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15)
+    local.set $mask
+    ;; Apply swizzle
+    (i8x16.swizzle (local.get $vector) (local.get $mask))
+  )
 )
