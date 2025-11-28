@@ -153,7 +153,7 @@ protected:
         ASSERT_NE(cwd_ptr, nullptr) << "Failed to get current working directory";
         CWD = std::string(cwd_ptr);
         free(cwd_ptr);
-        WASM_FILE = CWD + "/wasm-apps/i32_rem_s_test.wasm";
+        WASM_FILE = CWD + "/running-modes/wasm-apps/i32_rem_s_test.wasm";
 
         // Initialize WAMR runtime
         RuntimeInitArgs init_args;

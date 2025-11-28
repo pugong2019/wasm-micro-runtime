@@ -101,12 +101,12 @@ protected:
         argv[7] = 0; // result high lane1
 
         // Call using DummyExecEnv execute method
-        bool success = dummy_env->execute(func_name, 8, argv);
+        bool success = dummy_env->execute(func_name, 4, argv);
 
         if (success && lane0 && lane1) {
             // Extract f64 values from result i32s
-            uint64_t lane0_bits = ((uint64_t)argv[5] << 32) | argv[4];
-            uint64_t lane1_bits = ((uint64_t)argv[7] << 32) | argv[6];
+            uint64_t lane0_bits = ((uint64_t)argv[1] << 32) | argv[0];
+            uint64_t lane1_bits = ((uint64_t)argv[3] << 32) | argv[2];
 
             memcpy(lane0, &lane0_bits, sizeof(double));
             memcpy(lane1, &lane1_bits, sizeof(double));

@@ -29,8 +29,8 @@
 #include "bh_read_file.h"
 
 static std::string CWD;
-static std::string WASM_FILE = "/wasm-apps/local_get_test.wasm";
-static std::string WASM_FILE_INVALID_INDEX = "/wasm-apps/local_get_invalid_index_test.wasm";
+static std::string WASM_FILE = "wasm-apps/local_get_test.wasm";
+static std::string WASM_FILE_INVALID_INDEX = "wasm-apps/local_get_invalid_index_test.wasm";
 
 static int
 app_argc;

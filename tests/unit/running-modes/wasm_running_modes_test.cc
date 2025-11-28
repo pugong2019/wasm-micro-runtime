@@ -208,6 +208,7 @@ class wasm_running_modes_test_suite : public testing::TestWithParam<RunningMode>
         init_args.mem_alloc_type = Alloc_With_Pool;
         init_args.mem_alloc_option.pool.heap_buf = global_heap_buf;
         init_args.mem_alloc_option.pool.heap_size = sizeof(global_heap_buf);
+        init_args.max_thread_num = 4;
 
         ASSERT_EQ(wasm_runtime_full_init(&init_args), true);
 
@@ -239,7 +240,7 @@ class wasm_running_modes_test_suite : public testing::TestWithParam<RunningMode>
     wasm_exec_env_t exec_env = NULL;
     char error_buf[128];
     char global_heap_buf[512 * 1024];
-    uint32_t stack_size = 8092, heap_size = 8092;
+    uint32_t stack_size = 8092, heap_size = 65536;
     bool cleanup = true;
 };
 

@@ -167,22 +167,19 @@ TEST_F(EnhancedWasmMemoryTest, WasmAllocateLinearMemory_NullParameters_HandlesGr
     uint64_t init_page_count = 1;
     uint64_t max_page_count = 5;
 
-    // Test will handle NULL data parameter gracefully due to bh_assert
-    // In debug builds, this would trigger assertion failure
-    // In release builds, behavior is undefined but should not crash in well-formed code
-
-    // Test with valid parameters to ensure baseline functionality works
+    // Since wasm_allocate_linear_memory uses bh_assert for parameter validation,
+    // we cannot safely test NULL parameters in debug builds as they will abort.
+    // Instead, test with valid parameters to ensure baseline functionality works.
     uint8_t* valid_data = nullptr;
     int result = wasm_allocate_linear_memory(&valid_data, is_shared_memory, is_memory64,
                                            num_bytes_per_page, init_page_count,
                                            max_page_count, &memory_data_size);
     ASSERT_EQ(BHT_OK, result);
     ASSERT_NE(nullptr, valid_data);
+    ASSERT_GT(memory_data_size, 0u);
 
-    // Cleanup
-    if (valid_data) {
-        wasm_deallocate_linear_memory((WASMMemoryInstance*)valid_data);
-    }
+    // Note: Memory allocated by wasm_allocate_linear_memory is managed by the runtime
+    // and should not be manually freed in unit tests
 }
 
 /******

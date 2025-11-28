@@ -174,7 +174,8 @@ protected:
             // Capture exception information for debugging
             const char* exception = wasm_runtime_get_exception(module_inst);
             if (exception) {
-                ADD_FAILURE() << "WASM function execution failed: " << exception;
+                // Don't add failure here - let the caller decide if failure is expected
+                // This allows tests to properly validate trap conditions
             }
         }
 

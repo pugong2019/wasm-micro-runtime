@@ -85,32 +85,24 @@ protected:
      * @return true if function execution succeeded, false otherwise
      */
     bool call_f64x2_function(const char* func_name, double input1, double input2, double* lane0, double* lane1) {
-        // Prepare function arguments
-        wasm_val_t args[2];
-        args[0].kind = WASM_F64;
-        args[0].of.f64 = input1;
-        args[1].kind = WASM_F64;
-        args[1].of.f64 = input2;
+        // Convert f64 values to i32 pairs for WASM calling convention
+        uint64_t input1_bits, input2_bits;
+        memcpy(&input1_bits, &input1, sizeof(double));
+        memcpy(&input2_bits, &input2, sizeof(double));
 
-        // Prepare result storage for v128 (4 i32 values)
-        wasm_val_t results[4];
-        results[0].kind = WASM_I32;
-        results[1].kind = WASM_I32;
-        results[2].kind = WASM_I32;
-        results[3].kind = WASM_I32;
+        uint32_t argv[4];
+        argv[0] = (uint32_t)(input1_bits & 0xFFFFFFFF);        // input1 low
+        argv[1] = (uint32_t)((input1_bits >> 32) & 0xFFFFFFFF); // input1 high
+        argv[2] = (uint32_t)(input2_bits & 0xFFFFFFFF);        // input2 low
+        argv[3] = (uint32_t)((input2_bits >> 32) & 0xFFFFFFFF); // input2 high
 
-        // Call the WASM function
-        wasm_function_inst_t func = wasm_runtime_lookup_function(
-            wasm_runtime_get_module_inst(dummy_env->get()), func_name);
-        if (!func) {
-            return false;
-        }
+        // Call using DummyExecEnv execute method
+        bool success = dummy_env->execute(func_name, 4, argv);
 
-        bool success = wasm_runtime_call_wasm_a(dummy_env->get(), func, 4, results, 2, args);
         if (success && lane0 && lane1) {
-            // Extract f64 values from v128 result
-            uint64_t lane0_bits = ((uint64_t)results[1].of.i32 << 32) | (uint32_t)results[0].of.i32;
-            uint64_t lane1_bits = ((uint64_t)results[3].of.i32 << 32) | (uint32_t)results[2].of.i32;
+            // Extract f64 values from result i32s
+            uint64_t lane0_bits = ((uint64_t)argv[1] << 32) | argv[0];
+            uint64_t lane1_bits = ((uint64_t)argv[3] << 32) | argv[2];
 
             memcpy(lane0, &lane0_bits, sizeof(double));
             memcpy(lane1, &lane1_bits, sizeof(double));

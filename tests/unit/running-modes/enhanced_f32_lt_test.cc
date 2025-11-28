@@ -55,7 +55,7 @@ class F32LtTest : public testing::TestWithParam<RunningMode>
         exec_env = nullptr;
         buf = nullptr;
 
-        buf = (uint8_t *)bh_read_file_to_buffer("wasm-apps/f32_lt_test.wasm", &buf_size);
+        buf = (uint8_t *)bh_read_file_to_buffer("running-modes/wasm-apps/f32_lt_test.wasm", &buf_size);
         ASSERT_NE(buf, nullptr) << "Failed to read WASM file: wasm-apps/f32_lt_test.wasm";
 
         module = wasm_runtime_load(buf, buf_size, error_buf, sizeof(error_buf));
